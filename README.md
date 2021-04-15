@@ -2,10 +2,10 @@
 2021 ALCF Computational Performance Workshop
 
 ## Tuesday, May 4
-- Enabling Workflows
-- Portability with OpenMP
-- Visualizing Your Data
-- Containers
+- [Enabling Workflows](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/00_workflows "Workflows")
+- [Portability with OpenMP](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/01_openmp "OpenMP")
+- [Visualizing Your Data](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/02_visualization "Visualization")
+- [Containers](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/03_containers "Containers")
 
 ## Wednesdasy, May 5
 - NVIDIA ecosystem
