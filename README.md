@@ -7,7 +7,7 @@
 - [Visualizing Your Data](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/02_visualization "Visualization")
 - [Containers](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/03_containers "Containers")
 
-## Wednesdasy, May 5
+## Wednesday, May 5
 - [NVIDIA ecosystem](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/04_nvidia "Nvidia")
 - [Scaling Deep Learning Apps](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/05_scaling-DL "Scaling DL")
 - [Portability with Kokkos/Raja](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/06_kokkos-raja "Kokkos")
