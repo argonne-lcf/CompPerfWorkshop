@@ -94,7 +94,7 @@ DDP generally scales better than horovod for pytorch at large node counts becaus
 
 It's only available with pytorch. It's only worthwhile with distributed training, and if your model is small than you won't see great scaling efficiency with either DDP or horovod.
 
-## Examples
+# Examples
 
 There are two examples included here, with pytorch using `mnist` and `cifar10`. Both are as similar as possible to the horovod examples, but with horovod steps replaced via DDP. Feel free to do a diff and see all the changes!
 
