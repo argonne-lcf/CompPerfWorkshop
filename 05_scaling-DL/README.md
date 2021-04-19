@@ -84,13 +84,13 @@ You simply replace your model with `DDP(model)` and DDP will synchronize the wei
 
 
 
-## DDP Performance
+### DDP Performance
 
 DDP generally scales better than horovod for pytorch at large node counts because it can begin the `allreduce` before the backwards pass has finished. On Summit, with 1,536 V100 GPUs, one ALCF model had a scaling efficiency of 97% with DDP compared to ~60% with Horovod.
 
 
 
-## When to use DDP
+### When to use DDP
 
 It's only available with pytorch. It's only worthwhile with distributed training, and if your model is small than you won't see great scaling efficiency with either DDP or horovod.
 
