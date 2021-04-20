@@ -2,7 +2,7 @@
 
 Author: Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
 
-**Note**: Heavily borrowed from [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by [Corey Adams](mailto:corey.adams@anl.gov) and [Huihuo Zheng](mailto:huihuo.zheng@anl.gov)
+**Note**:  The following was originally provided [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by __[Corey Adams](mailto:corey.adams@anl.gov)__ and __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__
 
 Pytorch has an additional built-in distributed data parallel package, DDP, short for "Distributed Data Parallel". It comes in `pytorch>=1.6`, and wraps your model (**not** your optimizer, like `horovod`) and performs computation and communication simultaneously.
 
@@ -10,15 +10,11 @@ Here is the pytorch documentation: https://pytorch.org/tutorials/intermediate/dd
 
 And their paper about this: https://arxiv.org/abs/2006.15704
 
-
-
 ## How does DDP work?
 
 In short, DDP wraps your model and figures out what tensors need to be allreduced and when. It leverages the situations where, during a sequential backward pass, the earliest tensors to be used going backwards (which are the latest in the model!) are ready for an allreduce operation much sooner than the latest tensors (which are the first in the model!). So, during the bakcwards pass the allreduce of tensors that are no longer needed in the graph will happen while the backwards pass is still computing.
 
 Additionally, DDP performs tensor fusion to create larger buffers for tensors. Horovod also has the option, though DDP uses it by default.
-
-
 
 ## DDP Support
 
@@ -64,13 +60,9 @@ os.environ['MASTER_PORT'] = str(2345)
 
 After this, you can use the `init_method='env://'` argument in `init_process`.
 
-
-
 ### Other init methods?
 
 Unlike `hvd.init()`, which use MPI and does everything under the hood, DDP is more steps and more options. Other choices are to pass a common file all processes can write to.
-
-
 
 ### Wrapping your model in DDP:
 
@@ -82,17 +74,15 @@ model = DDP(model)
 
 You simply replace your model with `DDP(model)` and DDP will synchronize the weights and, during training, all reduce gradients before applying updates. DDP handles all of it for you.
 
-
-
 ### DDP Performance
 
 DDP generally scales better than horovod for pytorch at large node counts because it can begin the `allreduce` before the backwards pass has finished. On Summit, with 1,536 V100 GPUs, one ALCF model had a scaling efficiency of 97% with DDP compared to ~60% with Horovod.
 
-
-
 ### When to use DDP
 
 It's only available with pytorch. It's only worthwhile with distributed training, and if your model is small than you won't see great scaling efficiency with either DDP or horovod.
+
+---
 
 # Examples
 
@@ -115,13 +105,13 @@ Take a look in the `submissions` folder for more details about this.
 Here I show the results I got measuring the `time-per-epoch` averaged over the last 5 epochs of a training run. I scaled out over a single node, and out onto 4 nodes x 8 GPUs
 
 | GPUs | Cifar10 Time/epoch [s] | MNIST Time/epoch [s] |
-| ---- | ---------------------- | -------------------- |
-| 1    | 13.6                   | 11.7                 |
-| 4    | 2.66                   | 2.64                 |
-| 8    | 1.43                   | 1.37                 |
+| :--: | ---------------------: | -------------------: |
+|  1   |                   13.6 |                 11.7 |
+|  4   |                   2.66 |                 2.64 |
+|  8   |                   1.43 |                 1.37 |
 
 | GPUs | CIFAR10 Time / epoch [s] | MNIST Time / epoch [s] |
-| ---- | ------------------------ | ---------------------- |
-| 1    | 1.43                     | 1.37                   |
-| 2    | 0.82                     | 0.80                   |
-| 4    | 0.50                     | 0.49                   |
+| :--: | -----------------------: | ---------------------: |
+|  1   |                     1.43 |                   1.37 |
+|  2   |                     0.82 |                   0.80 |
+|  4   |                     0.50 |                   0.49 |
