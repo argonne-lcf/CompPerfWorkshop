@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import shutil
 import socket
 import time
 from dataclasses import dataclass
@@ -21,6 +22,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchvision import datasets, transforms, models
 
 # Set global variables for rank, local_rank and world_size
+#  TERM_WIDTH, TERM_HEIGHT = os.get_terminal_size()
+TERM_WIDTH, TERM_HEIGHT = shutil.get_terminal_size(fallback=(156, 50))
 try:
     from mpi4py import MPI
 
@@ -52,27 +55,32 @@ except (ImportError, ModuleNotFoundError) as err:
     print(f'WARNING: MPI Initialization Failed!\n Exception: {err}')
 
 
-# pylint:disable=too-few-public-methods,redefined-outer-name
-# pylint:disable=missing-function-docstring,missing-class-docstring
+# --------------------------------------------------------------------
+# Helper objects for pretty-printing metrics during training/testing
+# --------------------------------------------------------------------
 class Console:
+    """Fallback console object used as in case `rich` isn't installed."""
+    # pylint:disable=too-few-public-methods,redefined-outer-name
+    # pylint:disable=missing-function-docstring,missing-class-docstring
     @staticmethod
     def log(s, *args, **kwargs):  # noqa:E999
         print(s, *args, **kwargs)
 
 
 class Logger:
+    """Logger class for pretty printing metrics during training/testing."""
     def __init__(self):
         try:
             # pylint:disable=import-outside-toplevel
             from rich.console import Console as RichConsole
-            size = os.get_terminal_size()
-            console = RichConsole(log_path=False, width=size[0])
+            console = RichConsole(log_path=False, width=TERM_WIDTH)
         except (ImportError, ModuleNotFoundError):
             console = Console()
 
         self.console = console
 
     def log(self, s, *args, **kwargs):
+        """Print `s` using `self.console` object."""
         self.console.log(s, *args, **kwargs)
 
 
@@ -80,6 +88,9 @@ class Logger:
 logger = Logger()
 
 
+# -----------------------------------------------------
+# Helper object for aggregating relevant data objects
+# -----------------------------------------------------
 @dataclass
 class DataObject:
     dataset: torch.utils.data.Dataset
@@ -87,6 +98,10 @@ class DataObject:
     loader: torch.utils.data.DataLoader
 
 
+
+# --------------------------------
+# Model constructor / definition
+# --------------------------------
 class AlexNet(nn.Module):
     def __init__(self, num_classes=10):
         super(AlexNet, self).__init__()
@@ -119,15 +134,16 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor) -> (torch.tensor):
+        """Call the model on input data `x`."""
         x = self.features(x)
         x = x.view(x.size(0), 256 * 2 * 2)
         x = self.classifier(x)
         return x
 
 
-def setup_ddp(args):
-    """Get DDP setup."""
+def setup_ddp(args: dict):
+    """Specify device to use and setup backend for MPI communication."""
     if args.device not in ['gpu', 'cpu']:
         raise ValueError('Expected `args.device` to be one of "gpu", "cpu"')
 
@@ -146,7 +162,8 @@ def setup_ddp(args):
         logger.log(f'(setup torch threads) number of threads: {torch.get_num_threads()}')
 
 
-def prepare_datasets(args):
+def prepare_datasets(args: dict) -> (dict):
+    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
     kwargs = {}
     if args.device.find('gpu') != -1:
         kwargs = {'num_workers': 1, 'pin_memory': True}
@@ -181,7 +198,8 @@ def prepare_datasets(args):
     return {'training': train_data, 'testing': test_data}
 
 
-def build_model(args):
+def build_model(args: dict) -> (nn.Module):
+    """Helper method for building model using hyperparams from `args`."""
     model = AlexNet(num_classes=10)
     #  model =models.resnet18(pretrained=False)
 
@@ -193,14 +211,17 @@ def build_model(args):
     return model
 
 
-def metric_average(val, name):
+#  def metric_average(val, name):
+def metric_average(x: torch.tensor) -> (torch.tensor):
+    """Compute global averages across all workers if using DDP. """
     if WITH_DDP:
         # Sum everything and divide by total size
-        dist.all_reduce(val, op=dist.ReduceOp.SUM)
-        val /= SIZE
+        dist.all_reduce(x, op=dist.ReduceOp.SUM)
+        x /= SIZE
     else:
         pass
-    return val
+
+    return x
 
 
 
@@ -251,8 +272,8 @@ def train(
 
         running_loss = running_loss / len(data.sampler)
         running_acc = running_acc / len(data.sampler)
-        loss_avg = metric_average(running_loss, 'running_loss')
-        acc_avg = metric_average(running_acc, 'training_acc')
+        loss_avg = metric_average(running_loss)
+        acc_avg = metric_average(running_acc)
         if RANK == 0 and batch_idx % args.log_interval == 0:
             batch_metrics = {
                 'epoch': epoch,
@@ -313,8 +334,8 @@ def test(
     test_accuracy /= len(data.sampler)
 
     # Horovod: average metric values across workers
-    loss_avg = metric_average(test_loss, 'avg_loss')
-    acc_avg = metric_average(test_accuracy, 'avg_accuracy')
+    loss_avg = metric_average(test_loss)
+    acc_avg = metric_average(test_accuracy)
 
     # Horovod: print output only on chief rank
     if RANK == 0:
