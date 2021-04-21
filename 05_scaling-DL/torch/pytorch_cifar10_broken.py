@@ -18,8 +18,9 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data.distributed
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torchvision import datasets, transforms, models
+from torchvision import datasets, transforms
 
+np.set_printoptions(precision=4, suppress=True)
 # Set global variables for rank, local_rank and world_size
 try:
     from mpi4py import MPI
@@ -44,23 +45,28 @@ try:
     os.environ['MASTER_ADDR'] = MASTER_ADDR
     os.environ['MASTER_PORT'] = str(2345)  # any open port
 
+
 except (ImportError, ModuleNotFoundError) as err:
-    WITH_DDP = False
-    LOCAL_RANK = 0
     SIZE = 1
-    RANK = 0
+    WITH_DDP = False
+    RANK = LOCAL_RANK = 0
     print(f'WARNING: MPI Initialization Failed!\n Exception: {err}')
 
 
+# --------------------------------------------------------------------
+# Helper objects for pretty-printing metrics during training/testing
+# --------------------------------------------------------------------
 # pylint:disable=too-few-public-methods,redefined-outer-name
 # pylint:disable=missing-function-docstring,missing-class-docstring
 class Console:
+    """Fallback console object used as in case `rich` isn't installed."""
     @staticmethod
     def log(s, *args, **kwargs):  # noqa:E999
         print(s, *args, **kwargs)
 
 
 class Logger:
+    """Logger class for pretty printing metrics during training/testing."""
     def __init__(self):
         try:
             # pylint:disable=import-outside-toplevel
@@ -73,6 +79,7 @@ class Logger:
         self.console = console
 
     def log(self, s, *args, **kwargs):
+        """Print `s` using `self.console` object."""
         self.console.log(s, *args, **kwargs)
 
 
@@ -80,6 +87,9 @@ class Logger:
 logger = Logger()
 
 
+# -----------------------------------------------------
+# Helper object for aggregating relevant data objects
+# -----------------------------------------------------
 @dataclass
 class DataObject:
     dataset: torch.utils.data.Dataset
@@ -87,6 +97,9 @@ class DataObject:
     loader: torch.utils.data.DataLoader
 
 
+# --------------------------------
+# Model constructor / definition
+# --------------------------------
 class AlexNet(nn.Module):
     def __init__(self, num_classes=10):
         super(AlexNet, self).__init__()
@@ -119,7 +132,8 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor) -> (torch.tensor):
+        """Call the model on input data `x`."""
         x = self.features(x)
         x = x.view(x.size(0), 256 * 2 * 2)
         x = self.classifier(x)
@@ -127,14 +141,14 @@ class AlexNet(nn.Module):
 
 
 def setup_ddp(args):
-    """Get DDP setup."""
+    """Specify device to use and setup backend for MPI communication."""
     if args.device not in ['gpu', 'cpu']:
         raise ValueError('Expected `args.device` to be one of "gpu", "cpu"')
 
     backend = 'nccl' if args.device == 'gpu' else 'gloo'
     if WITH_DDP:
         dist.init_process_group(backend=backend, init_method='env://')
-    if args.device == 'gpu':
+    if args.device == 'gpu' or args.device.find('gpu') != -1:
         # DDP: pin GPU to local rank
         # toch.cuda.set_device(int(LOCAL_RANK))
         torch.cuda.manual_seed(args.seed)
@@ -143,12 +157,14 @@ def setup_ddp(args):
         torch.set_num_threads(args.num_threads)
 
     if RANK == 0:
-        logger.log(f'(setup torch threads) number of threads: {torch.get_num_threads()}')
+        logger.log('torch thread setup: ')
+        logger.log(f'  Number of threads: {torch.get_num_threads()}')
 
 
-def prepare_datasets(args):
+def prepare_datasets(args: dict) -> (dict):
+    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
     kwargs = {}
-    if args.device.find('gpu') != -1:
+    if args.device == 'gpu' or args.device.find('gpu') != -1:
         kwargs = {'num_workers': 1, 'pin_memory': True}
 
     transform = transforms.Compose(
@@ -181,10 +197,9 @@ def prepare_datasets(args):
     return {'training': train_data, 'testing': test_data}
 
 
-def build_model(args):
+def build_model(args: dict) -> (nn.Module):
+    """Helper method for building model using hyperparams from `args`."""
     model = AlexNet(num_classes=10)
-    #  model =models.resnet18(pretrained=False)
-
     if args.device == 'gpu' or args.device.find('gpu') != -1:
         model.cuda()  # move model to GPU
     if WITH_DDP:
@@ -194,6 +209,7 @@ def build_model(args):
 
 
 def metric_average(val, name):
+    """Compute global averages across all workers if using DDP. """
     if WITH_DDP:
         # Sum everything and divide by total size
         dist.all_reduce(val, op=dist.ReduceOp.SUM)
@@ -210,8 +226,9 @@ def train(
         model: nn.Module,
         criterion: Callable[[torch.tensor], torch.tensor],
         optimizer: optim.Optimizer,
-        args: dict
+        args: dict,
 ):
+    """Train our model for a single epoch."""
     logger.log(f'Training on {args.device}, cuda: {args.cuda}')
 
     model.train()
@@ -222,6 +239,12 @@ def train(
     if args.device == 'gpu':
         running_loss = running_loss.cuda()
         running_acc = running_acc.cuda()
+
+    # TODO: Save metrics during epoch, return from here?
+    #  metrics = {
+    #      'epoch': [], 'loss': [], 'loss_avg': [],
+    #      'accuracy': [], 'accuracy_avg': [],
+    #  }
     for batch_idx, (batch, target) in enumerate(data.loader):
         if args.cuda:
             batch, target = batch.cuda(), target.cuda()
@@ -238,17 +261,6 @@ def train(
         running_acc += acc
         running_loss += loss.item()
 
-        #  if batch_idx % args.log_interval == 0 and RANK == 0:
-        #      # Horovod: use train_sampler to determine
-        #      # the number of examples in this worker's partition
-        #      tstrs = {
-        #          'epoch': epoch,
-        #          'loss': loss.item() / args.batch_size,
-        #          'batch': batch_idx * len(batch),
-        #          'percent_complete': 100. * batch_idx / len(data.loader),
-        #      }
-        #      logger.log(' '.join([f'{k}: {v:.4g}' for k, v in tstrs.items()]))
-
         running_loss = running_loss / len(data.sampler)
         running_acc = running_acc / len(data.sampler)
         loss_avg = metric_average(running_loss, 'running_loss')
@@ -259,10 +271,6 @@ def train(
                 'batch_loss': loss.item() / args.batch_size,
                 'global_loss': loss_avg,
                 'batch_acc': acc / args.batch_size,
-                #  'batch': batch_idx * len(batch),
-                #  '% done': 100. * batch_idx / len(data.loader),
-                #  'running_loss': running_loss,
-                #  'running_accuracy': running_acc,
                 'global_acc': acc_avg,
             }
             jdx = batch_idx * len(batch)
@@ -272,15 +280,6 @@ def train(
                 f'{str(k):>5}: {v:<7.4g}' for k, v in batch_metrics.items()
             ])
             logger.log(' '.join([str0, str1]))
-
-            #mstr = ' '.join([
-            #    f'{k}: {v:>7.5f}' for k, v in metrics.items()
-            #])
-
-            #logger.log(
-            #    f'[{jdx:5<}/{len(data.sampler):5<} ({frac:>3.3g}%)]'
-            #    f'  {mstr}'
-            #)
 
 
 def test(
@@ -307,8 +306,8 @@ def test(
         pred = output.data.max(1, keepdim=True)[1]
         test_accuracy += pred.eq(target.data.view_as(pred)).float().sum()
 
-    # Horovod: use test_sampler to determine the number of examples in this
-    # workers partition
+    # Horovod: use test_sampler to determine
+    # the number of examples in this workers partition
     test_loss /= len(data.sampler)
     test_accuracy /= len(data.sampler)
 
@@ -335,10 +334,9 @@ def main(args):
     model = build_model(args)
     criterion = nn.CrossEntropyLoss()
     # Horovod: scale learning rate by the number of GPUs
-    #optimizer = optim.SGD(model.parameters(),
-    #                      lr=args.lr * SIZE,
-    #                      momentum=args.momentum)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr * SIZE)
+    optimizer = optim.SGD(model.parameters(),
+                          lr=args.lr * SIZE,
+                          momentum=args.momentum)
     epoch_times = []
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
@@ -351,7 +349,7 @@ def main(args):
     if RANK == 0:
         logger.log(
             f'Total training time: {end - start:.5g}\n'
-            f'Average time per epoch in the last 5: {avg_dt:.5g}'
+            'Average time per epoch in the last 5: {avg_dt:.5g}'
         )
 
 
@@ -373,7 +371,7 @@ def parse_args(*args):
         help='training epochs (default: 10)',
     )
     parser.add_argument(
-        '--lr', type=float, default=0.01, required=False,
+        '--lr', type=int, default=0.01, required=False,
         help='learning rate (default: 0.01)',
     )
     parser.add_argument(
