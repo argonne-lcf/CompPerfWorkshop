@@ -1,5 +1,7 @@
 # Distributed training with PyTorch DDT
 
+[TOC]
+
 Author: Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
 
 **Note**:  The following was originally provided [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by __[Corey Adams](mailto:corey.adams@anl.gov)__ and __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__
