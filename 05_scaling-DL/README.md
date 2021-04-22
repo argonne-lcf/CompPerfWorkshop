@@ -1,10 +1,24 @@
 # Distributed training with PyTorch DDT
 
-[TOC]
-
-Author: Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
+**Author:** Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
 
 **Note**:  The following was originally provided [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by __[Corey Adams](mailto:corey.adams@anl.gov)__ and __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__
+
+#### Table of Contents
+
+- [Distributed training with PyTorch DDT](#distributed-training-with-pytorch-ddt)
+  * [How does DDP work?](#how-does-ddp-work)
+  * [DDP Support](#ddp-support)
+  * [Setting up DDP](#setting-up-ddp)
+    + [Other init methods?](#other-init-methods)
+    + [Wrapping your model in DDP:](#wrapping-your-model-in-ddp)
+    + [DDP Performance](#ddp-performance)
+    + [When to use DDP](#when-to-use-ddp)
+- [Examples](#examples)
+    + [Running in a container](#running-in-a-container)
+    + [Example Performance](#example-performance)
+
+---
 
 Pytorch has an additional built-in distributed data parallel package, DDP, short for "Distributed Data Parallel". It comes in `pytorch>=1.6`, and wraps your model (**not** your optimizer, like `horovod`) and performs computation and communication simultaneously.
 
