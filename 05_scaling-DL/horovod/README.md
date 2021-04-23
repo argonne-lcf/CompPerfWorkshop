@@ -1,49 +1,65 @@
-# Distributed Training with [Horovod](https://github.com/horovod/horovod)
-
-**Author**: Sam Foreman ([foremans@anl.gov](mailto:foremans@anl.gov))
-
-**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/Horovod/README.md),, written by __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__ and __[Corey Adams](mailto:corey.adams@anl.gov)__.
-
-#### Table of Contents
-
-- [Distributed Training with [Horovod](https://github.com/horovod/horovod)](#distributed-training-with-horovodhttpsgithubcomhorovodhorovod)
-  * [[Horovod Data Parallel Frameworks][1]](#horovod-data-parallel-frameworks1)
-    + [Tensorflow with Horovod](#tensorflow-with-horovod)
-  * [PyTorch with Horovod](#pytorch-with-horovod)
-  * [Handson](#handson)
+# Distributed Training with [Horovod][1]
 
 ---
 
+#### Table of Contents
+
+- [Distributed Training with Horovod](#distributed-training-with-horovod1)
+  * [Model Parallelism and Data Parallelism](#model-parallelism-and-data-parallelism)
+    + [Example](#example)
+  * [Horovod Data Parallel Frameworks](#horovod-data-parallel-frameworks3)
+    + [Tensorflow with Horovod](#tensorflow-with-horovod)
+  * [PyTorch with Horovod](#pytorch-with-horovod)
+  * [Handson](#handson)
+  * [Additional References](#additional-references)
+
+---
+
+**Author**: Sam Foreman ([foremans@anl.gov](mailto:foremans@anl.gov))
+
+**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/Horovod/README.md), written by __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__ and __[Corey Adams](mailto:corey.adams@anl.gov)__.
+
 **Goal:**
 
-- Understand how to run jobs on Theta / ThetaGPU
-- Get familiar with the software frameworks on Theta / ThetaGPU
-- Understand Data Parallelism (scaling efficiency, warmup, etc)
-- Know how to modify your code with Horovod
+1. Understand how to run jobs on Theta / ThetaGPU
 
-**Model Parallelism and Data Parallelism**
+2. Get familiar with the software frameworks on Theta / ThetaGPU
+
+3. Understand Data Parallelism (scaling efficiency, warmup, etc)
+
+4. Know how to modify your code with Horovod
+
+---
+
+## Model Parallelism and Data Parallelism
 
 1. **Model parallelization:** In this scheme, disjoint subsets of a neural network are assigned to different devices. Therefore, all the computation associated with the subsets are distributed. Communication happens between devices whenever there is dataflow between two subsets. Model parallelization is suitable when the model is too large to fit into a single device (CPU/GPU) because of the memory capacity. However, partitionining the model into different subsets is not an easy task, and there might potentially introduce load imbalance issues limiting the scaling efficiency.
 2. **Data parallelization:** In this scheme, all of the workers own a replica of the model. The global batch of data is split into multiple minibatches and processed by different workers. Each worker computes the corresponding loss and gradients with respect to the data it possesses. Before the updating of the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective operation. This scheme is relatively simple to implement. `MPI_Allreduce` is the only communication operation required.
    1. Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
 
-![distributed](../assets/distributed.png)
+### Example:
 
-## [Horovod Data Parallel Frameworks][1]
+- How the model **weights** are split over cores ([image credit][2]):
+
+  ![weights](../assets/weights.png)
+
+- How the **data** is split over cores:
+
+  ![data](../assets/data.png)
+
+<!---![distributed](../assets/distributed.png)--->
+
+## [Horovod Data Parallel Frameworks][3]
 
 ![Horovod](../assets/horovod.png)
 
-
-
-[1]: https://horovod.readthedocs.io/en/stable/
-
-**Additional References:**
-
-2. Sergeev, A., Del Balso, M. (2017) Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow. Retrieved from https://eng.uber.com/horovod/
-3. Sergeev, A. (2017) Horovod - Distributed TensorFlow Made Easy. Retrieved from https://www.slideshare.net/AlexanderSergeev4/horovod-distributed-tensorflow-made-easy
-4. Sergeev, A., Del Balso, M. (2018) Horovod: fast and easy distributed deep learning in TensorFlow. Retrieved from arXiv:**1802.05799**
+[1]: https://github.com/horovod/horovod
+[2]: https://venturebeat.com/2021/01/12/google-trained-a-trillion-parameter-ai-language-model/
+[3]: https://horovod.readthedocs.io/en/stable/
 
 ### Tensorflow with Horovod
+
+**Note:** We provide an example script, available here: [./horovod/tf2hvd_mnist.py](./horovod/tf2hvd_mnist.py).
 
 1. **Initialize Horovod**
 
@@ -111,10 +127,6 @@
 8. **Adjusting the number of steps per epoch**
 
    The total number of steps per epoch is `nsamples / hvd.size()`.
-
-
-
-We provide some examples in: [./horovod/tf2hvd_mnist.py](./horovod/tf2hvd_mnist.py).
 
 
 
@@ -198,7 +210,7 @@ Below, we omit the explanation for those steps which are logically equivalent (b
 
    In both cases, the total number of steps per epoch is `nsamples / hvd.size()`.
 
-7. **Checkpointing on root rank**
+7. **Checkpointing _only_ from root rank**
 
    It is important to only let one process be responsible for checkpointing I/O to prevent race conditions which might jeopardize the integrity of the checkpoint.
 
@@ -224,3 +236,11 @@ We provide an example in [`./horovod/torch/torch_mnist_hvd.py`](./horovod/torch/
 
 - [`./thetagpu.md`](./thetagpu.md)
 - [`./theta.md`](./theta.md)
+
+## Additional References
+
+1. Sergeev, A., Del Balso, M. (2017) Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow. Retrieved from https://eng.uber.com/horovod/
+
+2. Sergeev, A. (2017) Horovod - Distributed TensorFlow Made Easy. Retrieved from https://www.slideshare.net/AlexanderSergeev4/horovod-distributed-tensorflow-made-easy
+
+3. Sergeev, A., Del Balso, M. (2018) Horovod: fast and easy distributed deep learning in TensorFlow. Retrieved from arXiv:**1802.05799**
