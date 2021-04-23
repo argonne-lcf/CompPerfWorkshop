@@ -1,29 +1,38 @@
 """
-pytorch10_cifar10.py
+pytorch10_cifar10.pyhvision.datasets import
 
 Contains end-to-end training example (CIFAR10) on GPU or CPU with optional DDP.
 """
 from __future__ import print_function
-
 import argparse
+from dataclasses import dataclass
 import os
 import shutil
 import socket
+import sys
 import time
-from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
+import torch
+from torch.cuda.amp.autocast_mode import autocast
+from torch.cuda.amp.grad_scaler import GradScaler
 import torch.distributed as dist
 import torch.nn as nn
+from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.optim as optim
 import torch.utils.data.distributed
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torchvision import datasets, transforms, models
+from torchvision import datasets, models, transforms
+
+# Ensure modules from `05_scaling-DL/utils/` is a are accessible
+modulepath = os.path.dirname(os.path.dirname(__file__))
+if modulepath not in sys.path:
+    sys.path.append(modulepath)
+
+from utils.io import Logger
+from utils.parse_args import parse_args_torch as parse_args
 
 # Set global variables for rank, local_rank and world_size
-#  TERM_WIDTH, TERM_HEIGHT = os.get_terminal_size()
-TERM_WIDTH, TERM_HEIGHT = shutil.get_terminal_size(fallback=(156, 50))
 try:
     from mpi4py import MPI
 
@@ -53,35 +62,6 @@ except (ImportError, ModuleNotFoundError) as err:
     SIZE = 1
     RANK = 0
     print(f'WARNING: MPI Initialization Failed!\n Exception: {err}')
-
-
-# --------------------------------------------------------------------
-# Helper objects for pretty-printing metrics during training/testing
-# --------------------------------------------------------------------
-class Console:
-    """Fallback console object used as in case `rich` isn't installed."""
-    # pylint:disable=too-few-public-methods,redefined-outer-name
-    # pylint:disable=missing-function-docstring,missing-class-docstring
-    @staticmethod
-    def log(s, *args, **kwargs):  # noqa:E999
-        print(s, *args, **kwargs)
-
-
-class Logger:
-    """Logger class for pretty printing metrics during training/testing."""
-    def __init__(self):
-        try:
-            # pylint:disable=import-outside-toplevel
-            from rich.console import Console as RichConsole
-            console = RichConsole(log_path=False, width=TERM_WIDTH)
-        except (ImportError, ModuleNotFoundError):
-            console = Console()
-
-        self.console = console
-
-    def log(self, s, *args, **kwargs):
-        """Print `s` using `self.console` object."""
-        self.console.log(s, *args, **kwargs)
 
 
 # pylint:disable=invalid-name
@@ -134,6 +114,7 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes),
         )
 
+    @autocast()
     def forward(self, x: torch.tensor) -> (torch.tensor):
         """Call the model on input data `x`."""
         x = self.features(x)
@@ -173,24 +154,31 @@ def prepare_datasets(args: dict) -> (dict):
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
 
+    # Build datasets
     train_dataset = datasets.CIFAR10(
-        'datasets/', train=True, download=True, transform=transform,
+        'datasets', train=True, download=True, transform=transform,
     )
+    test_dataset = datasets.CIFAR10(
+        'datasets', train=False, transform=transform
+    )
+    # Builds samplers
     # Horovod: use DistributedSampler to partition the training data
     train_sampler = torch.utils.data.distributed.DistributedSampler(
         train_dataset, num_replicas=SIZE, rank=RANK
     )
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=args.batch_size,
-                                               sampler=train_sampler, **kwargs)
-    test_dataset = datasets.CIFAR10('datasets', train=False,
-                                    transform=transform)
     test_sampler = torch.utils.data.distributed.DistributedSampler(
         test_dataset, num_replicas=SIZE, rank=RANK
     )
-    test_loader = torch.utils.data.DataLoader(test_dataset,
-                                              batch_size=args.test_batch_size,
-                                              sampler=test_sampler, **kwargs)
+
+    # Build loaders
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, sampler=train_sampler,
+        batch_size=args.batch_size, **kwargs
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, sampler=test_sampler,
+        batch_size=args.test_batch_size, **kwargs
+    )
 
     train_data = DataObject(train_dataset, train_sampler, train_loader)
     test_data = DataObject(test_dataset, test_sampler, test_loader)
@@ -224,17 +212,98 @@ def metric_average(x: torch.tensor) -> (torch.tensor):
     return x
 
 
+def evaluate(
+    data: DataObject,
+    model: nn.Module,
+    loss_fn: Callable[[torch.tensor], torch.tensor],
+    args: dict
+):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch in data.loader:
+            images, labels = data[0].to(args.device), data[1].to(args.device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+
+class Trainer:
+    def __init__(self, model, optimizer, data, loss_fn, scaler=None, device='gpu'):
+        self.model = model
+        self.optimizer = optimizer
+        self.data = data
+        self.scaler = scaler
+        self.device = device
+        self.loss_fn = loss_fn
+        self._cuda = torch.cuda.is_available()
+
+    def train_epoch(self, epoch, log_interval):
+        self.model.train()
+        self.data.sampler.set_epoch(epoch)
+        running_loss = torch.tensor(0.0)
+        running_acc = torch.tensor(0.0)
+        if self._cuda:
+            running_loss = running_loss.cuda()
+            running_acc = running_acc.cuda()
+        for batch_idx, (batch, target) in enumerate(self.data.loader):
+            if self._cuda:
+                batch, target = batch.cuda(), target.cuda()
+            self.optimizer.zero_grad()
+            output = self.model(batch)
+            loss = self.loss_fn(output, target)
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                loss.backward()
+                self.optimizer.step()
+            pred = output.data.max(1, keepdim=True)[1]
+            acc = pred.eq(target.data.view_as(pred)).cpu().float().sum()
+            running_acc = (running_acc + acc) / len(self.data.sampler)
+            running_loss = (
+                (running_loss + loss.item()) / len(self.data.sampler)
+            )
+            loss_avg = metric_average(running_loss)
+            acc_avg = metric_average(running_acc)
+
+            jdx = batch_idx * len(batch)
+            frac = 100. * batch_idx / len(self.data.loader)
+            if RANK == 0 and batch_idx % log_interval == 0:
+                batch_metrics = {
+                    'epoch': epoch,
+                    'batch_loss': loss.item() / output.shape[0],
+                    'global_loss': loss_avg,
+                    'batch_acc': acc / output.shape[0],
+                    'global_acc': acc_avg,
+                }
+                str0 = (
+                    f'[{jdx:5<}/{len(self.data.sampler):5<} ({frac:>3.3g}%)]'
+                )
+                self.print_metrics(batch_metrics, prefix=str0)
+
+    def print_metrics(self, metrics, prefix=None):
+        mstr = ' '.join([
+            f'{str(k):>5}: {v:<7.4g}' for k, v in metrics.items()
+        ])
+
+        if prefix is not None:
+            mstr = ' '.join([prefix, mstr])
+
+        logger.log(mstr)
 
 def train(
         epoch: int,
         data: DataObject,
         model: nn.Module,
-        criterion: Callable[[torch.tensor], torch.tensor],
+        loss_fn: Callable[[torch.tensor], torch.tensor],
         optimizer: optim.Optimizer,
-        args: dict
+        args: dict,
+        scaler: GradScaler=None,
 ):
-    logger.log(f'Training on {args.device}, cuda: {args.cuda}')
-
     model.train()
     # Horovod: set epoch to sampler for shuffling
     data.sampler.set_epoch(epoch)
@@ -249,26 +318,20 @@ def train(
 
         optimizer.zero_grad()
         output = model(batch)
-        loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
+        loss = loss_fn(output, target)
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
         pred = output.data.max(1, keepdim=True)[1]
         acc = pred.eq(target.data.view_as(pred)).cpu().float().sum()
         #  running_acc += pred.eq(target.data.view_as(pred)).cpu().float().sum()
         running_acc += acc
         running_loss += loss.item()
-
-        #  if batch_idx % args.log_interval == 0 and RANK == 0:
-        #      # Horovod: use train_sampler to determine
-        #      # the number of examples in this worker's partition
-        #      tstrs = {
-        #          'epoch': epoch,
-        #          'loss': loss.item() / args.batch_size,
-        #          'batch': batch_idx * len(batch),
-        #          'percent_complete': 100. * batch_idx / len(data.loader),
-        #      }
-        #      logger.log(' '.join([f'{k}: {v:.4g}' for k, v in tstrs.items()]))
 
         running_loss = running_loss / len(data.sampler)
         running_acc = running_acc / len(data.sampler)
@@ -280,10 +343,6 @@ def train(
                 'batch_loss': loss.item() / args.batch_size,
                 'global_loss': loss_avg,
                 'batch_acc': acc / args.batch_size,
-                #  'batch': batch_idx * len(batch),
-                #  '% done': 100. * batch_idx / len(data.loader),
-                #  'running_loss': running_loss,
-                #  'running_accuracy': running_acc,
                 'global_acc': acc_avg,
             }
             jdx = batch_idx * len(batch)
@@ -294,20 +353,11 @@ def train(
             ])
             logger.log(' '.join([str0, str1]))
 
-            #mstr = ' '.join([
-            #    f'{k}: {v:>7.5f}' for k, v in metrics.items()
-            #])
-
-            #logger.log(
-            #    f'[{jdx:5<}/{len(data.sampler):5<} ({frac:>3.3g}%)]'
-            #    f'  {mstr}'
-            #)
-
 
 def test(
         data: DataObject,
         model: nn.Module,
-        criterion: Callable[[torch.tensor], torch.tensor],
+        loss_fn: Callable[[torch.tensor], torch.tensor],
         args: dict
 ):
     model.eval()
@@ -323,7 +373,7 @@ def test(
 
         output = model(batch)
         # Sum up batch loss
-        test_loss += criterion(output, target).item()
+        test_loss += loss_fn(output, target).item()
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
         test_accuracy += pred.eq(target.data.view_as(pred)).float().sum()
@@ -347,24 +397,33 @@ def test(
             [f'{k}: {v:.3g}' for k, v in avg_metrics.items()]
         ))
 
-
 def main(args):
     start = time.time()
     setup_ddp(args)
     data = prepare_datasets(args)
 
     model = build_model(args)
-    criterion = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss()
     # Horovod: scale learning rate by the number of GPUs
     #optimizer = optim.SGD(model.parameters(),
     #                      lr=args.lr * SIZE,
     #                      momentum=args.momentum)
     optimizer = optim.Adam(model.parameters(), lr=args.lr * SIZE)
     epoch_times = []
+
+    logger.log(f'Training on {args.device}, cuda: {args.cuda}')
+    scaler = GradScaler(enabled=args.cuda)
+    train_data = data['training']
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
-        train(epoch, data['training'], model, criterion, optimizer, args)
-        test(data['testing'], model, criterion, args)
+        train(args=args,
+              epoch=epoch,
+              model=model,
+              optimizer=optimizer,
+              data=train_data,
+              loss_fn=loss_fn,
+              scaler=scaler)
+        test(data['testing'], model, loss_fn, args)
         epoch_times.append(time.time() - t0)
 
     end = time.time()
@@ -374,58 +433,6 @@ def main(args):
             f'Total training time: {end - start:.5g}\n'
             f'Average time per epoch in the last 5: {avg_dt:.5g}'
         )
-
-
-def parse_args(*args):
-    """Parse command line arguments containing settings for training."""
-    description = 'PyTorch CIFAR10 Example using DDP'
-    parser = argparse.ArgumentParser(description=description)
-
-    parser.add_argument(
-        '--batch_size', type=int, default=64, required=False,
-        help='input `batch_size` for training (default: 64)',
-    )
-    parser.add_argument(
-        '--test_batch_size', type=int, default=64, required=False,
-        help='input `batch_size` for testing (default: 64)',
-    )
-    parser.add_argument(
-        '--epochs', type=int, default=10, required=False,
-        help='training epochs (default: 10)',
-    )
-    parser.add_argument(
-        '--lr', type=float, default=0.01, required=False,
-        help='learning rate (default: 0.01)',
-    )
-    parser.add_argument(
-        '--momentum', type=float, default=0.5, required=False,
-        help='SGD momentum (default: 0.5)',
-    )
-    parser.add_argument(
-        '--seed', type=int, default=42, required=False,
-        help='random seed (default: 42)',
-    )
-    parser.add_argument(
-        '--log_interval', type=int, default=10, required=False,
-        help='how many batches to wait before logging training status',
-    )
-    parser.add_argument(
-        '--fp16_allreduce', action='store_true', default=False, required=False,
-        help='use fp16 compression during allreduce',
-    )
-    parser.add_argument(
-        '--device', default='cpu', choices=['cpu', 'gpu'], required=False,
-        help='whether this is running on gpu or cpu'
-    )
-    parser.add_argument(
-        '--num_threads', type=int, default=0, required=False,
-        help='set number of threads per worker'
-    )
-    args = parser.parse_args()
-    args.__dict__['cuda'] = torch.cuda.is_available()
-
-    return args
-
 
 
 if __name__ == '__main__':
