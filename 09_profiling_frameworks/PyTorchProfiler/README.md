@@ -9,6 +9,19 @@ In this tutorial we will:
 * compare PyTorch profiler with Python cProfiler and PyTorch bottleneck
 * demonstrate new PyTorch profiler (introduced in PyTorch 1.8)
 
+Table of Contents
+* [Dependencies](#dependencies)
+* [Demonstraion of the PyTorch profiler](#demonstraion-of-the-pytorch-profiler)
+  - [Analysis of execution time](#analysis-of-execution-time)
+  - [Analysis of memory allocation](#analysis-of-memory-allocation)
+  - [Fixing performance issue](#fixing-performance-issue)
+* [Example of profiling](#example-of-profiling)
+  - [Python cProfile](#python-cprofile)
+  - [PyTorch bottleneck](#pyTorch-bottleneck)
+  - [Warnings](#warnings)
+* [New PyTorch profiler](#new-pytorch-profiler)
+
+
 ## Dependencies
 Profiler is part of the PyTorch and can be used out of the box. PyTorch 1.8 [introduces new improved performance tool `torch.profiler`](https://pytorch.org/blog/introducing-pytorch-profiler-the-new-and-improved-performance-tool/). New profiler has a convenient dashboard in `tensorboard` so it has to be installed. Some examples in the tutorial use a model from `torchvision`.
 
@@ -267,7 +280,7 @@ PyTorch profile analyses only PyTorch operations which makes understanding of ho
 Most of the time `2.817s` was spent in `argwhere` function which we compute on CPU. Moreover, this function called `{method 'nonzero' of 'numpy.ndarray' objects}` so our optimization was natural.
 
 
-### TORCH UTILS BOTTLENECK
+### PyTorch bottleneck
 Modifying your script for running python cProfiler or PyTorch profiler with different arguments could be discouraging and is not necessary for the first step. There is a convenient and simple tool called [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) which can be used with your script with no modification. It summarizes the analysis of your script with both: Python cProfiler and PyTorch profiler. Using it for fine-tuning is not a good practice (because of missing warm-up, measuring initialization, etc.) but is a good initial step for debugging bottlenecks in your script.
 ```bash
 python -m torch.utils.bottleneck example2/v3.py
