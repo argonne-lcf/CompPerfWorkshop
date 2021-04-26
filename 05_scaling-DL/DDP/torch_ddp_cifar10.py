@@ -25,7 +25,9 @@ import torch.utils.data.distributed
 from torchvision import datasets, models, transforms
 
 # Ensure modules from `05_scaling-DL/utils/` is a are accessible
-modulepath = os.path.dirname(os.path.dirname(__file__))
+# modulepath = os.path.dirname(os.path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+modulepath = os.path.dirname(here)
 if modulepath not in sys.path:
     sys.path.append(modulepath)
 

@@ -72,6 +72,72 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=-1)
 
 
+class AlexNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super(AlexNet, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2),
+            # -----
+            nn.Conv2d(64, 192, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2),
+            # -----
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            # -----
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            # -----
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2),
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 2 * 2, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, num_classes),
+        )
+
+    def forward(self, x: torch.tensor) -> (torch.tensor):
+        """Call the model on input data `x`."""
+        x = self.features(x)
+        x = x.view(x.size(0), 256 * 2 * 2)
+        x = self.classifier(x)
+        return x
+
+
+def prepare_datasets(args: dict) -> (dict):
+    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
+    kwargs = {}
+    if args.device.find('gpu') != -1:
+        kwargs = {'num_workers': 1, 'pin_memory': True}
+
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    )
+
+    # Build datasets
+    train_dataset = datasets.CIFAR10(
+        'datasets', train=True, download=True, transform=transform,
+    )
+    test_dataset = datasets.CIFAR10(
+        'datasets', train=False, transform=transform
+    )
+    train_data = DistributedDataObject(train_dataset,
+                                       args.batch_size, **kwargs)
+    test_data = DistributedDataObject(test_dataset,
+                                      batch_size=args.batch_size, **kwargs)
+
+    return {'training': train_data, 'testing': test_data}
+
+
 def metric_average(val, name):
     tensor = torch.tensor(val)
     avg_tensor = hvd.allreduce(tensor, name=name)
@@ -92,7 +158,7 @@ def train(
     data.sampler.set_epoch(epoch)
     for batch_idx, (batch, target) in enumerate(data.loader):
         if args.cuda:
-            data, target = data.cuda(), target.cuda()
+            batch, target = batch.cuda(), target.cuda()
         optimizer.zero_grad()
 
         output = model(batch)
@@ -211,21 +277,24 @@ def main(*argv, **kwargs):
     if args.device.find('gpu') != -1:
         kwargs = {'num_workers': 1, 'pin_memory': True}
 
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    train_dataset = datasets.MNIST('datasets',
-                                   train=True, download=True,
-                                   transform=transform)
-    test_dataset = datasets.MNIST('datasets',
-                                  train=False, download=True,
-                                  transform=transform)
+    data = prepare_datasets(args)
+    #  transform = transforms.Compose([
+    #      transforms.ToTensor(),
+    #      transforms.Normalize((0.1307,), (0.3081,))
+    #  ])
+    #  train_dataset = datasets.MNIST('datasets',
+    #                                 train=True, download=True,
+    #                                 transform=transform)
+    #  test_dataset = datasets.MNIST('datasets',
+    #                                train=False, download=True,
+    #                                transform=transform)
+    #
+    #  train_data = DistributedDataObject(train_dataset, args.batch_size)
+    #  test_data = DistributedDataObject(test_dataset, args.test_batch_size)
+    #
+    #  model = Net()
+    model = AlexNet(num_classes=10)
 
-    train_data = DistributedDataObject(train_dataset, args.batch_size)
-    test_data = DistributedDataObject(test_dataset, args.test_batch_size)
-
-    model = Net()
     if args.device.find('gpu') != -1:
         model.cuda()
 
@@ -246,6 +315,8 @@ def main(*argv, **kwargs):
                                          named_parameters=model.named_parameters(),
                                          compression=compression)
     t0 = time.time()
+    train_data = data['training']
+    test_data = data['testing']
     for epoch in range(1, args.epochs + 1):
         train(epoch, train_data, model, optimizer, args)
         test(test_data, model, args)
