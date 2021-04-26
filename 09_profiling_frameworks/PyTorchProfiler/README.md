@@ -1,6 +1,6 @@
 # PyTorch Profiler
 
-Profiling is an efficient way of measuring the performance and doing optimization of your PyTorch scripts. It is easy to run and check if a script has severe performance issues. Profiling allows to measure and analyze execution time and memory consumption as well as finding bottlenecks and trace source code. In this tutorial we will discuss several ways to profile PyTorch scripts such as [`torch.autograd.profiler`](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile)(will be deprecated), [`torch.profiler`](https://pytorch.org/docs/stable/profiler.html#torch-profiler), [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) and [Python cProfiler](https://docs.python.org/3/library/profile.html#module-cProfile).
+Profiling is an efficient way of measuring the performance and doing optimization of your PyTorch scripts. It allows you to examine your script and understand if it has severe performance issues. One can measure and analyze execution time and memory consumption as well as finding bottlenecks and trace source code. In this tutorial we will discuss several ways to profile PyTorch scripts such as [`torch.autograd.profiler`](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile), [`torch.profiler`](https://pytorch.org/docs/stable/profiler.html#torch-profiler), [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) and [Python cProfiler](https://docs.python.org/3/library/profile.html#module-cProfile).
 
 In this tutorial we will:
 * demonstrate PyTorch autograd profiler interface, measure CPU execution time and memory allocation
@@ -9,11 +9,10 @@ In this tutorial we will:
 * compare PyTorch profiler with Python cProfiler and PyTorch bottleneck
 * demonstrate new PyTorch profiler (introduced in PyTorch 1.8)
 
-
 ## Dependencies
-Profiler is part of the PyTorch and can be run without any additional libraries. PyTorch 1.8 [introduces new improved performance tool `torch.profiler`](https://pytorch.org/blog/introducing-pytorch-profiler-the-new-and-improved-performance-tool/). To analyze its results one has to install `tensorboard`. Some examples in the tutorial use a model from `torchvision`.
+Profiler is part of the PyTorch and can be used out of the box. PyTorch 1.8 [introduces new improved performance tool `torch.profiler`](https://pytorch.org/blog/introducing-pytorch-profiler-the-new-and-improved-performance-tool/). New profiler has a convenient dashboard in `tensorboard` so it has to be installed. Some examples in the tutorial use a model from `torchvision`.
 
-These examples can be run on Theta GPUs. To do in you need to ssh to Theta:
+These examples can be run on Theta GPUs. To do it you need to ssh to Theta:
 ```bash
 ssh username@theta.alcf.anl.go
 ```
@@ -69,15 +68,15 @@ For convenience, this example is stored in [example/v0.py](example1/v0.py). Prof
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
 Self CPU time total: 243.086ms
 ```
-In the output functions are sorted by total CPU time. It is important to note that `CPU total time` includes the time from all calls of subroutines but `Self CPU time` excludes it. For example, total execution time of `aten::conv2d` consists of several operations `297.650us` and calling other funciton which make in total 83.870ms. In opposite, in function `aten::addmm_` no time spend on calling subroutines. It is possible to sort results by another metric such as `self_cpu_time_total` or [other](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile.table).
+In the output, the function calls are sorted by total CPU time. It is important to note that `CPU total time` includes the time from all subroutines calls, but `Self CPU time` excludes it. For example, the total execution time of `aten::conv2d` consists of several operations `297.650us` and calling other functions which make in total 83.870ms. In opposite, in function `aten::addmm_` no time spend on calling subroutines. It is possible to sort results by another metric such as `self_cpu_time_total` or [other](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile.table).
 
-Most time of execution was spent in convolutional layers. This model has several convolutions and, in order to get more deeper analysis, one could sort results by input tensor shape (another approach would be use labes, we will demonstrate it later) - [example/v1.py](example1/v1.py).
+Most time of execution was spent in convolutional layers. This model has several convolutions and one can examine different layers if sorted results by input tensor shape (another approach would be use labes, we will demonstrate it later) - [example/v1.py](example1/v1.py).
 ```python
 with profiler.profile(record_shapes=True) as prof:
     model(inputs)
 print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
 ```
-We will see convolutions grouped by input tensor shape (some columns deleted for a better presentation)
+In the output convolutions are grouped by input tensor shape (some columns deleted for a better presentation)
 ```bash
 ---------------------------------  ------------  -----------     ------------------------------
                              Name    Self CPU %  CPU total %     Input S
@@ -94,7 +93,6 @@ We will see convolutions grouped by input tensor shape (some columns deleted for
 ---------------------------------  ------------  ------------    ------------------------------
 Self CPU time total: 246.923ms
 ```
-
 ### Analysis of memory allocation
 Profiler also allows to analyze the memory allocated in different parts of the model. Similar to CPU execution time, 'self' memory accounts for memory allocated in the function excluding calls of subroutines. The profiler will analyze memory if attibute `profile_memory=True` is set  - [example1/v2.py](example1/v2.py).
 ```python
@@ -102,7 +100,7 @@ with profiler.profile(profile_memory=True) as prof:
     model(inputs)
 print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
 ```
-As a result of profile one could see
+As a result of the profile, one could see
 ```bash
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
                              Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg       CPU Mem  Self CPU Mem    # of Calls  
@@ -122,7 +120,7 @@ Self CPU time total: 238.486ms
 ```
 
 ### Fixing performance issue
-A careful reader could notice that the profile shows that PyTorch used the native algorithm `aten::thnn_conv2d` for convolution layers. Although, for execution on CPU PyTorch is optimized with [MKLDNN library](https://github.com/rsdubtso/mkl-dnn) and should have used the corresponding convolution. This issue could reduce performance. In this example, PyTorch used a native algorithm because the convolution algorithm in double precision is missing in MKLDNN, so switching to float precision will turn MKLDNN on - [example1/v3.py](example1/v3.py):
+A careful reader could notice that PyTorch used the native algorithm `aten::thnn_conv2d` for convolution layers. Although, for execution on CPU PyTorch is optimized with [MKLDNN library](https://github.com/rsdubtso/mkl-dnn) and should have used the corresponding convolution. This issue could reduce performance. In this example, PyTorch used a native algorithm because the convolution algorithm in double precision is missing in MKLDNN, so switching to float precision will turn MKLDNN on - [example1/v3.py](example1/v3.py):
 ```bash
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
                              Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
@@ -140,10 +138,10 @@ A careful reader could notice that the profile shows that PyTorch used the nativ
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
 Self CPU time total: 92.728ms
 ```
-In the output we see that for convolution `aten::mkldnn_convolution` was used. Due to optimizations in MKLDNN, execution time was decreased more than twice (92.728ms vs 243.086ms).
+As a result, `aten::mkldnn_convolution` was used. Due to optimizations in MKLDNN, execution time was decreased more than twice (92.728ms vs 243.086ms).
 
 ## Example of profiling
-In this section let's build a simple model and profile it. We build a model which takes a tensor of size 512, does several linear transformations, and calculates a threshold. We want to compare this threshold with our mask and get indexes:
+In this section let's build a simple model and profile it. We build a model which takes a tensor of size 512, does several linear transformations with activation, and calculates a threshold. We want to compare this threshold with our mask and get indexes:
 ```python
 import torch
 import numpy as np
@@ -176,7 +174,7 @@ class MyModule(torch.nn.Module):
 
         return out, hi_idx
 ```
-At this time we want to measure time spent in different sections of the model. In order to do it we marked linear and masking sections with labes which will allows us to have them in profile. We build an instance of this model and run profiler - [example2/v0.py](example2/v0.py):
+At this time we demonstrate measurement of the time spent in different sections of the model. We marked linear and masking sections with labels. One can build an instance of this model and run profiler - [example2/v0.py](example2/v0.py):
 ```python
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 model = MyModule(512, 8, [32, 32, 32])
@@ -190,7 +188,7 @@ with profiler.profile(with_stack=True) as prof:
     out, idx = model(input, mask)
 print(prof.key_averages(group_by_stack_n=1).table(sort_by='self_cpu_time_total', row_limit=5))
 ```
-This time we execute modes on GPU. At the first call, CUDA do some benchmarking and chose the best algorithm for convolutions, therefore we need to warm up CUDA to ensure accurate performance benchmarking. We used flag `with_stack=True` which makes possible to track the place in sources where the function was called. 
+This time we execute modes on GPU. At the first call, CUDA does some benchmarking and chose the best algorithm for convolutions, therefore we need to warm up CUDA to ensure accurate performance benchmarking. Also, we used the flag `with_stack=True` which makes it possible to track the place in sources where the function was called. 
 ```bash
 -----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
                          Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  Source Location                                                              
@@ -214,7 +212,7 @@ This time we execute modes on GPU. At the first call, CUDA do some benchmarking 
 -----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
 Self CPU time total: 2.855s
 ```
-The profile shows that the execution time of section `LABEL2: masking` takes 99.95% of total CPU time while in section `LABEL1: linear pass` code spends only 0.04% of the time. Operations of copying tensors to the device at `example2/v0.py(28): forward` and copying back at `example2/v0.py(29): forward` take about 20% of execution time. We can optimize it if instead of `np.argwhere` do indexing on GPU with `torch.nonzero` - [example2/v1.py](example2/v1.py):
+The profile shows that the execution time of section `LABEL2: masking` takes 99.95% of total CPU time while in section `LABEL1: linear pass` code spends only 0.04%. Operations of copying tensors to the device at `example2/v0.py(28): forward` and copying back at `example2/v0.py(29): forward` take about 20% of execution time. We can optimize it if instead of `np.argwhere` do indexing on GPU with `torch.nonzero` - [example2/v1.py](example2/v1.py):
 ```python
     def forward(self, input, mask):
         with profiler.record_function("LABEL1: linear pass"):
@@ -240,7 +238,7 @@ Self CPU time total: 16.613ms
 After this optimization total execution time was improved more than 100 times which is much better than just elimination of copy operation. The reason for that is that we computed `np.argwhere` on CPU while now we do this operation on GPU. PyTorch profile does not analyze NumPy operations so we missed them in the profile. 
 
 ### Python cProfile
-PyTorch profile analyses only PyTorch operations which makes understanding of hotspots confusing. In order to profile all operations, one may use python profiler - [example2/v2.py](example2/v2.py):
+PyTorch profile analyses only PyTorch operations which makes understanding of hotspots confusing. To profile all operations, one may use python profiler - [example2/v2.py](example2/v2.py):
 ```bash
          181 function calls (169 primitive calls) in 3.434 seconds
 
@@ -266,11 +264,11 @@ PyTorch profile analyses only PyTorch operations which makes understanding of ho
         1    0.003    0.003    0.003    0.003 {method 'item' of 'torch._C._TensorBase' objects}
 
 ```
-It is clear that most of the time `2.817s` was spent in `argwhere` funtion which we compute on CPU. Moreover this function called `{method 'nonzero' of 'numpy.ndarray' objects}` so our optimization was natural.
+Most of the time `2.817s` was spent in `argwhere` function which we compute on CPU. Moreover, this function called `{method 'nonzero' of 'numpy.ndarray' objects}` so our optimization was natural.
 
 
 ### TORCH UTILS BOTTLENECK
-Modifying your script for running python cProfiler or PyTorch profiler with different arguments could be discouraging and is not necessary for the first step. There is a nice and simple tool called [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) which can be used with your script with no modification. It summarizes the analysis of your script with both: Python cProfiler and PyTorch profiler. Using it for fine-tuning is not a good practice (because of missing warm-up, measuring initialization, etc.) but is a good initial step for debugging bottlenecks in your script.
+Modifying your script for running python cProfiler or PyTorch profiler with different arguments could be discouraging and is not necessary for the first step. There is a convenient and simple tool called [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) which can be used with your script with no modification. It summarizes the analysis of your script with both: Python cProfiler and PyTorch profiler. Using it for fine-tuning is not a good practice (because of missing warm-up, measuring initialization, etc.) but is a good initial step for debugging bottlenecks in your script.
 ```bash
 python -m torch.utils.bottleneck example2/v3.py
 ```
@@ -280,8 +278,9 @@ The output of the bottleneck is too big to show it here. Basically, it combines 
 * The launch of CUDA kernels is asynchronous, so if you want to measure time spent in them make sure that you turned flag `use_cuda` on. Otherwise, your results may be misleading.
 * While profile collects events and analyses them it has a huge overhead. Profiler is helpful in searching for performance issues but slows down training/evaluation. Be sure that you removed it when you finish your code investigation.
 
+
 ## New PyTorch profiler
-With PyTorch 1.8 release [the new PyTorch profiler was introduced](https://pytorch.org/docs/stable/profiler.html#torch-profiler). It is the next version of `torch.autorgrad.profile` and will replace it in future releases. The new `torch.profile` can be used as we did before: collect and print profile. But, more interestingly, it provides a convenient dashboard with a summary of all events and recommendations for optimization - [example3/v0.py](example3/v0.py)
+With PyTorch 1.8 release [the new PyTorch profiler was introduced](https://pytorch.org/docs/stable/profiler.html#torch-profiler). It is the next version of `torch.autorgrad.profile` and will replace it in future releases. The new `torch.profile` has a different [API](https://pytorch.org/docs/stable/profiler.html#torch-profiler) but it can be used instead of  `torch.autorgrad.profile`: collect and print profile. But, more interestingly, it provides a convenient dashboard with a summary of all events and recommendations for optimization - [example3/v0.py](example3/v0.py)
 ```python
 import torch
 import torchvision.models as models
@@ -303,9 +302,9 @@ with torch.profiler.profile(
         model(inputs)
         prof.step()
 ```
-It has a different [API](https://pytorch.org/docs/stable/profiler.html#torch-profiler). In this example, we collect activities on both CPU and GPU. Due to `schedule` argument, we can use `torch.profiler.schedule` which with `wait=0` skip no iterations, `warmup=1` start warming up on first, `active=3` record second - fourth iteration, and after (when the trace will become available) `torch.profiler.tensorboard_trace_handler` is called to save a trace. This cycle repeats with the fifth iteration so in our example two traces will be saved. After execution, we will have `some_name.pt.trace.json` and `some_name_2.pt.trace.json` traces saved.
+In this example, we collect activities on both CPU and GPU. Due to `schedule` argument, we can use `torch.profiler.schedule` which with `wait=0` skip no iterations, `warmup=1` start warming up on first, `active=3` record second - fourth iteration, and when the trace becomes available `torch.profiler.tensorboard_trace_handler` is called to save a trace. This cycle repeats with the fifth iteration so in our example two traces will be saved. After execution, we will have `some_name.pt.trace.json` and `some_name_2.pt.trace.json` traces saved.
 
-To see traces one has to install [PyTorch profiler TensorBoard Plugin](https://github.com/pytorch/kineto/blob/master/tb_plugin/README.md). In order to do it on ThetaGPU you need to copy conda environment first (on ThetaGPU login node):
+To see traces one has to install [PyTorch profiler TensorBoard Plugin](https://github.com/pytorch/kineto/blob/master/tb_plugin/README.md). To do it on ThetaGPU you need to copy conda environment first (on ThetaGPU login node):
 ```bash
 module load conda/pytorch
 conda activate
@@ -317,11 +316,11 @@ and run tensorboard with specifying `logdir` where your traces are stored. You c
 ```bash
 tensorboard --port <PORT> --bind_all --logdir </path/to/log/output/>
 ```
-Also, in this case you will need to do some ssh port forwarding to access the server. On your local machine run
+Also, in this case, you will need to do some ssh port forwarding to access the server. On your local machine run
 ```bash
 ssh -L localhost:PORT:localhost:PORT username@theta.alcf.anl.gov
 ```
-Once you logged in to Theta login node you need to forward ports from node where you run tensorboard to Theta login node (on Theta login node):
+Once you logged in to Theta login node you need to forward ports from the node where you run tensorboard to Theta login node (on Theta login node):
 ```bash
 ssh -L localhost:PORT:localhost:PORT thetagpusn1
 ```
@@ -329,4 +328,4 @@ ssh -L localhost:PORT:localhost:PORT thetagpusn1
 Now you can open tensorboard in your browser `http://localhost:PORT`.
 ![tensorboard_overview](figs/profile.png)
 
-More information on example and usage of new PyTorch profile can be found on it's [githab page](https://github.com/pytorch/kineto/tree/master/tb_plugin).
+More information on the example and usage of the new PyTorch profile can be found on its [githab page](https://github.com/pytorch/kineto/tree/master/tb_plugin).
