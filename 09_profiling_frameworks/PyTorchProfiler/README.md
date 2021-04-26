@@ -19,7 +19,7 @@ Table of Contents
   - [Python cProfile](#python-cprofile)
   - [PyTorch bottleneck](#pyTorch-bottleneck)
   - [Warnings](#warnings)
-* [New PyTorch profiler](#new-rytorch-profiler)
+* [New PyTorch profiler](#new-pytorch-profiler)
 
 
 ## Dependencies
