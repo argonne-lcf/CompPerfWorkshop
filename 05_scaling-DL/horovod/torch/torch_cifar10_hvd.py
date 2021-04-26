@@ -277,21 +277,7 @@ def main(*argv, **kwargs):
     if args.device.find('gpu') != -1:
         kwargs = {'num_workers': 1, 'pin_memory': True}
 
-    data = prepare_datasets(args)
-    #  transform = transforms.Compose([
-    #      transforms.ToTensor(),
-    #      transforms.Normalize((0.1307,), (0.3081,))
-    #  ])
-    #  train_dataset = datasets.MNIST('datasets',
-    #                                 train=True, download=True,
-    #                                 transform=transform)
-    #  test_dataset = datasets.MNIST('datasets',
-    #                                train=False, download=True,
-    #                                transform=transform)
-    #
-    #  train_data = DistributedDataObject(train_dataset, args.batch_size)
-    #  test_data = DistributedDataObject(test_dataset, args.test_batch_size)
-    #
+    data = prepare_datasets(args, rank=RANK, num_workers=SIZE)
     #  model = Net()
     model = AlexNet(num_classes=10)
 

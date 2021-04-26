@@ -31,7 +31,7 @@ modulepath = os.path.dirname(here)
 if modulepath not in sys.path:
     sys.path.append(modulepath)
 
-from utils.io import Logger
+from utils.io import Logger, DistributedDataObject, prepare_datasets
 from utils.parse_args import parse_args_torch as parse_args
 
 # Set global variables for rank, local_rank and world_size
@@ -74,6 +74,7 @@ logger = Logger()
 # -----------------------------------------------------
 # Helper object for aggregating relevant data objects
 # -----------------------------------------------------
+"""
 class DistributedDataObject:
     def __init__(
             self,
@@ -88,6 +89,7 @@ class DistributedDataObject:
         self.loader = torch.utils.data.DataLoader(
             self.dataset, batch_size, sampler=self.sampler, **kwargs
         )
+"""
 
 
 
@@ -154,32 +156,6 @@ def setup_ddp(args: dict):
 
     if RANK == 0:
         logger.log(f'(setup torch threads) number of threads: {torch.get_num_threads()}')
-
-
-def prepare_datasets(args: dict) -> (dict):
-    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
-    kwargs = {}
-    if args.device.find('gpu') != -1:
-        kwargs = {'num_workers': 1, 'pin_memory': True}
-
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    )
-
-    # Build datasets
-    train_dataset = datasets.CIFAR10(
-        'datasets', train=True, download=True, transform=transform,
-    )
-    test_dataset = datasets.CIFAR10(
-        'datasets', train=False, transform=transform
-    )
-    train_data = DistributedDataObject(train_dataset,
-                                       args.batch_size, **kwargs)
-    test_data = DistributedDataObject(test_dataset,
-                                      batch_size=args.batch_size, **kwargs)
-
-    return {'training': train_data, 'testing': test_data}
 
 
 def build_model(args: dict) -> (nn.Module):
@@ -347,10 +323,11 @@ def test(
             [f'{k}: {v:.3g}' for k, v in avg_metrics.items()]
         ))
 
+
 def main(args):
     start = time.time()
     setup_ddp(args)
-    data = prepare_datasets(args)
+    data = prepare_datasets(args, rank=RANK, num_workers=SIZE)
 
     model = build_model(args)
     loss_fn = nn.CrossEntropyLoss()
