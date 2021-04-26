@@ -1,8 +1,6 @@
-# Distributed training with PyTorch DDT
+# Distributed training with PyTorch DDP
 
-**Author:** Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
-
-**Note**:  The following was originally provided [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by __[Corey Adams](mailto:corey.adams@anl.gov)__ and __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__
+---
 
 #### Table of Contents
 
@@ -14,9 +12,21 @@
     + [Wrapping your model in DDP:](#wrapping-your-model-in-ddp)
     + [DDP Performance](#ddp-performance)
     + [When to use DDP](#when-to-use-ddp)
-- [Examples](#examples)
-    + [Running in a container](#running-in-a-container)
-    + [Example Performance](#example-performance)
+  - [Examples](#examples)
+      * [Running in a container](#running-in-a-container)
+      * [Example Performance](#example-performance)
+
+---
+
+**Author:** Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
+
+**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by __Corey Adams__ [corey.adams@anl.gov](mailto:corey.adams@anl.gov) and __Huihuo Zheng__ [huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov)
+
+**Goal:** 
+
+1. Understand how PyTorch's DDP works
+2. Learn how to initialize DDP and select a communication backend (`NCCL` for GPUs, `gloo` for CPUs)
+3. Be able to modify existing code to be compatible with DDP
 
 ---
 
@@ -100,7 +110,7 @@ It's only available with pytorch. It's only worthwhile with distributed training
 
 ---
 
-# Examples
+## Examples
 
 There are two examples included here, with pytorch using `mnist` and `cifar10`. Both are as similar as possible to the horovod examples, but with horovod steps replaced via DDP. Feel free to do a diff and see all the changes!
 

@@ -41,6 +41,8 @@
 
 - How the model **weights** are split over cores ([image credit][2]):
 
+  - Shapes of different sizes in this row represent larger weight matrics in the networks' layers.
+
   ![weights](../assets/weights.png)
 
 - How the **data** is split over cores:
@@ -89,7 +91,7 @@
 
    Typically, since we use multiple workers, if we keep the local `batch_size` on each rank the same, the global batch size increases by $n$ times (where $n$ is the number of workers). The learning rate should increase proportionally (assuming that the initial learning rate is 0.01).
 
-4. **Wrap `tf.GradientTape` with `hvd.DistributedGradientTape`:
+4. **Wrap** `tf.GradientTape` **with** `hvd.DistributedGradientTape`
 
    ```python
    tape = hvd.DistributedGradientTape(tape)
@@ -127,8 +129,6 @@
 8. **Adjusting the number of steps per epoch**
 
    The total number of steps per epoch is `nsamples / hvd.size()`.
-
-
 
 ## PyTorch with Horovod
 
