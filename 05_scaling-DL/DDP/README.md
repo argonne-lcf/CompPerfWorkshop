@@ -48,6 +48,23 @@ DDP is only available in newer versions of python, and on ThetaGPU works most re
 
 For collective communication, DDP can use `NCCL` on GPUs, and `gloo` on CPUs.
 
+## Running DDP
+
+To launch DDP using 8 workers on a ThetaGPU node, we use the command:
+
+```bash
+python3 -m torch.distributed.launch --nproc_per_node=8 --nnodes=1 --node_rank 0 \
+	./DDP/torch_ddp_cifar10.py --device='gpu' --lr=0.001 --fp16_allreduce --batch_size=256 --epochs=50
+```
+
+**NOTE:** To safely shutdown the distributed training instance, we can use the command:
+
+```bash
+kill $(ps aux | grep torch_ddp_cifar10.py | grep -v grep | awk '{print #2}')
+```
+
+
+
 ## Setting up DDP
 
 To start DDP, you need to call pytorch's `init_process_group` function from the `distributed` package. This has a few options, but the easiest is typically to use the environment variables. You also need to assign each scipt you have a rank and world size -- fortunately, DDP is compatible with MPI so this is no trouble using `mpi4py`.
