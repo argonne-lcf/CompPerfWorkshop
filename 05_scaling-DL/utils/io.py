@@ -1,3 +1,4 @@
+import os
 import shutil
 import datetime
 import torch
@@ -25,30 +26,54 @@ class DistributedDataObject:
 
 
 
-def prepare_datasets(args: dict, rank: int, num_workers: int) -> (dict):
+def prepare_datasets(
+        args: dict,
+        rank: int,
+        num_workers: int,
+        data: str = 'CIFAR10',
+) -> (dict):
     """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
-    kwargs = {}
-    if args.device.find('gpu') != -1:
-        kwargs = {'num_workers': 1, 'pin_memory': True}
 
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    )
+    kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': False}
+    #  if args.device.find('gpu') != -1:
+    if not torch.cuda.is_available():
+        kwargs = {'rank': 0, 'num_workers': 1, 'pin_memory': True}
 
-    # Build datasets
-    train_dataset = datasets.CIFAR10(
-        'datasets', train=True, download=True, transform=transform,
-    )
-    test_dataset = datasets.CIFAR10(
-        'datasets', train=False, transform=transform
-    )
-    train_data = DistributedDataObject(train_dataset, args.batch_size,
-                                       rank=rank, num_workers=num_workers,
-                                       **kwargs)
-    test_data = DistributedDataObject(test_dataset, args.test_batch_size,
-                                      rank=rank, num_workers=num_workers,
-                                      **kwargs)
+    if str(data).lower() not in ['cifar10', 'mnist']:
+        raise ValueError('Expected `data` to be one of "cifar10", "mnist"')
+
+    if str(data).lower() == 'cifar10':
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        # Build datasets
+        datadir = os.path.abspath('datasets/CIFAR10')
+        train_dataset = datasets.CIFAR10(
+            datadir, train=True, download=True, transform=transform,
+        )
+        test_dataset = datasets.CIFAR10(
+            datadir, train=False, transform=transform
+        )
+    elif str(data).lower() == 'mnist':
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+        datadir = os.path.abspath('datasets/MNIST')
+        train_dataset = datasets.MNIST(
+            datadir, train=True, download=True, transform=transform,
+        )
+        test_dataset = datasets.MNIST(
+            datadir, train=False, download=True, transform=transform,
+        )
+
+    print(f'rank: {rank}, num_workers: {num_workers}')
+    train_data = DistributedDataObject(dataset=train_dataset,
+                                       batch_size=args.batch_size, **kwargs)
+    test_data = DistributedDataObject(test_dataset,
+                                      args.test_batch_size, **kwargs)
 
     return {'training': train_data, 'testing': test_data}
 

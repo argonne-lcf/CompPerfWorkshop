@@ -1,208 +1,80 @@
 """
-pytorch10_cifar10.pyhvision.datasets import
+torch_ddp.py
 
-Contains end-to-end training example (CIFAR10) on GPU or CPU with optional DDP.
+Modified from original: https://leimao.github.io/blog/PyTorch-Distributed-Training/
 """
-from __future__ import print_function
-import argparse
-from dataclasses import dataclass
-import os
-import shutil
-import socket
 import sys
-import time
-from typing import Callable
-
-import numpy as np
 import torch
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import DataLoader
+import torch.nn as nn
+import torch.distributed as dist
+from typing import Callable
 from torch.cuda.amp.autocast_mode import autocast
 from torch.cuda.amp.grad_scaler import GradScaler
-import torch.distributed as dist
-import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.optim as optim
-import torch.utils.data.distributed
-from torchvision import datasets, models, transforms
 
-# Ensure modules from `05_scaling-DL/utils/` is a are accessible
-# modulepath = os.path.dirname(os.path.dirname(__file__))
+import torchvision
+import torchvision.transforms as transforms
+
+import argparse
+import os
+import random
+import numpy as np
+
 here = os.path.abspath(os.path.dirname(__file__))
 modulepath = os.path.dirname(here)
 if modulepath not in sys.path:
     sys.path.append(modulepath)
 
 from utils.io import Logger, DistributedDataObject, prepare_datasets
-from utils.parse_args import parse_args_torch as parse_args
+from utils.parse_args import parse_args_ddp
 
-# Set global variables for rank, local_rank and world_size
-try:
-    from mpi4py import MPI
-
-    WITH_DDP = True
-    LOCAL_RANK = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK', None)
-    SIZE = MPI.COMM_WORLD.Get_size()
-    RANK = MPI.COMM_WORLD.Get_rank()
-
-    # Pytorch will look for these:
-    os.environ['RANK'] = str(RANK)
-    os.environ['WORLD_SIZE'] = str(SIZE)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(LOCAL_RANK)
-
-    # It will want the master address, too, which we'll broadcast
-    if RANK == 0:
-        MASTER_ADDR = socket.gethostname()
-    else:
-        MASTER_ADDR = None
-
-    MASTER_ADDR = MPI.COMM_WORLD.bcast(MASTER_ADDR, root=0)
-    os.environ['MASTER_ADDR'] = MASTER_ADDR
-    os.environ['MASTER_PORT'] = str(2345)  # any open port
-    print(f'Using DDP. Rank: {RANK} of {SIZE}')
-
-except (ImportError, ModuleNotFoundError) as err:
-    WITH_DDP = False
-    LOCAL_RANK = 0
-    SIZE = 1
-    RANK = 0
-    print(f'WARNING: MPI Initialization Failed!\n Exception: {err}')
-
-
-# pylint:disable=invalid-name
 logger = Logger()
 
-
-# -----------------------------------------------------
-# Helper object for aggregating relevant data objects
-# -----------------------------------------------------
-"""
-class DistributedDataObject:
-    def __init__(
-            self,
-            dataset: torch.utils.data.Dataset,
-            batch_size: int,
-            **kwargs: dict
-    ):
-        self.dataset = dataset
-        self.sampler = torch.utils.data.distributed.DistributedSampler(
-            self.dataset, num_replicas=SIZE, rank=RANK
-        )
-        self.loader = torch.utils.data.DataLoader(
-            self.dataset, batch_size, sampler=self.sampler, **kwargs
-        )
-"""
+def set_random_seeds(random_seed=0):
+    torch.manual_seed(random_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(random_seed)
+    random.seed(random_seed)
 
 
+def evaluate(model, device, test_loader):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data in test_loader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
 
-# --------------------------------
-# Model constructor / definition
-# --------------------------------
-class AlexNet(nn.Module):
-    def __init__(self, num_classes=10):
-        super(AlexNet, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),
-            # -----
-            nn.Conv2d(64, 192, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),
-            # -----
-            nn.Conv2d(192, 384, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            # -----
-            nn.Conv2d(384, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            # -----
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),
-        )
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 2 * 2, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
-            nn.Linear(4096, num_classes),
-        )
+    accuracy = correct / total
 
-    @autocast()
-    def forward(self, x: torch.tensor) -> (torch.tensor):
-        """Call the model on input data `x`."""
-        x = self.features(x)
-        x = x.view(x.size(0), 256 * 2 * 2)
-        x = self.classifier(x)
-        return x
+    return accuracy
 
 
-def setup_ddp(args: dict):
-    """Specify device to use and setup backend for MPI communication."""
-    if args.device not in ['gpu', 'cpu']:
-        raise ValueError('Expected `args.device` to be one of "gpu", "cpu"')
-
-    backend = 'nccl' if args.device == 'gpu' else 'gloo'
-    if WITH_DDP:
-        dist.init_process_group(backend=backend, init_method='env://')
-
-    if args.device == 'gpu':
-        # DDP: pin GPU to local rank
-        # toch.cuda.set_device(int(LOCAL_RANK))
-        torch.cuda.manual_seed(args.seed)
-
-    if args.num_threads != 0:
-        torch.set_num_threads(args.num_threads)
-
-    if RANK == 0:
-        logger.log(f'(setup torch threads) number of threads: {torch.get_num_threads()}')
-
-
-def build_model(args: dict) -> (nn.Module):
-    """Helper method for building model using hyperparams from `args`."""
-    model = AlexNet(num_classes=10)
-
-    if args.device == 'gpu' or args.device.find('gpu') != -1:
-        model.cuda()  # move model to GPU
-    if WITH_DDP:
-        model = DDP(model)
-
-    return model
-
-
-def metric_average(x: torch.tensor) -> (torch.tensor):
+def metric_average(x: torch.tensor, with_ddp: bool) -> (torch.tensor):
     """Compute global averages across all workers if using DDP. """
-    if WITH_DDP:
+    x = torch.tensor(x)
+    if with_ddp:
         # Sum everything and divide by total size
         dist.all_reduce(x, op=dist.ReduceOp.SUM)
         x /= SIZE
     else:
         pass
 
-    return x
-
-
-def evaluate(
-    data: DistributedDataObject,
-    model: nn.Module,
-    loss_fn: Callable[[torch.tensor], torch.tensor],
-    args: dict
-):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():
-        for batch in data.loader:
-            images, labels = data[0].to(args.device), data[1].to(args.device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+    return x.item()
 
 
 def train(
         epoch: int,
         data: DistributedDataObject,
+        device: torch.device,
+        rank: int,
         model: nn.Module,
         loss_fn: Callable[[torch.tensor], torch.tensor],
         optimizer: optim.Optimizer,
@@ -212,16 +84,14 @@ def train(
     model.train()
     # Horovod: set epoch to sampler for shuffling
     data.sampler.set_epoch(epoch)
-    running_loss = torch.tensor(0.0)
-    training_acc = torch.tensor(0.0)
-
-    if args.device == 'gpu':
-        running_loss = running_loss.cuda()
-        training_acc = training_acc.cuda()
+    running_loss = 0.0
+    training_acc = 0.0
+    #  running_loss = torch.tensor(0.0)
+    #  training_acc = torch.tensor(0.0)
 
     for batch_idx, (batch, target) in enumerate(data.loader):
         if args.cuda:
-            batch, target = batch.cuda(), target.cuda()
+            batch, target = batch.to(device), target.to(device)
 
         optimizer.zero_grad()
         output = model(batch)
@@ -241,25 +111,23 @@ def train(
         training_acc += acc
         running_loss += loss.item()
 
-        #  running_loss = running_loss / len(data.sampler)
-        #  running_acc = running_acc / len(data.sampler)
-        #  loss_avg = metric_average(running_loss)
-        #  acc_avg = metric_average(running_acc)
-        #  if RANK == 0 and batch_idx % args.log_interval == 0:
         if batch_idx % args.log_interval == 0:
             metrics_ = {
                 'epoch': epoch,
                 'batch_loss': loss.item() / args.batch_size,
                 'running_loss': running_loss / len(data.sampler),
-                'batch_acc': acc / args.batch_size,
+                'batch_acc': acc.item() / args.batch_size,
                 'training_acc': training_acc / len(data.sampler),
             }
+
             jdx = batch_idx * len(batch)
             frac = 100. * batch_idx / len(data.loader)
-            pre = [f'[{RANK}]',
-                   f'[{jdx:05}/{len(data.sampler):05} ({frac:>4.3g}%)]']
+            pre = [f'[{rank}]',
+                   f'[{jdx}/{len(data.sampler)} ({frac}%)]']
+                   #  f'[{jdx:05}/{len(data.sampler):05} ({frac:>4.3g}%)]']
             mstr = ' '.join([
-                f'{str(k):>5}: {v:<7.4g}' for k, v in metrics_.items()
+                #  f'{str(k):>5}: {v:<7.4g}' for k, v in metrics_.items()
+                f'{k}: {v}' for k, v in metrics_.items()
             ])
             logger.log(' '.join([*pre, mstr]))
 
@@ -271,97 +139,129 @@ def train(
 
     running_loss = running_loss / len(data.sampler)
     training_acc = training_acc / len(data.sampler)
-    loss_avg = metric_average(running_loss)
-    training_acc = metric_average(training_acc)
-    if RANK == 0:
-        logger.log('\n'.join([
-            f'training set, avg loss: {loss_avg:.4g}',
-            f'training set, accuracy: {training_acc * 100:.2f}%'
-        ]))
+    #  loss_avg = metric_average(running_loss, args.cuda)
+    #  training_acc = metric_average(training_acc, args.cuda)
+    if rank == 0:
+        logger.log(f'training set; avg loss: {running_loss:.4g}, '
+                   f'accuracy: {training_acc * 100:.2f}%')
 
 
-def test(
-        data: DistributedDataObject,
-        model: nn.Module,
-        loss_fn: Callable[[torch.tensor], torch.tensor],
-        args: dict
-):
-    model.eval()
-    test_loss = torch.tensor(0.0)
-    test_accuracy = torch.tensor(0.0)
-    if args.device == 'gpu':
-        test_loss = test_loss.cuda()
-        test_accuracy = test_accuracy.cuda()
+def main():
+    argv = parse_args_ddp()
+    with_cuda = torch.cuda.is_available()
+    argv.cuda = with_cuda
 
-    for batch, target in data.loader:
-        if args.cuda:
-            batch, target = batch.cuda(), target.cuda()
+    local_rank = argv.local_rank
+    num_epochs = argv.num_epochs
+    batch_size = argv.batch_size
+    learning_rate = argv.learning_rate
+    random_seed = argv.random_seed
+    model_dir = argv.model_dir
+    model_filename = argv.model_filename
+    resume = argv.resume
 
-        output = model(batch)
-        # Sum up batch loss
-        test_loss += loss_fn(output, target).item()
-        # get the index of the max log-probability
-        pred = output.data.max(1, keepdim=True)[1]
-        test_accuracy += pred.eq(target.data.view_as(pred)).float().sum()
+    # Create directories outside the PyTorch program
+    # Do not create directory here because it is not multiprocess safe
+    '''
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    '''
 
-    # Horovod: use test_sampler to determine the number of examples in this
-    # workers partition
-    test_loss /= len(data.sampler)
-    test_accuracy /= len(data.sampler)
+    model_filepath = os.path.join(model_dir, model_filename)
 
-    # Horovod: average metric values across workers
-    loss_avg = metric_average(test_loss)
-    acc_avg = metric_average(test_accuracy)
+    # We need to use seeds to make sure that the models initialized in different processes are the same
+    set_random_seeds(random_seed=random_seed)
 
-    # Horovod: print output only on chief rank
-    if RANK == 0:
-        avg_metrics = {
-            'loss_avg': loss_avg,
-            'accuracy_avg': acc_avg,
-        }
-        logger.log('    ' + ' '.join(
-            [f'{k}: {v:.3g}' for k, v in avg_metrics.items()]
-        ))
+    # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+    backend = 'nccl' if with_cuda else 'gloo'
+    dist.init_process_group(backend=backend)
+    #  torch.distributed.init_process_group(backend=backend)
+    # torch.distributed.init_process_group(backend="gloo")
+
+    # Encapsulate the model on the GPU assigned to the current process
+    model = torchvision.models.resnet18(pretrained=False)
+
+    if argv.cuda:
+        device = torch.device("cuda:{}".format(local_rank))
+        num_workers = torch.cuda.device_count()
+    else:
+        device = torch.device(int(local_rank))
+
+    model = model.to(device)
+    ddp_model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank], output_device=local_rank)
+
+    # We only save the model who uses device "cuda:0"
+    # To resume, the device for the saved model would also be "cuda:0"
+    if resume == True:
+        if with_cuda:
+            map_location = {"cuda:0": "cuda:{}".format(local_rank)}
+        else:
+            map_location = {'0': f'{local_rank}'}
+
+        ddp_model.load_state_dict(torch.load(model_filepath, map_location=map_location))
+
+    # Prepare dataset and dataloader
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    # Data should be prefetched
+    # Download should be set to be False, because it is not multiprocess safe
+    #  train_set = torchvision.datasets.CIFAR10(root="data", train=True,
+    #                                           download=True, transform=transform)
+    #  test_set = torchvision.datasets.CIFAR10(root="data", train=False,
+    #                                          download=True, transform=transform)
+    data = prepare_datasets(argv, rank=local_rank,
+                            num_workers=num_workers,
+                            data='cifar10')
+
+    # Restricts data loading to a subset of the dataset exclusive to the current process
+    #  train_sampler = DistributedSampler(dataset=train_set)
+
+    #  train_loader = DataLoader(dataset=train_set, batch_size=batch_size, sampler=train_sampler, num_workers=8)
+    #  # Test loader does not have to follow distributed sampling strategy
+    #  test_loader = DataLoader(dataset=test_set, batch_size=128, shuffle=False, num_workers=8)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(ddp_model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=1e-5)
+
+    # Loop over the dataset multiple times
+    for epoch in range(num_epochs):
+        #  logger.log("Local Rank: {}, Epoch: {}, Training ...".format(local_rank, epoch))
+        # Save and evaluate model routinely
+        train(epoch, data['training'], device=device, rank=local_rank,
+              model=ddp_model, loss_fn=criterion,
+              optimizer=optimizer, args=argv, scaler=None)
+
+        if epoch % 10 == 0:
+            if local_rank == 0:
+                accuracy = evaluate(model=ddp_model, device=device,
+                                    test_loader=data['testing'].loader)
+                torch.save(ddp_model.state_dict(), model_filepath)
+                logger.log('-' * 75)
+                logger.log(f'Epoch: {epoch}, Accuracy: {accuracy}')
+                logger.log('-' * 75)
+        #  if epoch % 10 == 0:
+        #      if local_rank == 0:
+        #          accuracy = evaluate(model=ddp_model, device=device, test_loader=test_loader)
+        #          torch.save(ddp_model.state_dict(), model_filepath)
+        #          logger.log("-" * 75)
+        #          logger.log("Epoch: {}, Accuracy: {}".format(epoch, accuracy))
+        #          logger.log("-" * 75)
+        #
+        #  ddp_model.train()
+        #
+        #  for data in train_loader:
+        #      inputs, labels = data[0].to(device), data[1].to(device)
+        #      optimizer.zero_grad()
+        #      outputs = ddp_model(inputs)
+        #      loss = criterion(outputs, labels)
+        #      loss.backward()
+        #      optimizer.step()
 
 
-def main(args):
-    start = time.time()
-    setup_ddp(args)
-    data = prepare_datasets(args, rank=RANK, num_workers=SIZE)
-
-    model = build_model(args)
-    loss_fn = nn.CrossEntropyLoss()
-    # Horovod: scale learning rate by the number of GPUs
-    #optimizer = optim.SGD(model.parameters(),
-    #                      lr=args.lr * SIZE,
-    #                      momentum=args.momentum)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr * SIZE)
-    epoch_times = []
-
-    logger.log(f'Training on {args.device}, cuda: {args.cuda}')
-    scaler = GradScaler(enabled=args.cuda)
-    train_data = data['training']
-    for epoch in range(1, args.epochs + 1):
-        t0 = time.time()
-        train(args=args,
-              epoch=epoch,
-              model=model,
-              optimizer=optimizer,
-              data=train_data,
-              loss_fn=loss_fn,
-              scaler=scaler)
-        test(data['testing'], model, loss_fn, args)
-        epoch_times.append(time.time() - t0)
-
-    end = time.time()
-    avg_dt = np.mean(epoch_times[-5:])
-    if RANK == 0:
-        logger.log(
-            f'Total training time: {end - start:.5g}\n'
-            f'Average time per epoch in the last 5: {avg_dt:.5g}'
-        )
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    _ = main(args)
+if __name__ == "__main__":
+    main()

@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data.distributed
+import torchvision
 from torchvision import datasets, transforms
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -25,7 +26,7 @@ modulepath = os.path.abspath(os.path.dirname(os.path.dirname(here)))
 if modulepath not in sys.path:
     sys.path.append(modulepath)
 
-from utils.io import Logger
+from utils.io import Logger, prepare_datasets, DistributedDataObject
 from utils.parse_args import parse_args_torch as parse_args
 
 hvd.init()
@@ -112,32 +113,6 @@ class AlexNet(nn.Module):
         return x
 
 
-def prepare_datasets(args: dict) -> (dict):
-    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
-    kwargs = {}
-    if args.device.find('gpu') != -1:
-        kwargs = {'num_workers': 1, 'pin_memory': True}
-
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    )
-
-    # Build datasets
-    train_dataset = datasets.CIFAR10(
-        'datasets', train=True, download=True, transform=transform,
-    )
-    test_dataset = datasets.CIFAR10(
-        'datasets', train=False, transform=transform
-    )
-    train_data = DistributedDataObject(train_dataset,
-                                       args.batch_size, **kwargs)
-    test_data = DistributedDataObject(test_dataset,
-                                      batch_size=args.batch_size, **kwargs)
-
-    return {'training': train_data, 'testing': test_data}
-
-
 def metric_average(val, name):
     tensor = torch.tensor(val)
     avg_tensor = hvd.allreduce(tensor, name=name)
@@ -154,6 +129,7 @@ def train(
     model.train()
     running_loss = 0.0
     training_acc = 0.0
+    loss_fn = nn.CrossEntropyLoss()
     # Horovod: set epoch to sampler for shuffling
     data.sampler.set_epoch(epoch)
     for batch_idx, (batch, target) in enumerate(data.loader):
@@ -162,7 +138,8 @@ def train(
         optimizer.zero_grad()
 
         output = model(batch)
-        loss= F.nll_loss(output, target)
+        #  loss= F.nll_loss(output, target)
+        loss = loss_fn(output, target)
         loss.backward()
         optimizer.step()
         pred = output.data.max(1, keepdim=True)[1]
@@ -197,10 +174,7 @@ def train(
     loss_avg = metric_average(running_loss, 'running_loss')
     training_acc = metric_average(training_acc, 'training_acc')
     if hvd.rank() == 0:
-        logger.log('\n'.join([
-            f'training set, avg loss: {loss_avg:.4g}',
-            f'training set, accuracy: {training_acc * 100:.2f}%'
-        ]))
+        logger.log(f'training set; avg loss: {loss_avg:.4g}, accuracy: {training_acc * 100:.2f}%')
 
 
 def evaluate(
@@ -222,14 +196,32 @@ def evaluate(
 
     return accuracy
 
-def test(
+
+def test(model, device, test_loader):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    accuracy = correct / total
+
+    return accuracy
+
+def test1(
         data: DistributedDataObject,
         model: nn.Module,
-        args: dict
+        args: dict,
 ):
     model.eval()
     test_loss = 0.
     test_acc = 0.
+    loss_fn = nn.CrossEntropy()
     n = 0
     for batch, target in data.loader:
         if args.cuda:
@@ -237,7 +229,10 @@ def test(
         output = model(batch)
 
         # sum up batch loss
-        test_loss += F.nll_loss(output, target).item()
+        loss = loss_fn(output, target)
+        test_loss += loss.item()
+        #  test_loss += F.nll_loss(output, target).item()
+        #  test_loss += nn.CrossEntropy()
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
         batch_acc = pred.eq(target.data.view_as(pred)).cpu().float().sum()
@@ -277,9 +272,10 @@ def main(*argv, **kwargs):
     if args.device.find('gpu') != -1:
         kwargs = {'num_workers': 1, 'pin_memory': True}
 
-    data = prepare_datasets(args, rank=RANK, num_workers=SIZE)
+    data = prepare_datasets(args, rank=RANK, num_workers=SIZE, data=args.dataset)
     #  model = Net()
-    model = AlexNet(num_classes=10)
+    #  model = AlexNet(num_classes=10)
+    model = torchvision.models.resnet18(pretrained=False)
 
     if args.device.find('gpu') != -1:
         model.cuda()
@@ -314,3 +310,5 @@ def main(*argv, **kwargs):
 
 if __name__ == '__main__':
     main()
+
+
