@@ -146,19 +146,20 @@ def train(
                    f'accuracy: {training_acc * 100:.2f}%')
 
 
-def main():
-    argv = parse_args_ddp()
+def main(*args):
+    args = parse_args_ddp()
     with_cuda = torch.cuda.is_available()
-    argv.cuda = with_cuda
 
-    local_rank = argv.local_rank
-    num_epochs = argv.num_epochs
-    batch_size = argv.batch_size
-    learning_rate = argv.learning_rate
-    random_seed = argv.random_seed
-    model_dir = argv.model_dir
-    model_filename = argv.model_filename
-    resume = argv.resume
+    args.cuda = with_cuda
+
+    local_rank = args.local_rank
+    epochs = args.epochs
+    batch_size = args.batch_size
+    lr = args.lr
+    random_seed = args.random_seed
+    model_dir = args.model_dir
+    model_filename = args.model_filename
+    resume = args.resume
 
     # Create directories outside the PyTorch program
     # Do not create directory here because it is not multiprocess safe
@@ -181,7 +182,7 @@ def main():
     # Encapsulate the model on the GPU assigned to the current process
     model = torchvision.models.resnet18(pretrained=False)
 
-    if argv.cuda:
+    if args.cuda:
         device = torch.device("cuda:{}".format(local_rank))
         num_workers = torch.cuda.device_count()
     else:
@@ -214,7 +215,7 @@ def main():
     #                                           download=True, transform=transform)
     #  test_set = torchvision.datasets.CIFAR10(root="data", train=False,
     #                                          download=True, transform=transform)
-    data = prepare_datasets(argv, rank=local_rank,
+    data = prepare_datasets(args, rank=local_rank,
                             num_workers=num_workers,
                             data='cifar10')
 
@@ -226,15 +227,15 @@ def main():
     #  test_loader = DataLoader(dataset=test_set, batch_size=128, shuffle=False, num_workers=8)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(ddp_model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=1e-5)
+    optimizer = optim.SGD(ddp_model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-5)
 
     # Loop over the dataset multiple times
-    for epoch in range(num_epochs):
+    for epoch in range(epochs):
         #  logger.log("Local Rank: {}, Epoch: {}, Training ...".format(local_rank, epoch))
         # Save and evaluate model routinely
         train(epoch, data['training'], device=device, rank=local_rank,
               model=ddp_model, loss_fn=criterion,
-              optimizer=optimizer, args=argv, scaler=None)
+              optimizer=optimizer, args=args, scaler=None)
 
         if epoch % 10 == 0:
             if local_rank == 0:

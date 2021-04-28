@@ -165,7 +165,7 @@ def train(
             pre = [f'[{hvd.rank()}]',
                    f'[{jdx:05}/{len(data.sampler):05} ({frac:>4.3g}%)]']
             mstr = ' '.join([
-                f'{str(k):>5}: {v:<7.4g}' for k, v in metrics_.items()
+                f'{str(k):<5}: {v:<7.4g}' for k, v in metrics_.items()
             ])
             logger.log(' '.join([*pre, mstr]))
 
@@ -197,13 +197,17 @@ def evaluate(
     return accuracy
 
 
-def test(model, device, test_loader):
+def test(model, test_loader):
     model.eval()
     correct = 0
     total = 0
     with torch.no_grad():
+        #  for images, labels in test_loader:
+        #      images, labels = images.to(device), labels.to(device)
         for images, labels in test_loader:
-            images, labels = images.to(device), labels.to(device)
+            if torch.cuda.is_available():
+                images, labels = images.cuda(), labels.cuda()
+
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
@@ -296,14 +300,19 @@ def main(*argv, **kwargs):
     optimizer = hvd.DistributedOptimizer(optimizer,
                                          named_parameters=model.named_parameters(),
                                          compression=compression)
-    t0 = time.time()
+    start = time.time()
     train_data = data['training']
     test_data = data['testing']
+    epoch_times = []
     for epoch in range(1, args.epochs + 1):
+        t0 = time.time()
         train(epoch, train_data, model, optimizer, args)
-        test(test_data, model, args)
+        epoch_times.append(time.time() - t0)
+        test(model, test_data.loader)
 
-    t1 = time.time()
+        #  test(test_data, model, args)
+
+    end = time.time()
     if hvd.rank() == 0:
         print(f'Total training time: {t1 - t0} seconds')
 

@@ -17,7 +17,7 @@ def parse_args_ddp(*args):
         help="Local rank. Necessary for using the torch.distributed.launch utility."
     )
     parser.add_argument(
-        "--num_epochs", type=int, default=100,
+        "--epochs", type=int, default=100,
         help="Number of training epochs."
     )
     parser.add_argument(
@@ -33,7 +33,7 @@ def parse_args_ddp(*args):
         help="Test batch size for one process."
     )
     parser.add_argument(
-        "--learning_rate", type=float, default=0.1,
+        "--lr", type=float, default=0.001,
         help="Learning rate."
     )
     parser.add_argument(
@@ -51,6 +51,10 @@ def parse_args_ddp(*args):
     parser.add_argument(
         "--resume", action="store_true",
         help="Resume training from saved checkpoint."
+    )
+    parser.add_argument(
+        '--gpu', action='store_true',
+        help='Whether or not training is to be done on GPU'
     )
     args = parser.parse_args()
 
