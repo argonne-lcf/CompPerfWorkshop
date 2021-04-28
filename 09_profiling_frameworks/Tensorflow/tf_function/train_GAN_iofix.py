@@ -42,6 +42,10 @@ def init_mpi():
 
     try:
         hvd.init()
+        local_rank = hvd.local_rank()
+        gpus = tf.config.list_physical_devices('GPU')
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+
         return hvd.rank(), hvd.size()
     except:
         if "mpirun" in sys.argv or "mpiexec" in sys.argv:
@@ -500,13 +504,15 @@ def train_GAN(_batch_size, _training_iterations, global_size):
 
 
     # Save the model:
-    generator.save_weights("trained_GAN.h5")
+    if global_size != 1:
+        if hvd.rank() == 0:
+            generator.save_weights("trained_GAN.h5")
 
 if __name__ == '__main__':
 
     rank, size = init_mpi()
     configure_logger(rank)
 
-    BATCH_SIZE=64
-    N_TRAINING_ITERATIONS = 100
+    BATCH_SIZE=2048
+    N_TRAINING_ITERATIONS = 10000
     train_GAN(BATCH_SIZE, N_TRAINING_ITERATIONS, size)

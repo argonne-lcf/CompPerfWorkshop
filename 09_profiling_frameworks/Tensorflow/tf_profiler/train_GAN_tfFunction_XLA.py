@@ -1,7 +1,8 @@
 import sys, os
 import time
 
-os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
+# os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
+os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2"
 
 
 import logging
@@ -11,7 +12,6 @@ import tensorflow as tf
 import numpy
 
 import horovod.tensorflow as hvd
-from mpi4py import MPI
 
 
 
@@ -49,6 +49,10 @@ def init_mpi():
 
     try:
         hvd.init()
+        local_rank = hvd.local_rank()
+        gpus = tf.config.list_physical_devices('GPU')
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+
         return hvd.rank(), hvd.size()
     except:
         if "mpirun" in sys.argv or "mpiexec" in sys.argv:
@@ -58,9 +62,9 @@ def init_mpi():
 
 def configure_logger(rank):
     '''Configure a global logger
-    
-    Adds a stream handler and a file hander, buffers to file (10 lines) but not to stdout.  
-    
+
+    Adds a stream handler and a file hander, buffers to file (10 lines) but not to stdout.
+
     Submit the MPI Rank
 
     '''
@@ -91,40 +95,40 @@ def configure_logger(rank):
         logger.setLevel(logging.INFO)
 
 
-# The network designs for a GAN need not be anything special. 
+# The network designs for a GAN need not be anything special.
 
 class Discriminator(tf.keras.models.Model):
     '''
     Simple classifier for mnist, but only 1 or 2 outputs:
-        
+
     With 1 output, we will use a sigmoid cross entropy.
-    
+
     '''
-    
+
     def __init__(self, activation=tf.nn.tanh):
         tf.keras.models.Model.__init__(self)
 
         # Apply a 5x5 kernel to the image:
         self.discriminator_layer_1 = tf.keras.layers.Convolution2D(
-            kernel_size = [5, 5], 
+            kernel_size = [5, 5],
             filters     = 24,
             padding     = "same",
             activation  = activation,
         )
-        
+
         self.dropout_1 = tf.keras.layers.Dropout(0.4)
-        
+
         self.pool_1 = tf.keras.layers.MaxPool2D()
-        
+
         self.discriminator_layer_2 = tf.keras.layers.Convolution2D(
-            kernel_size = [5, 5], 
-            filters     = 64, 
+            kernel_size = [5, 5],
+            filters     = 64,
             padding     = "same",
             activation  = activation,
         )
 
         self.dropout_2 = tf.keras.layers.Dropout(0.4)
-        
+
         self.pool_2 = tf.keras.layers.MaxPool2D()
 
         self.discriminator_layer_3 = tf.keras.layers.Convolution2D(
@@ -133,28 +137,28 @@ class Discriminator(tf.keras.models.Model):
             padding     = "same",
             activation  = activation,
         )
-        
+
         self.dropout_3 = tf.keras.layers.Dropout(0.4)
 
-        
+
         self.pool_3 = tf.keras.layers.MaxPool2D()
 
         self.discriminator_layer_final = tf.keras.layers.Dense(
             units = 1,
             activation = None,
             )
-        
-        
-        
+
+
+
 
 
     def call(self, inputs):
-        
+
         batch_size = inputs.shape[0]
         x = inputs
         # Make sure the input is the right shape:
         x = tf.reshape(x, [batch_size, 28, 28, 1])
-            
+
         x = self.discriminator_layer_1(x)
         x = self.pool_1(x)
         x = self.dropout_1(x)
@@ -176,25 +180,25 @@ class Discriminator(tf.keras.models.Model):
 # And here is our generator model, which will expect as input some random-number fixed length tensor.
 
 class Generator(tf.keras.models.Model):
-    
+
     def __init__(self, activation=tf.nn.tanh):
         tf.keras.models.Model.__init__(self)
 
-        # The first step is to take the random image and use a dense layer to 
+        # The first step is to take the random image and use a dense layer to
         #make it the right shape
-        
+
         self.dense = tf.keras.layers.Dense(
             units = 7 * 7 * 64
         )
-        
+
         # This will get reshaped into a 7x7 image with 64 filters.
-        
+
         # We need to upsample twice to get to a full 28x28 resolution image
-        
-        
+
+
         self.batch_norm_1 = tf.keras.layers.BatchNormalization()
-        
-        
+
+
         self.generator_layer_1 = tf.keras.layers.Convolution2D(
             kernel_size = [5, 5],
             filters     = 64,
@@ -202,12 +206,12 @@ class Generator(tf.keras.models.Model):
             use_bias    = True,
             activation  = activation,
         )
-        
+
         self.unpool_1 = tf.keras.layers.UpSampling2D(
             size          = 2,
             interpolation = "nearest",
         )
-        
+
         # After that unpooling the shape is [14, 14] with 64 filters
         self.batch_norm_2 = tf.keras.layers.BatchNormalization()
 
@@ -219,7 +223,7 @@ class Generator(tf.keras.models.Model):
             use_bias    = True,
             activation  = activation,
         )
-        
+
         self.unpool_2 = tf.keras.layers.UpSampling2D(
             size          = 2,
             interpolation = "nearest",
@@ -235,8 +239,8 @@ class Generator(tf.keras.models.Model):
             use_bias    = True,
             activation  = activation,
         )
-        
-        # Now it is [28, 28] by 24 filters, use a bottle neck to 
+
+        # Now it is [28, 28] by 24 filters, use a bottle neck to
         # compress to a single image:
         self.batch_norm_4 = tf.keras.layers.BatchNormalization()
 
@@ -248,15 +252,15 @@ class Generator(tf.keras.models.Model):
             use_bias    = True,
             activation  = tf.nn.sigmoid,
         )
-        
 
-        
+
+
     def call(self, inputs):
-        ''' 
-        Reshape at input and output: 
         '''
-            
-        
+        Reshape at input and output:
+        '''
+
+
         batch_size = inputs.shape[0]
 
 
@@ -276,8 +280,8 @@ class Generator(tf.keras.models.Model):
         x = self.generator_layer_3(x)
         x = self.batch_norm_4(x)
         x = self.generator_layer_final(x)
-        
-        
+
+
         return x
 
 
@@ -287,7 +291,7 @@ class Generator(tf.keras.models.Model):
 
 def compute_loss(_logits, _targets):
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=_targets, logits=_logits)
-    
+
     return tf.reduce_mean(loss)
 
 
@@ -295,9 +299,9 @@ def compute_loss(_logits, _targets):
 def fetch_real_batch(_batch_size):
 
     indexes = numpy.random.choice(a=x_train.shape[0], size=[_batch_size,])
-    
+
     images = x_train[indexes].reshape(_batch_size, 28, 28, 1)
-    
+
     return images
 
 
@@ -309,20 +313,20 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
         # Fetch real data:
         real_data = fetch_real_batch(_batch_size)
-        
-        
-        
+
+
+
         # Use the generator to make fake images:
         random_noise = numpy.random.uniform(-1, 1, size=_batch_size*_input_size).astype(numpy.float32)
         random_noise = random_noise.reshape([_batch_size, _input_size])
         fake_images  = _generator(random_noise)
-        
+
 
         # Use the discriminator to make a prediction on the REAL data:
         prediction_on_real_data = _discriminator(real_data)
         # Use the discriminator to make a prediction on the FAKE data:
         prediction_on_fake_data = _discriminator(fake_images)
-        
+
 
         soften = 0.1
         real_labels = numpy.zeros([_batch_size,1], dtype=numpy.float32) + soften
@@ -331,36 +335,36 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
 
         # Occasionally, we disrupt the discriminator (since it has an easier job)
-        
+
         # Invert a few of the discriminator labels:
-        
+
         n_swap = int(_batch_size * 0.1)
-        
+
         real_labels [0:n_swap] = 1.
         fake_labels [0:n_swap] = 0.
-        
-        
+
+
         # Compute the loss for the discriminator on the real images:
         discriminator_real_loss = compute_loss(
-            _logits  = prediction_on_real_data, 
+            _logits  = prediction_on_real_data,
             _targets = real_labels)
-        
+
         # Compute the loss for the discriminator on the fakse images:
         discriminator_fake_loss = compute_loss(
-            _logits  = prediction_on_fake_data, 
+            _logits  = prediction_on_fake_data,
             _targets = fake_labels)
 
         # The generator loss is based on the output of the discriminator.
         # It wants the discriminator to pick the fake data as real
         generator_target_labels = [1] * _batch_size
-        
+
         generator_loss = compute_loss(
-            _logits  = prediction_on_fake_data, 
+            _logits  = prediction_on_fake_data,
             _targets = real_labels)
-        
+
         # Average the discriminator loss:
         discriminator_loss = 0.5*(discriminator_fake_loss  + discriminator_real_loss)
-        
+
         # Calculate the predicted label (real or fake) to calculate the accuracy:
         predicted_real_label = tf.argmax(prediction_on_real_data, axis=-1)
         predicted_fake_label = tf.argmax(prediction_on_fake_data, axis=-1)
@@ -372,8 +376,8 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
         discriminator_accuracy = 0.5 * tf.reduce_mean(real_label_agreement) + 0.5 * tf.reduce_mean(fake_label_agreement)
         generator_accuracy = 0.5 * tf.reduce_mean(generator_agreement)
-          
-        
+
+
         metrics = {
             "discriminator" : discriminator_accuracy,
             "generator"    : generator_accuracy
@@ -381,15 +385,15 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
         loss = {
             "discriminator" : discriminator_loss,
-            "generator"    : generator_loss        
-        }
-        
-        images = {
-            "real" : tf.reshape(real_data[0], [28,28]),
-            "fake" : tf.reshape(fake_images[0], [28,28]) 
+            "generator"    : generator_loss
         }
 
-        
+        images = {
+            "real" : tf.reshape(real_data[0], [28,28]),
+            "fake" : tf.reshape(fake_images[0], [28,28])
+        }
+
+
         return loss, metrics, images
 
 
@@ -404,7 +408,7 @@ def train_loop(batch_size, n_training_iterations, models, opts, global_size):
         with tf.GradientTape() as tape:
                 loss, metrics, images = forward_pass(
                     _models["generator"],
-                    _models["discriminator"], 
+                    _models["discriminator"],
                     _input_size = 100,
                     _batch_size = _batch_size,
                 )
@@ -427,7 +431,7 @@ def train_loop(batch_size, n_training_iterations, models, opts, global_size):
         with tf.GradientTape() as tape:
                 loss, metrics, images = forward_pass(
                     _models["generator"],
-                    _models["discriminator"], 
+                    _models["discriminator"],
                     _input_size = 100,
                     _batch_size = _batch_size,
                 )
@@ -454,15 +458,14 @@ def train_loop(batch_size, n_training_iterations, models, opts, global_size):
     logger = logging.getLogger()
 
     rank = hvd.rank()
+    tf.profiler.experimental.start('logdir')
     for i in range(n_training_iterations):
 
         start = time.time()
 
-        tf.profiler.experimental.start('logdir')
 
         loss, metrics = train_iteration(batch_size, models, opts, global_size)
 
-        tf.profiler.experimental.stop()
 
         if loss["discriminator"] < 0.01:
             break
@@ -473,6 +476,7 @@ def train_loop(batch_size, n_training_iterations, models, opts, global_size):
         images = batch_size*2*global_size
 
         logger.info(f"G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
+    tf.profiler.experimental.stop()
 
 
 # @tf.function
@@ -491,7 +495,7 @@ def train_GAN(_batch_size, _training_iterations, global_size):
 
     models = {
         "generator" : generator,
-        "discriminator" : discriminator  
+        "discriminator" : discriminator
     }
 
     opts = {
@@ -511,7 +515,9 @@ def train_GAN(_batch_size, _training_iterations, global_size):
 
 
     # Save the model:
-    generator.save_weights("trained_GAN.h5")
+    if global_size != 1:
+        if hvd.rank() == 0:
+            generator.save_weights("trained_GAN.h5")
 
 if __name__ == '__main__':
 
@@ -520,10 +526,6 @@ if __name__ == '__main__':
     rank, size = init_mpi()
     configure_logger(rank)
 
-    BATCH_SIZE=64
-    N_TRAINING_ITERATIONS = 20
+    BATCH_SIZE=8192
+    N_TRAINING_ITERATIONS = 8000
     train_GAN(BATCH_SIZE, N_TRAINING_ITERATIONS, size)
-
-
-
-
