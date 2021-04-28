@@ -1,5 +1,6 @@
 *.log
 *.lprof
+*.prof
 *.h5
 *.pb
 *.gz
