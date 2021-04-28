@@ -12,13 +12,13 @@ databases for optimization analysis.
 Installing parsl on Theta is a straightforward process.
 
 1. Load a miniconda environment. For this demo, we use the following:
-        module load miniconda-3
+`module load miniconda-3`
 
-2. Install parsl locally via pip.
-        pip install --user parsl
+2. Install parsl locally via pip:
+ `pip install --user parsl`
 
-3. Optionally, install additional monitoring packages.
-        pip install --user parsl[monitoring]
+3. Optionally, install additional monitoring packages:
+`pip install --user parsl[monitoring]`
 
 ## Running
 
@@ -55,7 +55,9 @@ comprehension.
 We then simply take the mean of these results to calculate pi.
 
 This entire code can be called via:
-    python pi_test_local.py
+```
+python pi_test_local.py
+```
 
 ### ThreadPoolExecutor, Bash
 Next look at the pi\_test\_bash.py script.
@@ -68,7 +70,9 @@ of each job as a file. These files are then concatenated, to a single file and t
 Note that for @bash\_app functions, whatever is returned will be run as Bash shell code.
 
 This entire code can be called by running:
-    python pi_test_bash.py
+```
+python pi_test_bash.py
+```
 
 It will generate a lot of text files in this process! Feel free to remove these afterward.
 
@@ -96,7 +100,9 @@ Note that this set-up will calculate the mean locally, while running all the ind
 the allocated compute nodes.
 
 This can be run with:
-    python pi_test_queue.py
+ ```
+ python pi_test_queue.py
+ ```
 
 Note that unlike previous attempts, this will take some time to complete, based on how long it takes
 to get the necessary resources. We suggest using this in a screen in order to avoid interruptions.
