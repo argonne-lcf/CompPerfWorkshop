@@ -9,8 +9,8 @@ from parsl.executors import HighThroughputExecutor, ThreadPoolExecutor
 from parsl.addresses import address_by_hostname
 
 MY_USER_PATH = '/home/USERNAME/.local/miniconda-3/latest/bin/'
-MY_ALLOCATION = 'RESERVATION'
-MY_QUEUE = 'debug-cache-quad'
+MY_ALLOCATION = 'comp_perf_workshop'
+MY_QUEUE = 'comp_perf_workshop'
 MY_COMPUTE_NODES = 1
 MY_COMPUTE_BLOCKS = 1
 MY_TIME = '00:05:00'
