@@ -10,8 +10,8 @@ import json
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.distributed as dist
+import torch.nn.functional as F
 from typing import Callable
 from torch.cuda.amp.autocast_mode import autocast
 from torch.cuda.amp.grad_scaler import GradScaler
@@ -59,7 +59,7 @@ def prepare_datasets(
         args: dict,
         rank: int,
         num_workers: int,
-        data: str = 'CIFAR10',
+        data: str = 'MNIST',
 ) -> (dict):
     """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
 
@@ -148,7 +148,7 @@ def setup(
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 10, kernel_size=5)
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
@@ -342,7 +342,7 @@ def main():
     # Prepare dataset and dataloader
     data = prepare_datasets(args, rank=local_rank,
                             num_workers=world_size,
-                            data='cifar10')
+                            data='mnist')
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(ddp_model.parameters(),
                            lr=args.lr, weight_decay=1e-5)
@@ -375,8 +375,8 @@ def main():
         logger.log('Epoch times:')
         logger.log(epoch_times_str)
 
-        #outdir = os.path.join(os.getcwd(), f'results_size{world_size}')
-        outdir = os.path.join(os.getcwd(), 'results_cifar10', f'size{world_size}')
+        #outdir = os.path.join(os.getcwd(), f'results_mnist_size{world_size}')
+        outdir = os.path.join(os.getcwd(), 'results_mnist', f'size{world_size}')
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
 

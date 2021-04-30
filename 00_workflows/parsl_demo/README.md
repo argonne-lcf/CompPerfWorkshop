@@ -106,3 +106,25 @@ This can be run with:
 
 Note that unlike previous attempts, this will take some time to complete, based on how long it takes
 to get the necessary resources. We suggest using this in a screen in order to avoid interruptions.
+
+### MonitoringHub Database
+One additional benefit to Parsl is the ability to collect data regarding all processes into a sqlite
+database. We demonstrate that in the `pi_test_monitoring.py` script.
+
+This contains an additional few lines at the start: specifically, an import command for MonitoringHub,
+and under the configuration of parsl, an additional keyword argument of monitoring. MonitoringHub will
+create a database in the directory the Parsl driver is run in, storing information on all executors.
+
+One utilization tool is the `parsl visualizer`, with full documentation found [here](https://parsl.readthedocs.io/en/stable/userguide/monitoring.html). 
+We also provide the python script `monitoring_test.py`, which navigates through the database using
+sqlite3 in order to provide a quick example of the information contained within.
+
+In short, the major tables existing:
+1. workflow: contains information regarding the workflow as a whole---durations, hosting information,
+logging, and more.
+2. task: contains information for each parsl task that has been launched, including dependencies,
+executor used, submission time, failure count, and input/output data.
+3. node: contains information about the nodes used in a run.
+4. status: contains informattion regarding the status of each taskk thatt was launched at a
+given timestamp.
+5. resource: contains information on resource utilization during the entirety of the run.

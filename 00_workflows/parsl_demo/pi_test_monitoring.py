@@ -7,6 +7,9 @@ from parsl.providers import CobaltProvider
 from parsl.launchers import AprunLauncher
 from parsl.executors import HighThroughputExecutor, ThreadPoolExecutor
 from parsl.addresses import address_by_hostname
+from parsl.monitoring.monitoring import MonitoringHub
+
+import logging
 
 MY_USER_PATH = '/home/USERNAME/.local/miniconda-3/latest/bin/'
 MY_ALLOCATION = 'comp_perf_workshop'
@@ -46,6 +49,12 @@ parsl_config = Config(
             max_threads = 8
         ),
     ],
+   monitoring=MonitoringHub(
+       hub_address=address_by_hostname(),
+       hub_port=55055,
+       monitoring_debug=False,
+       resource_monitoring_interval=10,
+   )
 )
 parsl.load(parsl_config)
 

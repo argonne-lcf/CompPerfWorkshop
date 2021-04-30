@@ -63,7 +63,7 @@ with profiler.profile() as prof:
     model(inputs)
 print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 ```
-For convenience, this example is stored in [example/v0.py](example1/v0.py). Profiler output is presented below
+For convenience, this example is stored in [example1/v0.py](example1/v0.py). Profiler output is presented below
 ```bash
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
                              Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
@@ -81,9 +81,9 @@ For convenience, this example is stored in [example/v0.py](example1/v0.py). Prof
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
 Self CPU time total: 243.086ms
 ```
-In the output, the function calls are sorted by total CPU time. It is important to note that `CPU total time` includes the time from all subroutines calls, but `Self CPU time` excludes it. For example, the total execution time of `aten::conv2d` consists of several operations `297.650us` and calling other functions which make in total 83.870ms. In opposite, in function `aten::addmm_` no time spend on calling subroutines. It is possible to sort results by another metric such as `self_cpu_time_total` or [other](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile.table).
+In the output, the function calls are sorted by total CPU time. It is important to note that `CPU total time` includes the time from all subroutines calls, but `Self CPU time` excludes it. For example, the total execution time of `aten::conv2d` consists of several operations `297.650us` and calling other functions which make in total 183.870ms. In opposite, in function `aten::addmm_` no time spend on calling subroutines. It is possible to sort results by another metric such as `self_cpu_time_total` or [other](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile.table).
 
-Most time of execution was spent in convolutional layers. This model has several convolutions and one can examine different layers if sorted results by input tensor shape (another approach would be use labes, we will demonstrate it later) - [example/v1.py](example1/v1.py).
+Most time of execution was spent in convolutional layers. This model has several convolutions and one can examine different layers if sorted results by input tensor shape (another approach would be use labes, we will demonstrate it later) - [example1/v1.py](example1/v1.py).
 ```python
 with profiler.profile(record_shapes=True) as prof:
     model(inputs)
@@ -201,7 +201,7 @@ with profiler.profile(with_stack=True) as prof:
     out, idx = model(input, mask)
 print(prof.key_averages(group_by_stack_n=1).table(sort_by='self_cpu_time_total', row_limit=5))
 ```
-This time we execute modes on GPU. At the first call, CUDA does some benchmarking and chose the best algorithm for convolutions, therefore we need to warm up CUDA to ensure accurate performance benchmarking. Also, we used the flag `with_stack=True` which makes it possible to track the place in sources where the function was called. 
+This time we execute models on GPU. At the first call, CUDA does some benchmarking and chose the best algorithm for convolutions, therefore we need to warm up CUDA to ensure accurate performance benchmarking. Also, we used the flag `with_stack=True` which makes it possible to track the place in sources where the function was called. 
 ```bash
 -----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
                          Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  Source Location                                                              
@@ -315,9 +315,9 @@ with torch.profiler.profile(
         model(inputs)
         prof.step()
 ```
-In this example, we collect activities on both CPU and GPU. Due to `schedule` argument, we can use `torch.profiler.schedule` which with `wait=0` skip no iterations, `warmup=1` start warming up on first, `active=3` record second - fourth iteration, and when the trace becomes available `torch.profiler.tensorboard_trace_handler` is called to save a trace. This cycle repeats with the fifth iteration so in our example two traces will be saved. After execution, we will have `some_name.pt.trace.json` and `some_name_2.pt.trace.json` traces saved.
+In this example, we collect activities on both CPU and GPU. Due to `schedule` argument, we can use `torch.profiler.schedule` which with `wait=0` skips no iterations, `warmup=1` starts warming up on first, `active=3` records second - fourth iterations, and when the trace becomes available `torch.profiler.tensorboard_trace_handler` is called to save a trace. This cycle repeats with the fifth iteration so in our example two traces will be saved. After execution, we will have `some_name.pt.trace.json` and `some_name_2.pt.trace.json` traces saved.
 
-To see traces one has to install [PyTorch profiler TensorBoard Plugin](https://github.com/pytorch/kineto/blob/master/tb_plugin/README.md). To do it on ThetaGPU you need to copy conda environment first (on ThetaGPU login node):
+To see traces one has to install [PyTorch profiler TensorBoard Plugin](https://github.com/pytorch/kineto/blob/master/tb_plugin/README.md). To do it on ThetaGPU you need to copy conda environment first (on ThetaGPU login node `thetagpusn1`):
 ```bash
 module load conda/pytorch
 conda activate
@@ -331,14 +331,10 @@ tensorboard --port <PORT> --bind_all --logdir </path/to/log/output/>
 ```
 Also, in this case, you will need to do some ssh port forwarding to access the server. On your local machine run
 ```bash
-ssh -L localhost:PORT:localhost:PORT username@theta.alcf.anl.gov
-```
-Once you logged in to Theta login node you need to forward ports from the node where you run tensorboard to Theta login node (on Theta login node):
-```bash
-ssh -L localhost:PORT:localhost:PORT thetagpusn1
+ssh -L PORT:localhost:PORT username@theta.alcf.anl.gov ssh -L PORT:localhost:PORT thetagpusn1
 ```
 
 Now you can open tensorboard in your browser `http://localhost:PORT`.
 ![tensorboard_overview](figs/profile.png)
 
-More information on the example and usage of the new PyTorch profile can be found on its [githab page](https://github.com/pytorch/kineto/tree/master/tb_plugin).
+More information on the example and usage of the new PyTorch profile can be found on its [github page](https://github.com/pytorch/kineto/tree/master/tb_plugin).

@@ -6,11 +6,10 @@ Example  using Horovod + PyTorch for distributed data parallel training.
 Computational PErformance Workshop -- May, 2021 @ ALCF
 """
 from __future__ import print_function
-import argparse
+import json
 import os
 import sys
 import time
-from typing import Callable
 
 import horovod.torch as hvd
 import torch
@@ -19,7 +18,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data.distributed
 import torchvision
-from torchvision import datasets, transforms
 
 here = os.path.abspath(os.path.dirname(__file__))
 modulepath = os.path.abspath(os.path.dirname(os.path.dirname(here)))
@@ -105,7 +103,7 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes),
         )
 
-    def forward(self, x: torch.tensor) -> (torch.tensor):
+    def forward(self, x: torch.Tensor) -> (torch.Tensor):
         """Call the model on input data `x`."""
         x = self.features(x)
         x = x.view(x.size(0), 256 * 2 * 2)
@@ -256,7 +254,7 @@ def test1(
         ]))
 
 
-def main(*argv, **kwargs):
+def main():
     args = parse_args()
     torch.manual_seed(args.seed)
     logger.log(f'Horovod: I am worker {RANK} of {SIZE}')
@@ -300,24 +298,33 @@ def main(*argv, **kwargs):
     optimizer = hvd.DistributedOptimizer(optimizer,
                                          named_parameters=model.named_parameters(),
                                          compression=compression)
-    start = time.time()
-    train_data = data['training']
-    test_data = data['testing']
     epoch_times = []
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
-        train(epoch, train_data, model, optimizer, args)
-        epoch_times.append(time.time() - t0)
-        test(model, test_data.loader)
+        train(epoch, data['training'], model, optimizer, args)
+        if epoch > 3:
+            epoch_times.append(time.time() - t0)
+
+        test(model, data['testing'].loader)
 
         #  test(test_data, model, args)
 
-    end = time.time()
     if hvd.rank() == 0:
-        print(f'Total training time: {t1 - t0} seconds')
+        epoch_times_str = ', '.join(str(x) for x in epoch_times)
+        logger.log('Epoch times:')
+        logger.log(epoch_times_str)
+
+        args_file = os.path.join(os.getcwd(), f'args_size{SIZE}.json')
+        logger.log(f'Saving args to: {args_file}.')
+
+        with open(args_file, 'at') as f:
+            json.dump(args.__dict__, f, indent=4)
+
+        times_file = os.path.join(os.getcwd(), f'epoch_times_size{SIZE}.csv')
+        logger.log(f'Saving epoch times to: {times_file}')
+        with open(times_file, 'a') as f:
+            f.write(epoch_times_str + '\n')
 
 
 if __name__ == '__main__':
     main()
-
-
