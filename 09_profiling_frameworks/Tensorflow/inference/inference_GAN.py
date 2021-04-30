@@ -152,8 +152,7 @@ class Generator(tf.keras.models.Model):
 def generate_images(_generator, _batch_size):
 
     # Use the generator to make fake images:
-    random_noise = numpy.random.uniform(-1, 1, size=_batch_size*100).astype(numpy.float32)
-    random_noise = random_noise.reshape([_batch_size, 100])
+    random_noise = tf.random.uniform(shape=[_batch_size,100], minval=-1, maxval=1)
     fake_images  = _generator(random_noise)
 
     return fake_images
@@ -169,7 +168,7 @@ def inference_GAN(_batch_size, _iterations):
     generated_image = generator(random_input)
 
     # Load the model
-    generator.load_weights("../trained_GAN_1k_epochs.h5")
+    generator.load_weights("../trained_GAN_100epochs.h5")
 
 
     for i in range(_iterations):

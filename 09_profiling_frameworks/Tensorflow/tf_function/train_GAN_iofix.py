@@ -489,17 +489,11 @@ def train_GAN(_batch_size, _training_epochs, global_size):
 
     train_loop(_batch_size, _training_epochs, models, opts, global_size)
 
-
-    # Save the model:
-    if global_size != 1:
-        if hvd.rank() == 0:
-            generator.save_weights("trained_GAN.h5")
-
 if __name__ == '__main__':
 
     rank, size = init_mpi()
     configure_logger(rank)
 
-    BATCH_SIZE=256
+    BATCH_SIZE=2048
     N_TRAINING_EPOCHS = 1
     train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)

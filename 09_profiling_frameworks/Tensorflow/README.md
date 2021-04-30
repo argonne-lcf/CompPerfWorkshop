@@ -25,26 +25,18 @@ Run the original script, single node, like so:
 Take note of the throughput reported!
 
 ```
-2021-04-28 20:05:54,202 - INFO - G Loss: 0.668, D Loss: 0.714, step_time: 1.016, throughput: 125.988 img/s.
-2021-04-28 20:05:54,859 - INFO - G Loss: 0.822, D Loss: 0.641, step_time: 0.657, throughput: 194.946 img/s.
-2021-04-28 20:05:55,452 - INFO - G Loss: 0.845, D Loss: 0.603, step_time: 0.593, throughput: 215.793 img/s.
-2021-04-28 20:05:56,065 - INFO - G Loss: 0.916, D Loss: 0.577, step_time: 0.613, throughput: 208.956 img/s.
-2021-04-28 20:05:56,647 - INFO - G Loss: 0.934, D Loss: 0.560, step_time: 0.582, throughput: 219.899 img/s.
-2021-04-28 20:05:57,214 - INFO - G Loss: 0.978, D Loss: 0.543, step_time: 0.566, throughput: 226.013 img/s.
-2021-04-28 20:05:57,769 - INFO - G Loss: 0.986, D Loss: 0.541, step_time: 0.555, throughput: 230.645 img/s.
-2021-04-28 20:05:58,377 - INFO - G Loss: 1.023, D Loss: 0.548, step_time: 0.607, throughput: 210.964 img/s.
-2021-04-28 20:05:58,948 - INFO - G Loss: 0.909, D Loss: 0.545, step_time: 0.571, throughput: 224.301 img/s.
-2021-04-28 20:05:59,555 - INFO - G Loss: 0.902, D Loss: 0.563, step_time: 0.606, throughput: 211.146 img/s.
-2021-04-28 20:06:00,150 - INFO - G Loss: 0.857, D Loss: 0.584, step_time: 0.582, throughput: 219.836 img/s.
-2021-04-28 20:06:00,704 - INFO - G Loss: 0.760, D Loss: 0.577, step_time: 0.554, throughput: 231.169 img/s.
-2021-04-28 20:06:01,268 - INFO - G Loss: 0.752, D Loss: 0.576, step_time: 0.564, throughput: 227.051 img/s.
-2021-04-28 20:06:01,829 - INFO - G Loss: 0.734, D Loss: 0.587, step_time: 0.561, throughput: 228.336 img/s.
-2021-04-28 20:06:02,380 - INFO - G Loss: 0.718, D Loss: 0.587, step_time: 0.551, throughput: 232.357 img/s.
-2021-04-28 20:06:02,929 - INFO - G Loss: 0.692, D Loss: 0.605, step_time: 0.549, throughput: 233.260 img/s.
-2021-04-28 20:06:03,479 - INFO - G Loss: 0.682, D Loss: 0.616, step_time: 0.550, throughput: 232.808 img/s.
-2021-04-28 20:06:04,040 - INFO - G Loss: 0.700, D Loss: 0.623, step_time: 0.560, throughput: 228.521 img/s.
-2021-04-28 20:06:04,603 - INFO - G Loss: 0.670, D Loss: 0.623, step_time: 0.563, throughput: 227.163 img/s.
-2021-04-28 20:06:05,160 - INFO - G Loss: 0.682, D Loss: 0.616, step_time: 0.556, throughput: 230.337 img/s.
+2021-04-30 20:21:57,881 - INFO - (0, 0), G Loss: 0.718, D Loss: 0.694, step_time: 2.402, throughput: 53.286 img/s.
+2021-04-30 20:21:58,567 - INFO - (0, 1), G Loss: 0.831, D Loss: 0.636, step_time: 0.686, throughput: 186.688 img/s.
+2021-04-30 20:21:59,222 - INFO - (0, 2), G Loss: 0.855, D Loss: 0.608, step_time: 0.655, throughput: 195.538 img/s.
+2021-04-30 20:21:59,801 - INFO - (0, 3), G Loss: 0.859, D Loss: 0.592, step_time: 0.578, throughput: 221.365 img/s.
+2021-04-30 20:22:00,362 - INFO - (0, 4), G Loss: 0.814, D Loss: 0.599, step_time: 0.561, throughput: 228.349 img/s.
+2021-04-30 20:22:00,902 - INFO - (0, 5), G Loss: 0.770, D Loss: 0.593, step_time: 0.540, throughput: 236.824 img/s.
+2021-04-30 20:22:01,443 - INFO - (0, 6), G Loss: 0.727, D Loss: 0.600, step_time: 0.540, throughput: 236.819 img/s.
+2021-04-30 20:22:01,983 - INFO - (0, 7), G Loss: 0.707, D Loss: 0.597, step_time: 0.540, throughput: 237.101 img/s.
+2021-04-30 20:22:02,523 - INFO - (0, 8), G Loss: 0.710, D Loss: 0.593, step_time: 0.540, throughput: 237.136 img/s.
+2021-04-30 20:22:03,063 - INFO - (0, 9), G Loss: 0.678, D Loss: 0.610, step_time: 0.540, throughput: 237.176 img/s.
+2021-04-30 20:22:03,619 - INFO - (0, 10), G Loss: 0.676, D Loss: 0.609, step_time: 0.540, throughput: 237.097 img/s.
+2021-04-30 20:22:04,159 - INFO - (0, 11), G Loss: 0.665, D Loss: 0.616, step_time: 0.540, throughput: 237.068 img/s
 ```
 
 On average, the A100 system is moving about 230 Images / second through this training loop.  Let's dig in to the first optimization in the `line_profiler` directory.
