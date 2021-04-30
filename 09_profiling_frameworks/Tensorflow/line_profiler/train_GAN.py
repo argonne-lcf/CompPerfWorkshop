@@ -449,9 +449,6 @@ def train_GAN(_batch_size, _training_iterations, global_size):
     train_loop(_batch_size, _training_iterations, models, opts, global_size)
 
 
-    # Save the model:
-    generator.save_weights("trained_GAN.h5")
-
 if __name__ == '__main__':
 
     rank, size = init_mpi()
