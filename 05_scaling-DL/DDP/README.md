@@ -48,6 +48,23 @@ DDP is only available in newer versions of python, and on ThetaGPU works most re
 
 For collective communication, DDP can use `NCCL` on GPUs, and `gloo` on CPUs.
 
+## Preparation
+
+1. Download the dataset on each node before starting training:
+
+   ```bash
+   mkdir -p data
+   cd data
+   wget -c --quiet https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
+   tar -xvzf cifar-10-python.tar.gz
+   ```
+
+2. Create directories for saving models before starting distributed training:
+
+   ```bash
+   mkdir -p saved_models
+   ```
+
 ## Running DDP
 
 To launch DDP using 8 workers on a ThetaGPU node, we use the command:
@@ -62,8 +79,6 @@ python3 -m torch.distributed.launch --nproc_per_node=8 --nnodes=1 --node_rank 0 
 ```bash
 kill $(ps aux | grep torch_ddp_cifar10.py | grep -v grep | awk '{print #2}')
 ```
-
-
 
 ## Setting up DDP
 
@@ -153,8 +168,8 @@ Here I show the results I got measuring the `time-per-epoch` averaged over the l
 |  4   |                   2.66 |                 2.64 |
 |  8   |                   1.43 |                 1.37 |
 
-| GPUs | CIFAR10 Time / epoch [s] | MNIST Time / epoch [s] |
-| :--: | -----------------------: | ---------------------: |
-|  1   |                     1.43 |                   1.37 |
-|  2   |                     0.82 |                   0.80 |
-|  4   |                     0.50 |                   0.49 |
+| Nodess | CIFAR10 Time / epoch [s] | MNIST Time / epoch [s] |
+| :----: | -----------------------: | ---------------------: |
+|   1    |                     1.43 |                   1.37 |
+|   2    |                     0.82 |                   0.80 |
+|   4    |                     0.50 |                   0.49 |

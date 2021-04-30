@@ -99,3 +99,19 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
        avg_tensor = hvd.allreduce(tensor, name=name) if WITH_HVD else tensor
        return avg_tensor.item()
    ```
+
+## Results
+
+**PyTorch** (time for 32 epochs)
+
+| GPUs | cifar10 (s) | MNIST (s) |
+| :--: | :---------: | :-------: |
+|  1   |    522.3    |   499.8   |
+|  2   |    318.8    |   283.9   |
+|  4   |    121.4    |   100.4   |
+|  8   |    73.5     |   58.8    |
+|  16  |    79.1     |   63.8    |
+|  32  |    81.1     |   55.7    |
+
+<img src="../../images/pytorch_scaling_ddp.png" alt="torch_thetaGPU" style="zoom: 33%;" />
+

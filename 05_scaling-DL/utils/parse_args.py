@@ -1,5 +1,4 @@
 import argparse
-import torch
 
 
 def parse_args_ddp(*args):
@@ -13,8 +12,16 @@ def parse_args_ddp(*args):
     # Each process runs on 1 GPU device specified by the local_rank argument.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        "--local_rank", type=int,
+        "--local_rank", type=int, default=0,
         help="Local rank. Necessary for using the torch.distributed.launch utility."
+    )
+    parser.add_argument(
+        '--num_threads', type=int, default=0, required=False,
+        help='set number of threads per worker'
+    )
+    parser.add_argument(
+        '--backend', type=str, default='gloo',
+        help='Backend to use'
     )
     parser.add_argument(
         "--epochs", type=int, default=100,
@@ -112,6 +119,47 @@ def parse_args_torch(*args):
         help='set number of threads per worker'
     )
     args = parser.parse_args()
-    args.__dict__['cuda'] = torch.cuda.is_available()
+
+    return args
+
+def parse_args_tensorflow():
+    """Parse command line arguments containing settings for training."""
+    description = 'TensorFlow2 MNIST Example'
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument(
+        '--batch_size', type=int, default=64, required=False,
+        help='input `batch_size` for training (default: 64)',
+    )
+    parser.add_argument(
+        '--test_batch_size', type=int, default=64, required=False,
+        help='input `batch_size` for testing (default: 64)',
+    )
+    parser.add_argument(
+        '--epochs', type=int, default=10, required=False,
+        help='training epochs (default: 10)',
+    )
+    parser.add_argument(
+        '--lr', type=float, default=0.001, required=False,
+        help='learning rate (default: 0.001)',
+    )
+    parser.add_argument(
+        '--seed', type=int, default=42, required=False,
+        help='random seed (default: 42)',
+    )
+    parser.add_argument(
+        '--log_interval', type=int, default=10, required=False,
+        help='how many batches to wait before logging training status',
+    )
+    parser.add_argument(
+        '--fp16_allreduce', action='store_true', default=False, required=False,
+        help='use fp16 compression during allreduce',
+    )
+    #  parser.add_argument(
+    #      '--num_threads', type=int, default=0, required=False,
+    #      help='set number of threads per worker'
+    #  )
+    args = parser.parse_args()
+    #  args.__dict__['cuda'] = torch.cuda.is_available()
 
     return args

@@ -1,4 +1,4 @@
-# Distributed Training with [Horovod][1]
+# Distributed Training with [Horovod](https://github.com/horovod/horovod)
 
 ---
 
@@ -20,14 +20,14 @@
 
 **Author**: Sam Foreman ([foremans@anl.gov](mailto:foremans@anl.gov))
 
-**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/Horovod/README.md), written by __[Huihuo Zheng](mailto:huihuo.zheng@anl.gov)__ and __[Corey Adams](mailto:corey.adams@anl.gov)__.
+**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/Horovod/README.md), written by Huihuo Zheng ([huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov)) and Corey Adams ([corey.adams@anl.gov](mailto:corey.adams@anl.gov)).
 
 **Goal:**
 
 1. Understand how to run jobs on Theta / ThetaGPU
 2. Get familiar with the software frameworks on Theta / ThetaGPU
 3. Understand Data Parallelism (scaling efficiency, warmup, etc)
-4. Know how to modify your code with Horovod
+4. Know how to modify your code to work with Horovod
 
 **Examples:**
 
@@ -48,26 +48,25 @@
 
   - Shapes of different sizes in this row represent larger weight matrics in the networks' layers.
 
-  ![weights](../assets/weights.png)
+  ![weights](../images/weights.png)
 
 - How the **data** is split over cores:
 
-  ![data](../assets/data.png)
+  ![data](../images/data.png)
 
 <!---![distributed](../assets/distributed.png)--->
 
 ## [Horovod Data Parallel Frameworks][3]
 
-![Horovod](../assets/horovod.png)
+![Horovod](../images/horovod.png)
 
 [1]: https://github.com/horovod/horovod
 [2]: https://venturebeat.com/2021/01/12/google-trained-a-trillion-parameter-ai-language-model/
 [3]: https://horovod.readthedocs.io/en/stable/
 
-## Handson
+<!---## Handson--->
 
-- [`./thetagpu.md`](./thetagpu.md)
-- [`./theta.md`](./theta.md)
+<!---[`./thetagpu.md`](./thetagpu.md)--->
 
 ## Additional References
 
