@@ -29,10 +29,16 @@ At the end of the training session, the discriminator network can usually be dis
 # Read in the mnist data so we have it loaded globally:
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 x_train = x_train.astype(numpy.float32)
-x_test  = x_test.astype(numpy.float32)
 
 x_train /= 255.
-x_test  /= 255.
+
+x_train = tf.convert_to_tensor(x_train)
+
+x_train = tf.random.shuffle(x_train)
+
+dataset = tf.data.Dataset.from_tensor_slices((x_train))
+dataset.shuffle(60000)
+
 
 
 def init_mpi():
@@ -287,23 +293,29 @@ def compute_loss(_logits, _targets):
 
 def fetch_real_batch(_batch_size):
 
-    indexes = numpy.random.choice(a=x_train.shape[0], size=[_batch_size,])
+    # We count the total number of samples needed, and shuffle if we go over.
 
-    images = x_train[indexes].reshape(_batch_size, 28, 28, 1)
+    target = _batch_size + batch_counter
+    if target > x_train.shape[0]:
+        x_train = tf.random.shuffle(x_train)
+        batch_counter = 0
+
+    images = x_train[batch_counter:batch_counter+_batch_size].reshape(_batch_size, 28, 28, 1)
 
     return images
 
 
 @profile
-def forward_pass(_generator, _discriminator, _batch_size, _input_size):
+def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         '''
         This function takes the two models and runs a forward pass to the computation of the loss functions
         '''
 
         # Fetch real data:
-        real_data = fetch_real_batch(_batch_size)
+        # real_data = fetch_real_batch(_batch_size)
+        real_data = _real_batch
 
-
+        _batch_size = _real_batch.shape[0]
 
         # Use the generator to make fake images:
         random_noise = numpy.random.uniform(-1, 1, size=_batch_size*_input_size).astype(numpy.float32)
@@ -374,7 +386,7 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
         }
 
         images = {
-            "real" : real_data[0].reshape([28,28]),
+            "real" : tf.reshape(real_data[0], [28,28]),
             "fake" : fake_images.numpy()[0].reshape([28,28])
         }
 
@@ -385,50 +397,58 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 # Here is a function that will manage the training loop for us:
 
 @profile
-def train_loop(batch_size, n_training_iterations, models, opts, global_size):
+def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 
     logger = logging.getLogger()
 
     rank = hvd.rank()
-    for i in range(n_training_iterations):
 
-        start = time.time()
+    for i_epoch in range(n_training_epochs):
 
-        for network in ["generator", "discriminator"]:
+        epoch_steps = int(60000/batch_size)
+        dataset.shuffle(60000) # Shuffle the whole dataset in memory
+        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
 
-            with tf.GradientTape() as tape:
-                    loss, metrics, images = forward_pass(
-                        models["generator"],
-                        models["discriminator"],
-                        _input_size = 100,
-                        _batch_size = batch_size,
-                    )
+        for i_batch, batch in enumerate(batches):
+
+            data = tf.reshape(batch, [-1, 28, 28, 1])
+
+            start = time.time()
+
+            for network in ["generator", "discriminator"]:
+
+                with tf.GradientTape() as tape:
+                        loss, metrics, images = forward_pass(
+                            models["generator"],
+                            models["discriminator"],
+                            _input_size = 100,
+                            _real_batch = data,
+                        )
 
 
-            if global_size != 1:
-                tape = hvd.DistributedGradientTape(tape)
+                if global_size != 1:
+                    tape = hvd.DistributedGradientTape(tape)
 
-            if loss["discriminator"] < 0.01:
-                break
+                if loss["discriminator"] < 0.01:
+                    break
 
 
-            trainable_vars = models[network].trainable_variables
+                trainable_vars = models[network].trainable_variables
 
-            # Apply the update to the network (one at a time):
-            grads = tape.gradient(loss[network], trainable_vars)
+                # Apply the update to the network (one at a time):
+                grads = tape.gradient(loss[network], trainable_vars)
 
-            opts[network].apply_gradients(zip(grads, trainable_vars))
+                opts[network].apply_gradients(zip(grads, trainable_vars))
 
-        end = time.time()
+            end = time.time()
 
-        images = batch_size*2*global_size
+            images = batch_size*2*global_size
 
-        logger.info(f"G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
+            logger.info(f"({i_epoch}, {i_batch}), G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
 
 
 @profile
 def train_GAN(_batch_size, _training_iterations, global_size):
-
 
 
     generator = Generator()
@@ -470,5 +490,8 @@ if __name__ == '__main__':
     configure_logger(rank)
 
     BATCH_SIZE=64
-    N_TRAINING_ITERATIONS = 20
-    train_GAN(BATCH_SIZE, N_TRAINING_ITERATIONS, size)
+
+    BATCH_SIZE=64
+    N_TRAINING_EPOCHS = 2
+    train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)
+

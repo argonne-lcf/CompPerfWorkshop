@@ -387,45 +387,49 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
 # Here is a function that will manage the training loop for us:
 
-def train_loop(batch_size, n_training_iterations, models, opts, global_size):
+def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 
     logger = logging.getLogger()
 
     rank = hvd.rank()
-    for i in range(n_training_iterations):
+    for i_epoch in range(n_training_epochs):
 
-        start = time.time()
+        epoch_steps = int(60000/batch_size)
 
-        for network in ["generator", "discriminator"]:
+        for i_batch in range(epoch_steps):
 
-            with tf.GradientTape() as tape:
-                    loss, metrics, images = forward_pass(
-                        models["generator"],
-                        models["discriminator"],
-                        _input_size = 100,
-                        _batch_size = batch_size,
-                    )
+            start = time.time()
 
+            for network in ["generator", "discriminator"]:
 
-            if global_size != 1:
-                tape = hvd.DistributedGradientTape(tape)
-
-            if loss["discriminator"] < 0.01:
-                break
+                with tf.GradientTape() as tape:
+                        loss, metrics, images = forward_pass(
+                            models["generator"],
+                            models["discriminator"],
+                            _input_size = 100,
+                            _batch_size = batch_size,
+                        )
 
 
-            trainable_vars = models[network].trainable_variables
+                if global_size != 1:
+                    tape = hvd.DistributedGradientTape(tape)
 
-            # Apply the update to the network (one at a time):
-            grads = tape.gradient(loss[network], trainable_vars)
+                if loss["discriminator"] < 0.01:
+                    break
 
-            opts[network].apply_gradients(zip(grads, trainable_vars))
 
-        end = time.time()
+                trainable_vars = models[network].trainable_variables
 
-        images = batch_size*2*global_size
+                # Apply the update to the network (one at a time):
+                grads = tape.gradient(loss[network], trainable_vars)
 
-        logger.info(f"G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
+                opts[network].apply_gradients(zip(grads, trainable_vars))
+
+            end = time.time()
+
+            images = batch_size*2*global_size
+
+            logger.info(f"({i_epoch}, {i_batch}), G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
 
 
 def train_GAN(_batch_size, _training_iterations, global_size):
@@ -473,5 +477,5 @@ if __name__ == '__main__':
     configure_logger(rank)
 
     BATCH_SIZE=64
-    N_TRAINING_ITERATIONS = 20
-    train_GAN(BATCH_SIZE, N_TRAINING_ITERATIONS, size)
+    N_TRAINING_EPOCHS = 2
+    train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)
