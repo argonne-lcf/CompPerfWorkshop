@@ -1,9 +1,6 @@
 import sys, os
 import time
 
-os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
-
-
 import logging
 from logging import handlers
 
@@ -11,8 +8,6 @@ import tensorflow as tf
 import numpy
 
 import horovod.tensorflow as hvd
-
-
 
 """
 Training a Generative Adversarial Network
@@ -34,10 +29,16 @@ At the end of the training session, the discriminator network can usually be dis
 # Read in the mnist data so we have it loaded globally:
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 x_train = x_train.astype(numpy.float16)
-x_test  = x_test.astype(numpy.float16)
 
 x_train /= 255.
-x_test  /= 255.
+
+x_train = tf.convert_to_tensor(x_train)
+
+x_train = tf.random.shuffle(x_train)
+
+dataset = tf.data.Dataset.from_tensor_slices((x_train))
+dataset.shuffle(60000)
+
 
 
 def init_mpi():
@@ -47,6 +48,10 @@ def init_mpi():
 
     try:
         hvd.init()
+        local_rank = hvd.local_rank()
+        gpus = tf.config.list_physical_devices('GPU')
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+
         return hvd.rank(), hvd.size()
     except:
         if "mpirun" in sys.argv or "mpiexec" in sys.argv:
@@ -146,6 +151,7 @@ class Discriminator(tf.keras.models.Model):
 
 
 
+    @tf.function
     def call(self, inputs):
 
         batch_size = inputs.shape[0]
@@ -201,12 +207,9 @@ class Generator(tf.keras.models.Model):
             activation  = activation,
         )
 
-        # self.unpool_1 = tf.keras.layers.UpSampling2D(
-        #     size          = 2,
-        #     interpolation = "nearest",
-        # )
-        self.unpool_1 = tf.keras.layers.Conv2DTranspose(
-            filters = 32, kernel_size = [2,2], strides=(2, 2), padding='valid',
+        self.unpool_1 = tf.keras.layers.UpSampling2D(
+            size          = 2,
+            interpolation = "nearest",
         )
 
         # After that unpooling the shape is [14, 14] with 64 filters
@@ -220,16 +223,11 @@ class Generator(tf.keras.models.Model):
             use_bias    = True,
             activation  = activation,
         )
-        #
-        # self.unpool_2 = tf.keras.layers.UpSampling2D(
-        #     size          = 2,
-        #     interpolation = "nearest",
-        # )
 
-        self.unpool_2 = tf.keras.layers.Conv2DTranspose(
-            filters = 32, kernel_size = [2,2], strides=(2, 2), padding='valid',
+        self.unpool_2 = tf.keras.layers.UpSampling2D(
+            size          = 2,
+            interpolation = "nearest",
         )
-
 
         self.batch_norm_3 = tf.keras.layers.BatchNormalization()
 
@@ -256,7 +254,7 @@ class Generator(tf.keras.models.Model):
         )
 
 
-
+    @tf.function
     def call(self, inputs):
         '''
         Reshape at input and output:
@@ -290,37 +288,27 @@ class Generator(tf.keras.models.Model):
 
 
 
-
+@tf.function
 def compute_loss(_logits, _targets):
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=_targets, logits=_logits)
 
     return tf.reduce_mean(loss)
 
 
-
-def fetch_real_batch(_batch_size):
-
-    indexes = numpy.random.choice(a=x_train.shape[0], size=[_batch_size,])
-
-    images = x_train[indexes].reshape(_batch_size, 28, 28, 1)
-
-    return images
-
-
 @tf.function
-def forward_pass(_generator, _discriminator, _batch_size, _input_size):
+def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         '''
         This function takes the two models and runs a forward pass to the computation of the loss functions
         '''
 
-        # Fetch real data:
-        real_data = fetch_real_batch(_batch_size)
+        real_data = _real_batch
 
-
+        _batch_size = _real_batch.shape[0]
 
         # Use the generator to make fake images:
-        random_noise = numpy.random.uniform(-1, 1, size=_batch_size*_input_size).astype(numpy.float16)
-        random_noise = random_noise.reshape([_batch_size, _input_size])
+
+        # Use the generator to make fake images:
+        random_noise = tf.random.uniform(shape=[_batch_size,_input_size], minval=-1, maxval=1)
         fake_images  = _generator(random_noise)
 
 
@@ -331,9 +319,10 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
 
         soften = 0.1
-        real_labels = numpy.zeros([_batch_size,1], dtype=numpy.float16) + soften
-        fake_labels = numpy.ones([_batch_size,1],  dtype=numpy.float16) - soften
-        gen_labels  = numpy.zeros([_batch_size,1], dtype=numpy.float16)
+        real_labels = tf.zeros(shape=[_batch_size,1], dtype=tf.float16) + soften
+        fake_labels = tf.ones( shape=[_batch_size,1], dtype=tf.float16) - soften
+        gen_labels  = tf.zeros(shape=[_batch_size,1], dtype=tf.float16)
+
 
 
         # Occasionally, we disrupt the discriminator (since it has an easier job)
@@ -342,8 +331,13 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
 
         n_swap = int(_batch_size * 0.1)
 
-        real_labels [0:n_swap] = 1.
-        fake_labels [0:n_swap] = 0.
+        indices = tf.reshape(tf.range(n_swap), [-1,1])
+
+        swap_real = tf.constant(-soften, shape = indices.shape, dtype=tf.float16)
+        swap_fake = tf.constant( soften, shape = indices.shape, dtype=tf.float16)
+
+        real_labels = real_labels + tf.scatter_nd(indices=indices, updates=swap_real, shape=real_labels.shape)
+        fake_labels = fake_labels + tf.scatter_nd(indices=indices, updates=swap_fake, shape=fake_labels.shape)
 
 
         # Compute the loss for the discriminator on the real images:
@@ -367,52 +361,28 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
         # Average the discriminator loss:
         discriminator_loss = 0.5*(discriminator_fake_loss  + discriminator_real_loss)
 
-        # Calculate the predicted label (real or fake) to calculate the accuracy:
-        predicted_real_label = tf.argmax(prediction_on_real_data, axis=-1)
-        predicted_fake_label = tf.argmax(prediction_on_fake_data, axis=-1)
-
-        real_label_agreement = tf.cast(tf.math.equal(predicted_real_label, real_labels), dtype=tf.float16)
-        fake_label_agreement = tf.cast(tf.math.equal(predicted_fake_label, fake_labels), dtype=tf.float16)
-
-        generator_agreement  = tf.cast(tf.math.equal(predicted_fake_label, predicted_fake_label), dtype=tf.float16)
-
-        discriminator_accuracy = 0.5 * tf.reduce_mean(real_label_agreement) + 0.5 * tf.reduce_mean(fake_label_agreement)
-        generator_accuracy = 0.5 * tf.reduce_mean(generator_agreement)
-
-
-        metrics = {
-            "discriminator" : discriminator_accuracy,
-            "generator"    : generator_accuracy
-        }
-
         loss = {
             "discriminator" : discriminator_loss,
             "generator"    : generator_loss
         }
 
-        images = {
-            "real" : tf.reshape(real_data[0], [28,28]),
-            "fake" : tf.reshape(fake_images[0], [28,28])
-        }
-
-
-        return loss, metrics, images
+        return loss
 
 
 # Here is a function that will manage the training loop for us:
 
-def train_loop(batch_size, n_training_iterations, models, opts, global_size):
+def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 
     @tf.function()
-    def train_iteration(_batch_size, _models, _opts, _global_size):
+    def train_iteration(data, _models, _opts, _global_size):
 
         #Update the generator:
         with tf.GradientTape() as tape:
-                loss, metrics, images = forward_pass(
-                    _models["generator"],
-                    _models["discriminator"],
+                loss = forward_pass(
+                    models["generator"],
+                    models["discriminator"],
                     _input_size = 100,
-                    _batch_size = _batch_size,
+                    _real_batch = data,
                 )
 
 
@@ -431,11 +401,11 @@ def train_loop(batch_size, n_training_iterations, models, opts, global_size):
 
         #Update the discriminator:
         with tf.GradientTape() as tape:
-                loss, metrics, images = forward_pass(
-                    _models["generator"],
-                    _models["discriminator"],
+                loss = forward_pass(
+                    models["generator"],
+                    models["discriminator"],
                     _input_size = 100,
-                    _batch_size = _batch_size,
+                    _real_batch = data,
                 )
 
 
@@ -453,38 +423,48 @@ def train_loop(batch_size, n_training_iterations, models, opts, global_size):
         _opts["discriminator"].apply_gradients(zip(grads, trainable_vars))
 
 
-        return loss, metrics
+        return loss
 
 
 
     logger = logging.getLogger()
 
-    tf.profiler.experimental.start('logdir')
+
     rank = hvd.rank()
-    for i in range(n_training_iterations):
+    tf.profiler.experimental.start('logdir')
+    for i_epoch in range(n_training_epochs):
 
-        start = time.time()
+        epoch_steps = int(60000/batch_size)
+        dataset.shuffle(60000) # Shuffle the whole dataset in memory
+        batches = dataset.batch(batch_size=batch_size, drop_remainder=True)
+
+        for i_batch, batch in enumerate(batches):
+
+            data = tf.reshape(batch, [-1, 28, 28, 1])
+
+            start = time.time()
+
+            loss = train_iteration(data, models, opts, global_size)
+
+            if loss["discriminator"] < 0.01:
+                break
 
 
-        loss, metrics = train_iteration(batch_size, models, opts, global_size)
+            end = time.time()
+
+            images = batch_size*2*global_size
 
 
-        if loss["discriminator"] < 0.01:
-            break
+            logger.info(f"({i_epoch}, {i_batch}), G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
 
-
-        end = time.time()
-
-        images = batch_size*2*global_size
-
-        logger.info(f"G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
     tf.profiler.experimental.stop()
 
-
 # @tf.function
-def train_GAN(_batch_size, _training_iterations, global_size):
+def train_GAN(_batch_size, _training_epochs, global_size):
 
 
+    policy = tf.keras.mixed_precision.Policy("mixed_float16")
+    tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
     generator = Generator()
 
@@ -513,25 +493,19 @@ def train_GAN(_batch_size, _training_iterations, global_size):
         hvd.broadcast_variables(opts['generator'].variables(), root_rank=0)
         hvd.broadcast_variables(opts['discriminator'].variables(), root_rank=0)
 
-    train_loop(_batch_size, _training_iterations, models, opts, global_size)
+    train_loop(_batch_size, _training_epochs, models, opts, global_size)
 
 
     # Save the model:
-    generator.save_weights("trained_GAN.h5")
+    if global_size != 1:
+        if hvd.rank() == 0:
+            generator.save_weights("trained_GAN.h5")
 
 if __name__ == '__main__':
-
-    policy = tf.keras.mixed_precision.Policy("mixed_float16")
-    tf.keras.mixed_precision.set_global_policy("mixed_float16")
-
-    # # Latest tensorflow might look like this:
-    # policy = tf.mixed_precision.Policy('mixed_float16')
-    # tf.mixed_precision.set_global_policy(policy)
-
 
     rank, size = init_mpi()
     configure_logger(rank)
 
-    BATCH_SIZE=8192
-    N_TRAINING_ITERATIONS = 100
-    train_GAN(BATCH_SIZE, N_TRAINING_ITERATIONS, size)
+    BATCH_SIZE=1024
+    N_TRAINING_EPOCHS = 1
+    train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)
