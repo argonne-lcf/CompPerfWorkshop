@@ -357,32 +357,13 @@ def forward_pass(_generator, _discriminator, _batch_size, _input_size):
         # Average the discriminator loss:
         discriminator_loss = 0.5*(discriminator_fake_loss  + discriminator_real_loss)
 
-        # Calculate the predicted label (real or fake) to calculate the accuracy:
-        predicted_real_label = numpy.argmax(prediction_on_real_data.numpy(), axis=-1)
-        predicted_fake_label = numpy.argmax(prediction_on_fake_data.numpy(), axis=-1)
-
-        discriminator_accuracy = 0.5 * numpy.mean(predicted_real_label == real_labels) + \
-            0.5 * numpy.mean(predicted_fake_label == fake_labels)
-        generator_accuracy = 0.5 * numpy.mean(predicted_fake_label == generator_target_labels)
-
-
-        metrics = {
-            "discriminator" : discriminator_accuracy,
-            "generator"    : generator_accuracy
-        }
 
         loss = {
             "discriminator" : discriminator_loss,
             "generator"    : generator_loss
         }
 
-        images = {
-            "real" : real_data[0].reshape([28,28]),
-            "fake" : fake_images.numpy()[0].reshape([28,28])
-        }
-
-
-        return loss, metrics, images
+        return loss
 
 
 # Here is a function that will manage the training loop for us:
@@ -403,7 +384,7 @@ def train_loop(batch_size, n_training_epochs, models, opts, global_size):
             for network in ["generator", "discriminator"]:
 
                 with tf.GradientTape() as tape:
-                        loss, metrics, images = forward_pass(
+                        loss = forward_pass(
                             models["generator"],
                             models["discriminator"],
                             _input_size = 100,
