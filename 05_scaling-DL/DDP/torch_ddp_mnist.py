@@ -3,109 +3,43 @@ torch_ddp.py
 
 Modified from original: https://leimao.github.io/blog/PyTorch-Distributed-Training/
 """
-import sys
-import torch
-import time
 import json
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader
-import torch.nn as nn
-import torch.distributed as dist
-import torch.nn.functional as F
-from typing import Callable
-from torch.cuda.amp.autocast_mode import autocast
-from torch.cuda.amp.grad_scaler import GradScaler
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.optim as optim
-
-import torchvision
-import torchvision.transforms as transforms
-from torchvision import datasets
-
 import os
 import random
+import sys
+import time
+from typing import Callable
+
 import numpy as np
+
+import torch
+from torch.cuda.amp.autocast_mode import autocast
+from torch.cuda.amp.grad_scaler import GradScaler
+import torch.distributed as dist
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+import torchvision
+from torchvision import datasets
+import torchvision.transforms as transforms
 
 here = os.path.abspath(os.path.dirname(__file__))
 modulepath = os.path.dirname(here)
 if modulepath not in sys.path:
     sys.path.append(modulepath)
 
+from utils.data_torch import DistributedDataObject, prepare_datasets
 import utils.io as io
-from utils.io import Logger
 from utils.parse_args import parse_args_ddp
 
-logger = Logger()
-
-class DistributedDataObject:
-    def __init__(
-            self,
-            dataset: torch.utils.data.Dataset,
-            batch_size: int,
-            rank: int,
-            num_workers: int,
-            **kwargs: dict
-    ):
-        self.dataset = dataset
-        self.sampler = torch.utils.data.distributed.DistributedSampler(
-            self.dataset, num_replicas=num_workers, rank=rank
-        )
-        self.loader = torch.utils.data.DataLoader(
-            self.dataset, batch_size, sampler=self.sampler, **kwargs
-        )
 
 
-def prepare_datasets(
-        args: dict,
-        rank: int,
-        num_workers: int,
-        data: str = 'MNIST',
-) -> (dict):
-    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
+DATA_PATH = os.path.join(modulepath, 'datasets')
 
-    kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': False}
-    #  if args.device.find('gpu') != -1:
-    #  if not torch.cuda.is_available():
-        #  kwargs = {'rank': 0, 'num_workers': 1, 'pin_memory': True}
-
-    if str(data).lower() not in ['cifar10', 'mnist']:
-        raise ValueError('Expected `data` to be one of "cifar10", "mnist"')
-
-    if str(data).lower() == 'cifar10':
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-
-        # Build datasets
-        datadir = os.path.abspath('datasets/CIFAR10')
-        train_dataset = datasets.CIFAR10(
-            datadir, train=True, download=True, transform=transform,
-        )
-        test_dataset = datasets.CIFAR10(
-            datadir, train=False, transform=transform
-        )
-    elif str(data).lower() == 'mnist':
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        datadir = os.path.abspath('datasets/MNIST')
-        train_dataset = datasets.MNIST(
-            datadir, train=True, download=True, transform=transform,
-        )
-        test_dataset = datasets.MNIST(
-            datadir, train=False, download=True, transform=transform,
-        )
-
-    print(f'rank: {rank}, num_workers: {num_workers}')
-    train_data = DistributedDataObject(dataset=train_dataset,
-                                       batch_size=args.batch_size, **kwargs)
-    test_data = DistributedDataObject(test_dataset,
-                                      args.test_batch_size, **kwargs)
-
-    return {'training': train_data, 'testing': test_data}
-
+logger = io.Logger()
 
 def set_random_seeds(random_seed=0):
     torch.manual_seed(random_seed)
@@ -130,21 +64,6 @@ def get_backend():
     raise ValueError('No backend found.')
 
 
-def setup(
-        rank: str = '0',
-        master_addr: str = 'localhost',
-        master_port: str = '4921',
-        backend: str = 'gloo'
-):
-    os.environ['MASTER_ADDR'] = str(master_addr)
-    os.environ['MASTER_PORT'] = str(master_port) # can be anything
-    os.environ['RANK'] = str(rank)
-    # initialize the process group
-    #  dist.init_process_group(backend, rank=rank, world_size=world_size)
-    #  dist.init_process_group(backend, rank=rank, world_size=world_size)
-    dist.init_process_group(backend=backend, init_method='env://')
-
-
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -161,7 +80,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        return F.log_softmax(x, 1)
 
 
 def evaluate(model, device, test_loader):
@@ -183,17 +102,22 @@ def evaluate(model, device, test_loader):
 
 def metric_average(x: torch.Tensor) -> (torch.Tensor):
     """Compute global averages across all workers if using DDP. """
-    x = torch.tensor(x)
-    #  if with_ddp:
+    if isinstance(x, torch.Tensor):
+        tensor = x.clone().detach()
+    else:
+        tensor = torch.tensor(x)
+
     if dist.is_initialized():
         # Sum everything and divide by total size
-        dist.all_reduce(x, op=dist.ReduceOp.SUM)
-        x /= dist.get_world_size()
+        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+        tensor /= dist.get_world_size()
     else:
         pass
 
-    return x.item()
+    return tensor.item()
 
+
+LossFunction = Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
 
 def train(
         epoch: int,
@@ -201,7 +125,7 @@ def train(
         device: torch.device,
         rank: int,
         model: nn.Module,
-        loss_fn: Callable[[torch.Tensor], torch.Tensor],
+        loss_fn: LossFunction,
         optimizer: optim.Optimizer,
         args: dict,
         scaler: GradScaler=None,
@@ -214,8 +138,6 @@ def train(
     if torch.cuda.is_available():
         running_loss = running_loss.to(device)
         training_acc = training_acc.to(device)
-    #  running_loss = 0.0
-    #  training_acc = 0.0
 
     for batch_idx, (batch, target) in enumerate(data.loader):
         if torch.cuda.is_available():
@@ -271,23 +193,23 @@ def main():
 
     backend = 'nccl' if with_cuda else 'gloo'
     dist.init_process_group(backend=backend)
-    #  setup(args.local_rank)
-    #  setup(args.local_rank, os.en
 
     args.cuda = with_cuda
 
     local_rank = args.local_rank
-    #  epochs = args.epochs
-    #  batch_size = args.batch_size
-    #  lr = args.lr
-    #  random_seed = args.random_seed
-    #  model_dir = args.model_dir
-    #  model_filename = args.model_filename
     resume = args.resume
 
     world_size = 1 if not dist.is_available() else dist.get_world_size()
     backend = 'nccl' if with_cuda else 'gloo'
-    #  setup(local_rank, world_size, backend=args.backend)
+
+    outdir = os.path.join(os.getcwd(), 'results_mnist', f'size{world_size}')
+    modeldir = os.path.join(outdir, 'saved_models')
+    modelfile = os.path.join(modeldir, 'ddp_model_mnist.pth')
+    if local_rank == 0:
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
+        if not os.path.isdir(modeldir):
+            os.makedirs(modeldir)
 
     # Create directories outside the PyTorch program
     # Do not create directory here because it is not multiprocess safe
@@ -296,19 +218,10 @@ def main():
         os.makedirs(model_dir)
     '''
 
-    model_filepath = os.path.join(args.model_dir, args.model_filename)
-
     # We need to use seeds to make sure that the models initialized in different processes are the same
     set_random_seeds(random_seed=args.random_seed)
 
-    # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-    #  backend = 'nccl' if with_cuda else 'gloo'
-    #  dist.init_process_group(backend=backend)
-    #  torch.distributed.init_process_group(backend=backend)
-    # torch.distributed.init_process_group(backend="gloo")
-
     # Encapsulate the model on the GPU assigned to the current process
-    #model = torchvision.models.resnet18(pretrained=False)
     model = Net()
 
     if with_cuda:
@@ -324,19 +237,16 @@ def main():
     else:
         device = torch.device('cpu')
         ddp_model = DDP(model)
-                    #  device_ids=[args.local_rank],
-                    #  device_ids=[args.local_rank]
-                    #  output_device=args.local_rank)
 
     # We only save the model who uses device "cuda:0"
     # To resume, the device for the saved model would also be "cuda:0"
     if resume == True:
         if with_cuda:
             map_location = {"cuda:0": "cuda:{}".format(local_rank)}
-        #  else:
-        #      map_location = {'0': f'{local_rank}'}
+        else:
+            map_location = {'0': f'{local_rank}'}
 
-        state_dict = torch.load(model_filepath, map_location=map_location)
+        state_dict = torch.load(modelfile, map_location=map_location)
         ddp_model.load_state_dict(state_dict)
 
     # Prepare dataset and dataloader
@@ -346,8 +256,6 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(ddp_model.parameters(),
                            lr=args.lr, weight_decay=1e-5)
-    #  optimizer = optim.SGD(ddp_model.parameters(), lr=lr, momentum=0.9,
-    #                        weight_decay=1e-5)
 
     # Loop over the dataset multiple times
     epoch_times = []
@@ -360,38 +268,37 @@ def main():
         if epoch > 2:
             epoch_times.append(time.time() - t0)
 
+        # Evaluate our model once every 10 epochs
         if epoch % 10 == 0:
             if local_rank == 0:
                 accuracy = evaluate(model=ddp_model, device=device,
                                     test_loader=data['testing'].loader)
-                torch.save(ddp_model.state_dict(), model_filepath)
                 logger.log('-' * 75)
                 logger.log(f'Epoch: {epoch}, Accuracy: {accuracy}')
                 logger.log('-' * 75)
 
-
+    # Save a copy of our model along with information from training
     if local_rank == 0:
-        epoch_times_str = ', '.join(str(x) for x in epoch_times)
-        logger.log('Epoch times:')
-        logger.log(epoch_times_str)
-
-        #outdir = os.path.join(os.getcwd(), f'results_mnist_size{world_size}')
-        outdir = os.path.join(os.getcwd(), 'results_mnist', f'size{world_size}')
-        if not os.path.isdir(outdir):
-            os.makedirs(outdir)
+        # save a copy of our trained model
+        logger.log(f'Saving model to: {modelfile}')
+        torch.save(model.state_dict(), modelfile)
 
         args_file = os.path.join(outdir, f'args_size{world_size}.json')
         logger.log(f'Saving args to: {args_file}.')
 
+        # save a copy of the arguments passed in for reference
         with open(args_file, 'at') as f:
             json.dump(args.__dict__, f, indent=4)
 
-        times_file = os.path.join(outdir,
-                                  f'epoch_times_size{world_size}.csv')
+        epoch_times_str = ', '.join(str(x) for x in epoch_times)
+        logger.log('Epoch times:')
+        logger.log(epoch_times_str)
+
+        # save time per epoch to a csv file
+        times_file = os.path.join(outdir, f'epoch_times_size{world_size}.csv')
         logger.log(f'Saving epoch times to: {times_file}')
         with open(times_file, 'a') as f:
             f.write(epoch_times_str + '\n')
-
 
 
 if __name__ == "__main__":

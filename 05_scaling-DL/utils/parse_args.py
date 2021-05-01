@@ -1,13 +1,44 @@
 import argparse
 
 
+def parse_args_torch_hvd():
+    # Training settings
+    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+                        help='input batch size for training (default: 64)')
+    parser.add_argument('--test_batch_size', type=int, default=1000, metavar='N',
+                        help='input batch size for testing (default: 1000)')
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
+                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                        help='learning rate (default: 0.01)')
+    parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
+                        help='SGD momentum (default: 0.5)')
+    parser.add_argument('--no-cuda', action='store_true', default=False,
+                        help='disables CUDA training')
+    parser.add_argument('--seed', type=int, default=42, metavar='S',
+                        help='random seed (default: 42)')
+    parser.add_argument('--log_interval', type=int, default=10, metavar='N',
+                        help='how many batches to wait before logging training status')
+    parser.add_argument('--fp16_allreduce', action='store_true', default=False,
+                        help='use fp16 compression during allreduce')
+    parser.add_argument('--use-adasum', action='store_true', default=False,
+                        help='use adasum algorithm to do reduction')
+    parser.add_argument('--gradient-predivide-factor', type=float, default=1.0,
+                        help='apply gradient predivide factor in optimizer (default: 1.0)')
+
+    args = parser.parse_args()
+
+    return args
+
+
+
+
 def parse_args_ddp(*args):
     num_epochs_default = 10000
     batch_size_default = 256 # 1024
     learning_rate_default = 0.1
     random_seed_default = 0
-    model_dir_default = "saved_models"
-    model_filename_default = "model_distributed.pth"
 
     # Each process runs on 1 GPU device specified by the local_rank argument.
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -47,14 +78,14 @@ def parse_args_ddp(*args):
         "--random_seed", type=int, default=0,
         help="Random seed."
     )
-    parser.add_argument(
-        "--model_dir", type=str, default='saved_models',
-        help="Directory for saving models."
-    )
-    parser.add_argument(
-        "--model_filename", type=str, default='model_distributed.pth',
-        help="Model filename."
-    )
+    #  parser.add_argument(
+    #      "--model_dir", type=str, default='saved_models',
+    #      help="Directory for saving models."
+    #  )
+    #  parser.add_argument(
+    #      "--model_filename", type=str, default='model_distributed.pth',
+    #      help="Model filename."
+    #  )
     parser.add_argument(
         "--resume", action="store_true",
         help="Resume training from saved checkpoint."
