@@ -278,7 +278,7 @@ def main():
                 logger.log('-' * 75)
 
     # Save a copy of our model along with information from training
-    if local_rank == 0:
+    if local_rank == 0 and not args.nosave:
         # save a copy of our trained model
         logger.log(f'Saving model to: {modelfile}')
         torch.save(model.state_dict(), modelfile)

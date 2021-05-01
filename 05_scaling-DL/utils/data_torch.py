@@ -44,7 +44,6 @@ def prepare_datasets(
     #  if args.device.find('gpu') != -1:
     #  if not torch.cuda.is_available():
         #  kwargs = {'rank': 0, 'num_workers': 1, 'pin_memory': True}
-
     if str(data).lower() == 'cifar10':
         transform = transforms.Compose([
             transforms.ToTensor(),

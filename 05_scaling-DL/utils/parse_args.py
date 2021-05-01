@@ -78,6 +78,9 @@ def parse_args_ddp(*args):
         "--random_seed", type=int, default=0,
         help="Random seed."
     )
+    parser.add_argument(
+        '--nosave', action='store_true',
+    )
     #  parser.add_argument(
     #      "--model_dir", type=str, default='saved_models',
     #      help="Directory for saving models."
