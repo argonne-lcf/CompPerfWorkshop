@@ -253,16 +253,17 @@ def main():
     data = prepare_datasets(args, rank=local_rank,
                             num_workers=world_size,
                             data='mnist')
-    criterion = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(ddp_model.parameters(),
-                           lr=args.lr, weight_decay=1e-5)
+                           lr=args.lr * world_size,
+                           weight_decay=1e-5)
 
     # Loop over the dataset multiple times
     epoch_times = []
     for epoch in range(args.epochs):
         t0 = time.time()
-        train(epoch, data['training'], device=device, rank=local_rank,
-              model=ddp_model, loss_fn=criterion,
+        train(epoch, data['training'], device=device,
+              rank=local_rank, model=ddp_model, loss_fn=loss_fn,
               optimizer=optimizer, args=args, scaler=None)
 
         if epoch > 2:
@@ -287,7 +288,7 @@ def main():
         logger.log(f'Saving args to: {args_file}.')
 
         # save a copy of the arguments passed in for reference
-        with open(args_file, 'at') as f:
+        with open(args_file, 'wt') as f:
             json.dump(args.__dict__, f, indent=4)
 
         epoch_times_str = ', '.join(str(x) for x in epoch_times)
