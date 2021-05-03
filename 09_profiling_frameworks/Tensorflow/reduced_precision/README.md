@@ -23,3 +23,32 @@ Next, run with mixed precision (profiling is still turned on here):
 ```
 
 This is disappointing!  We ran with mixed precision and it is SLOWER.  Let's look into the profile to discover why.
+
+Here's the overview page.  We note right away that in the bottom left, it IS using a good amount of reduced precision.
+
+![Tensorboard Profiler Overview](profiler_overview.png)
+
+Scrolling down:
+
+![top 10](top10-ops.png)
+
+Compared to the float32 top-10 operations, this is pretty different.  There is one op that is particularly dominant!  It is still a conv2d operation, but for some reason it is much slower than the others.
+
+Here is the Kernel Statistics page again:
+
+![kernel stats](kernel-stats.png)
+
+We see the same problem there - except this time it's pointing to the wgrad convolution. The tensorflow statistics shows similar info:
+
+![tf stats](tf-stats.png)
+
+And there is also a timeline view of all ops (trace viewer)
+
+![timeline](trace-viewer.png)
+
+And zoomed:
+
+![timeline zoom](trace-zoomed.png)
+
+So, reduced precision appears to be slower because of one particular operation.  How to fix this?  Well the best solution here is probably to open a bug report.
+
