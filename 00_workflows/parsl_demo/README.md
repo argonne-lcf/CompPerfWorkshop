@@ -116,8 +116,6 @@ and under the configuration of parsl, an additional keyword argument of monitori
 create a database in the directory the Parsl driver is run in, storing information on all executors.
 
 One utilization tool is the `parsl visualizer`, with full documentation found [here](https://parsl.readthedocs.io/en/stable/userguide/monitoring.html). 
-We also provide the python script `monitoring_test.py`, which navigates through the database using
-sqlite3 in order to provide a quick example of the information contained within.
 
 In short, the major tables existing:
 1. workflow: contains information regarding the workflow as a whole---durations, hosting information,
