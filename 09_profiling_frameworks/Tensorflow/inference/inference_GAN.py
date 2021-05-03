@@ -178,7 +178,7 @@ def inference_GAN(_batch_size, _iterations):
         logger.info(f"Inference Images per second: {_batch_size / (end - start):.3f}")
 
 
-    display_images = False
+    display_images = True
     if display_images:
         # Show an image:
         from matplotlib import pyplot as plt

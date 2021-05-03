@@ -1,6 +1,10 @@
 # Profiling Tensorflow
 
-In this example, we'll profile a Generative network.  We'll go through several steps of profile, each time enabling a new tool or optimization.
+In this example, we'll profile a Generative network.  We'll go through several steps of profile, each time enabling a new tool or optimization.  At the end of the exercise, you'll have a GAN that can generate images like this:
+
+![Images](generate_images.png)
+
+The tools behind the GAN are not the subject for this talk but feel free to reach out on Slack if you have questions about it!
 
 Find the original script in `train_GAN.py`.
 
@@ -40,3 +44,16 @@ Take note of the throughput reported!
 ```
 
 On average, the A100 system is moving about 230 Images / second through this training loop.  Let's dig in to the first optimization in the `line_profiler` directory.
+
+Below are the wrap up conclusions which you can read ahead or come back to later.
+
+# Conclusions
+
+So, after all the profiling, what optimizations did we learn?
+
+ - Make sure that IO isn't a bottleneck.  In this case it was simple.  With big datasets it can be a challenge to keep the GPU fed and not idle on IO.
+ - Make sure to use graph compilation where you can.  It's easy to make mistakes here: you must make sure to use only tensorflow operations!
+ - Use XLA.  It can give excellent speed ups by fusing operations.
+ - Use reduced precision ... if there isn't a bug.  Reduced precision becomes particularly powerful when XLA is involved, allowing you to keep the tensorcores chugging along with less memory-bound operations.
+
+In general, if you have an application running in tensorflow, it's a great idea to profile periodically and make sure you've got all the basic optimizations down!
