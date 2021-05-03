@@ -2,7 +2,7 @@
 
 In this example, we'll profile a Generative network.  We'll go through several steps of profile, each time enabling a new tool or optimization.  At the end of the exercise, you'll have a GAN that can generate images like this:
 
-![Images](generate_images.png)
+![Images](generated_images.png)
 
 The tools behind the GAN are not the subject for this talk but feel free to reach out on Slack if you have questions about it!
 
