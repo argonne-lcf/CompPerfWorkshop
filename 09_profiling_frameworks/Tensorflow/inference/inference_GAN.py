@@ -178,14 +178,25 @@ def inference_GAN(_batch_size, _iterations):
         logger.info(f"Inference Images per second: {_batch_size / (end - start):.3f}")
 
 
-    # # Show an image:
-    # from matplotlib import pyplot as plt
-    #
-    # image = tf.reshape(images[0], [28, 28])
-    #
-    # plt.imshow(image)
-    #
-    # plt.show()
+    display_images = False
+    if display_images:
+        # Show an image:
+        from matplotlib import pyplot as plt
+        
+        plot_images = numpy.zeros([4*28, 4*28])
+
+        for i in range(4):
+            for j in range(4):
+
+                plot_images[i*28:(i+1)*28, j*28:(j+1)*28] = tf.reshape(images[i*4 + j], [28, 28])
+
+        # image = tf.reshape(images[0], [28, 28])
+        
+        fig = plt.figure(figsize=(8,8))
+        plt.imshow(plot_images)
+        
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == '__main__':
 
