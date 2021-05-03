@@ -38,3 +38,5 @@ And there is also a timeline view of all ops (trace viewer)
 And zoomed:
 
 ![timeline zoom](trace-viewer-zoom.png)
+
+Now, let's try running in reduced precision.
