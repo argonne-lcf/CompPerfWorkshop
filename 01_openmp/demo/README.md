@@ -17,7 +17,7 @@
 # for Fortran:
 # module load nvhpc-sdk/nvhpc/21.3
   module load llvm
-  qsub -I -q full-node -t 60 -n 1 -A training 
+  qsub -I -q training -t 60 -n 1 -A comp_perf_workshop 
  ```
 
  ## Offloading code to the device and getting device info
