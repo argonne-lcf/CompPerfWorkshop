@@ -8,10 +8,5 @@ conda activate
 export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 
-
-APPDIR=/lus/theta-fs0/projects/datascience/memani/comp_perf_workshop/
-cd $APPDIR
-
 ## run the application
-python tf2_mnist.py --epochs 10
-
+python ./tf2_mnist.py 
