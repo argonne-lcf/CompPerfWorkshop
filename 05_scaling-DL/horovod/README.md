@@ -6,9 +6,8 @@
 
 - [Distributed Training with Horovod](#distributed-training-with-horovod)
   * [Model Parallelism and Data Parallelism](#model-parallelism-and-data-parallelism)
-    + [Idea ([image credit](https://horovod.readthedocs.io/en/stable/)):](#idea-image-credithttpshorovodreadthedocsioenstable)
-    + [Detail: ([image credit](https://arxiv.org/pdf/2101.03961.pdf))](#detail--image-credithttpsarxivorgpdf210103961pdf)
-    + [Internal Mechanics ([image credit](https://horovod.readthedocs.io/en/stable/))](#internal-mechanics-image-credithttpshorovodreadthedocsioenstable)
+    + [Detailed Description](#detailed-description)
+    + [Internal Mechanics](#internal-mechanics)
   * [Additional References](#additional-references)
 
 - Examples:
@@ -59,11 +58,13 @@ Additional examples / information can be found at: [https://github.com/argonne-l
 
    - Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
 
-### Idea ([image credit](https://horovod.readthedocs.io/en/stable/)):
-
 ![distributed](../images/distributed.png)
 
-### Detail:  ([image credit](https://arxiv.org/pdf/2101.03961.pdf))
+([image credit](https://horovod.readthedocs.io/en/stable/))
+
+### Detailed Description
+
+- [image credit](https://arxiv.org/pdf/2101.03961.pdf)
 
 - How the model **weights** are split over cores
 
@@ -80,7 +81,9 @@ Additional examples / information can be found at: [https://github.com/argonne-l
   
   ![data](../images/data.png)
 
-### Internal Mechanics ([image credit](https://horovod.readthedocs.io/en/stable/))
+### Internal Mechanics
+
+- [image credit](https://horovod.readthedocs.io/en/stable/)
 
 ![Horovod](../images/horovod.png)
 
