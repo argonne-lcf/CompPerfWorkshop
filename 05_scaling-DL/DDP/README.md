@@ -21,7 +21,7 @@
 
 **Author:** Sam Foreman [foremans@anl.gov](mailto:foremans@anl.gov)
 
-**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by __Corey Adams__ [corey.adams@anl.gov](mailto:corey.adams@anl.gov) and __Huihuo Zheng__ [huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov)
+**Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by Corey Adams ([corey.adams@anl.gov](mailto:corey.adams@anl.gov)) and Huihuo Zheng ([huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov))
 
 **Goal:** 
 
@@ -127,6 +127,7 @@ modulepath = os.path.dirname(here)
 if modulepath not in sys.path:
     sys.path.append(modulepath)
     
+# import helper functions
 from utils.data_torch import prepare_datasets
 from utils.parse_args import parse_args_ddp
     
@@ -192,7 +193,7 @@ python3 -m torch.distributed.launch --nproc_per_node=8 --nnodes=1 --node_rank 0 
 **NOTE:** To safely shutdown the distributed training instance, we can use the command:
 
 ```bash
-kill $(ps aux | grep torch_ddp_cifar10.py | grep -v grep | awk '{print #2}')
+kill $(ps aux | grep torch_ddp_mnist.py | grep -v grep | awk '{print #2}')
 ```
 
 ### Example Performance
@@ -205,11 +206,11 @@ Here I show the results I got measuring the `time-per-epoch` averaged over the l
 |  4   |                   2.66 |                 2.64 |
 |  8   |                   1.43 |                 1.37 |
 
-| Nodess | CIFAR10 Time / epoch [s] | MNIST Time / epoch [s] |
-| :----: | -----------------------: | ---------------------: |
-|   1    |                     1.43 |                   1.37 |
-|   2    |                     0.82 |                   0.80 |
-|   4    |                     0.50 |                   0.49 |
+| Nodes | CIFAR10 Time / epoch [s] | MNIST Time / epoch [s] |
+| :---: | -----------------------: | ---------------------: |
+|   1   |                     1.43 |                   1.37 |
+|   2   |                     0.82 |                   0.80 |
+|   4   |                     0.50 |                   0.49 |
 
 ![pytorch_scaling_ddp](../images/pytorch_scaling_ddp.png)
 

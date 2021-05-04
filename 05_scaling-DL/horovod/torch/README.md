@@ -2,7 +2,7 @@
 
 **Note:** We provide an example script, available here: [./horovod/torch/torch_cifar10_hvd.py](./torch/torch_cifar10_hvd.py)
 
-Using Horovod + PyTorch is similar to the procedure described above for TensorFlow.
+Using Horovod + PyTorch is similar to the procedure described previously for TensorFlow.
 
 1. **Initialize Horovod**
 
@@ -10,7 +10,10 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
 
    ```python
    import horovod.torch as hvd
+   
    hvd.init()
+   local_size = hvd.local_rank()
+   world_size = hvd.size()
    ```
 
 2. **Assign GPUs to each rank**
@@ -18,12 +21,14 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
    In this case, we set one GPU per process: ID = `hvd.local_rank()`
 
    ```python
-   torch.cuda.set_device(hvd.local_rank())
+   if torch.cuda.is_available():
+   	device = torch.device(f'cuda:{hvd.local_rank()}')
+   	torch.cuda.set_device(device)
    ```
 
 3. **Scale the learning rate**
 
-   If we are using $n$ workers, the global batch usually increases $n$ times. The learning rate should increase proportionally as follows (assuming intial learning rate is `0.01`).
+   If we are using `n` workers, the global batch usually increases `n` times. The learning rate should increase proportionally as follows
 
    ```python
    from torch import optim
@@ -33,7 +38,12 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
 4. **Wrap the optimizer with `hvd.DistributedOptimizer`**
 
    ```python
-   optimizer = hvd.DistributedOptimizer(optimizer, named_parameters=model.named_parameters(), compression=compression)
+   compression = (
+       hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
+   )
+   optimizer = hvd.DistributedOptimizer(optimizer,
+                                        compression=compression,
+                                        named_parameters=model.named_parameters())
    ```
 
 5. **Broadcast the model from rank 0**
@@ -64,20 +74,10 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
    )
    ```
 
-   For simplicity, we define a `DataObject` for grouping a datasets' data, sampler, and loader objects using a `dataclass`:
-
-   ```python
-   from dataclasses import dataclass
-   
-   @dataclass
-   class DataObject:
-       dataset: torch.utils.data.Dataset    # accessible via `DataObject.dataset`, etc.
-       sampler: torch.utils.data.Sampler
-       loader: torch.utils.data.DataLoader
-   ```
-
    In both cases, the total number of steps per epoch is `nsamples / hvd.size()`.
 
+   **Note**: We provide a helper function `prepare_datasets` in [`05_scaling-DL/utils/data_torch.py`](../utils/data_torch.py) that takes care of initializing the necessary dataset objects.
+   
 7. **Checkpointing _only_ from root rank**
 
    It is important to only let one process be responsible for checkpointing I/O to prevent race conditions which might jeopardize the integrity of the checkpoint.
@@ -92,13 +92,21 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
    Notice that in the distributed training, any tensors are local to each worker. In order to get the global averaged value, we can use `hvd.allreduce`. Below we provide an example
 
    ```python
-   def tensor_average(val, name):
-       tensor = torch.tensor(val)
-       avg_tensor = hvd.allreduce(tensor, name=name) if WITH_HVD else tensor
+   def metric_average(x, name):
+       if isinstance(x, torch.Tensor):
+           tensor = x.clone().detach()
+       else:
+           tensor = torch.tensor(x)
+       
+       avg_tensor = hvd.allreduce(tensor, name=name)
        return avg_tensor.item()
    ```
 
 ## Results
+
+**PyTorch**: Single node (up to 8 GPUs)
+
+<img src="../../images/torch_hvd_speedup.png" alt="pytorch_single_node" style="zoom:33%;" />
 
 **PyTorch** (time for 32 epochs)
 
@@ -110,6 +118,4 @@ Using Horovod + PyTorch is similar to the procedure described above for TensorFl
 |  8   |    73.5     |   58.8    |
 |  16  |    79.1     |   63.8    |
 |  32  |    81.1     |   55.7    |
-
-<img src="../../images/pytorch_scaling_ddp.png" alt="torch_thetaGPU" style="zoom: 33%;" />
 
