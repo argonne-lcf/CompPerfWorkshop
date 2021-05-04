@@ -43,7 +43,7 @@ Take note of the throughput reported!
 2021-04-30 20:22:04,159 - INFO - (0, 11), G Loss: 0.665, D Loss: 0.616, step_time: 0.540, throughput: 237.068 img/s
 ```
 
-On average, the A100 system is moving about 230 Images / second through this training loop.  Let's dig in to the first optimization in the `line_profiler` directory.
+On average, the A100 system is moving about 230 Images / second through this training loop.  Let's dig in to the first optimization in the [`line_profiler`](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow/line_profiler) directory.
 
 Below are the wrap up conclusions which you can read ahead or come back to later.
 
