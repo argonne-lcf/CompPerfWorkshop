@@ -113,7 +113,7 @@ with profiler.profile(profile_memory=True) as prof:
     model(inputs)
 print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
 ```
-As a result of the profile, one could see
+You will see some warning of the profiler mentioning that not all memory allocation/deallocation events are analyzed. This happens because we profile only model forward pass and some allocations in the initialization are missed. You will see the following profile:
 ```bash
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
                              Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg       CPU Mem  Self CPU Mem    # of Calls  
