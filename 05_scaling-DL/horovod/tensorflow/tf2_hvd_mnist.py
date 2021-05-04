@@ -160,7 +160,8 @@ def main(args):
 
     # Horovod: adjust number of steps based on number of GPUs.
     epoch_times = []
-    for epoch in range(1, args.epochs + 1):
+    epochs = args.get('epochs', 10)
+    for epoch in range(epochs):
         t0 = time.time()
         train(epoch, data['training'], model, loss_fn, optimizer, args, metrics)
 
