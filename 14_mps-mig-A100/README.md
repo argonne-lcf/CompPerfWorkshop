@@ -137,7 +137,7 @@ CUDA_VISIBLE_DEVICES=MIG-GPU-2fa5cf01-9520-1bc1-995b-cc0c6d9bca7c/2/0 python mya
 
 Verify if both are running on two instances with ‘nvidia-smi’ under the Processes tab
 
-** Step (5)**  
+**Step (4)**  
 To destroy the instances, first start with compute instances (CI) then GPU instances (GI)
 
 ```
@@ -166,4 +166,15 @@ Verify if the MIG devices are torn down with nvidia-smi
 +-----------------------------------------------------------------------------+
 ```
 
+## Example:
+Lets try running two applications on a single GPU in the MIG mode. These are simple CNN in Tensorflow 2 and Torch to classify MNIST dataset, namely, `tf2_mnist.py` and `pt_mnist.py`. The scripts to run these applications after loading necessary modules are `run_tf2_mnist.sh` and `run_pt_mnist.sh`. 
+
+Once the MIG instances are created as per the steps listed above, get the unique IDs of each instance with `nvidia-smi -L`
+
+```
+CUDA_VISIBLE_DEVICES=<MIG-UUID-1> ./run_tf2_mnist.sh &
+CUDA_VISIBLE_DEVICES=<MIG-UUID-2> ./run_pt_mnist.sh &
+```
+
+You can verify that both applications will be running on a single shared GPU with `nvidia-smi`. 
 
