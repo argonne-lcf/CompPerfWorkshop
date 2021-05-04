@@ -12,14 +12,9 @@ MIG user guide is available at https://docs.nvidia.com/datacenter/tesla/mig-user
 
 
 **Step (1):**  
-Log onto a compute node with MIG-enabled GPUs. There are two queues 1) full-node and (2) single-gpu. 
+Log onto a compute node with mig-mode attribute set to True
 
-
-`qsub -I -t 60 -n1 -A project -q single-gpu`
-
-or
-
-`qsub -I -t 60 -n1 -A project -q full-node --attrs mig-mode=True`
+`qsub -I -t 60 -n1 -A project -q queue --attrs mig-mode=True`
 
 
 check if MIG mode is enabled with 'nvidia-smi', this should list the GPUs followed by a table of MIG devices. To see the list of all possible GPU instances, use 
