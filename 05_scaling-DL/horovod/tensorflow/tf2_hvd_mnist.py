@@ -193,7 +193,7 @@ def main(args):
         logger.log(f'Saving args to: {args_file}.')
 
         with open(args_file, 'at') as f:
-            json.dump(args.__dict__, f, indent=4)
+            json.dump(args, f, indent=4)
 
         times_file = os.path.join(outdir,
                                   f'epoch_times_size{world_size}.csv')
