@@ -1,6 +1,8 @@
 import sys, os
 import time
 
+os.environ["TF_XLA_FLAGS"]="--tf_xla_auto_jit=2"
+
 import logging
 from logging import handlers
 

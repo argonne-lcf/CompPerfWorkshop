@@ -7,7 +7,7 @@ from logging import handlers
 import tensorflow as tf
 import numpy
 
-os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
+os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 "
 
 def configure_logger():
     '''Configure a global logger
@@ -152,7 +152,7 @@ class Generator(tf.keras.models.Model):
 def generate_images(_generator, _batch_size):
 
     # Use the generator to make fake images:
-    random_noise = tf.random.uniform(shape=[_batch_size,100], minval=-1, maxval=1)
+    random_noise = tf.random.uniform(shape=[_batch_size,100], minval=-1, maxval=1, dtype=tf.float16)
     fake_images  = _generator(random_noise)
 
     return fake_images
@@ -164,7 +164,7 @@ def inference_GAN(_batch_size, _iterations):
 
     generator = Generator()
 
-    random_input = numpy.random.uniform(-1,1,[1,100]).astype(numpy.float32)
+    random_input = numpy.random.uniform(-1,1,[1,100]).astype(numpy.float16)
     generated_image = generator(random_input)
 
     # Load the model
@@ -178,11 +178,11 @@ def inference_GAN(_batch_size, _iterations):
         logger.info(f"Inference Images per second: {_batch_size / (end - start):.3f}")
 
 
-    display_images = True
+    display_images = False
     if display_images:
         # Show an image:
         from matplotlib import pyplot as plt
-        
+
         plot_images = numpy.zeros([4*28, 4*28])
 
         for i in range(4):
@@ -191,17 +191,18 @@ def inference_GAN(_batch_size, _iterations):
                 plot_images[i*28:(i+1)*28, j*28:(j+1)*28] = tf.reshape(images[i*4 + j], [28, 28])
 
         # image = tf.reshape(images[0], [28, 28])
-        
+
         fig = plt.figure(figsize=(8,8))
         plt.imshow(plot_images)
-        
+
         plt.tight_layout()
         plt.show()
 
 if __name__ == '__main__':
 
+
     configure_logger()
 
     BATCH_SIZE=8192
-    N_ITERATIONS = 20
+    N_ITERATIONS = 200
     inference_GAN(BATCH_SIZE, N_ITERATIONS)
