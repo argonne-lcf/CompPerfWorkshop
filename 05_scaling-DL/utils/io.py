@@ -49,61 +49,6 @@ def print_metrics(metrics: dict, pre: list = None, logger: Logger = None):
         logger.log(mstr)
 
 
-'''
-def prepare_datasets(
-        args: dict,
-        rank: int,
-        num_workers: int,
-        data: str = 'CIFAR10',
-) -> (dict):
-    """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
-
-    kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': False}
-    #  if args.device.find('gpu') != -1:
-    #  if not torch.cuda.is_available():
-        #  kwargs = {'rank': 0, 'num_workers': 1, 'pin_memory': True}
-
-    if str(data).lower() not in ['cifar10', 'mnist']:
-        raise ValueError('Expected `data` to be one of "cifar10", "mnist"')
-
-    if str(data).lower() == 'cifar10':
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-
-        # Build datasets
-        datadir = os.path.abspath('datasets/CIFAR10')
-        train_dataset = datasets.CIFAR10(
-            datadir, train=True, download=True, transform=transform,
-        )
-        test_dataset = datasets.CIFAR10(
-            datadir, train=False, transform=transform
-        )
-    elif str(data).lower() == 'mnist':
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        datadir = os.path.abspath('datasets/MNIST')
-        train_dataset = datasets.MNIST(
-            datadir, train=True, download=True, transform=transform,
-        )
-        test_dataset = datasets.MNIST(
-            datadir, train=False, download=True, transform=transform,
-        )
-
-    print(f'rank: {rank}, num_workers: {num_workers}')
-    train_data = DistributedDataObject(dataset=train_dataset,
-                                       batch_size=args.batch_size, **kwargs)
-    test_data = DistributedDataObject(test_dataset,
-                                      args.test_batch_size, **kwargs)
-
-    return {'training': train_data, 'testing': test_data}
-'''
-
-
-
 def get_timestamp(fstr=None):
     """Get formatted timestamp."""
     now = datetime.datetime.now()
