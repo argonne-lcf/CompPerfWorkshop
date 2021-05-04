@@ -1,6 +1,8 @@
 import sys, os
 import time
 
+os.environ["TF_XLA_FLAGS"]="--tf_xla_auto_jit=2"
+
 import logging
 from logging import handlers
 
@@ -28,7 +30,7 @@ At the end of the training session, the discriminator network can usually be dis
 
 # Read in the mnist data so we have it loaded globally:
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-x_train = x_train.astype(numpy.float32)
+x_train = x_train.astype(numpy.float16)
 
 x_train /= 255.
 
@@ -308,7 +310,7 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         # Use the generator to make fake images:
 
         # Use the generator to make fake images:
-        random_noise = tf.random.uniform(shape=[_batch_size,_input_size], minval=-1, maxval=1)
+        random_noise = tf.random.uniform(shape=[_batch_size,_input_size], minval=-1, maxval=1, dtype=tf.float16)
         fake_images  = _generator(random_noise)
 
 
@@ -318,10 +320,10 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         prediction_on_fake_data = _discriminator(fake_images)
 
 
-        soften = 0.1
-        real_labels = tf.zeros(shape=[_batch_size,1], dtype=tf.float32) + soften
-        fake_labels = tf.ones( shape=[_batch_size,1], dtype=tf.float32) - soften
-        gen_labels  = tf.zeros(shape=[_batch_size,1], dtype=tf.float32)
+        soften = 0.01
+        real_labels = tf.zeros(shape=[_batch_size,1], dtype=tf.float16) + soften
+        fake_labels = tf.ones( shape=[_batch_size,1], dtype=tf.float16) - soften
+        gen_labels  = tf.zeros(shape=[_batch_size,1], dtype=tf.float16)
 
 
 
@@ -333,8 +335,8 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
 
         indices = tf.reshape(tf.range(n_swap), [-1,1])
 
-        swap_real = tf.constant(-soften, shape = indices.shape)
-        swap_fake = tf.constant( soften, shape = indices.shape)
+        swap_real = tf.constant(-soften, shape = indices.shape, dtype=tf.float16)
+        swap_fake = tf.constant( soften, shape = indices.shape, dtype=tf.float16)
 
         real_labels = real_labels + tf.scatter_nd(indices=indices, updates=swap_real, shape=real_labels.shape)
         fake_labels = fake_labels + tf.scatter_nd(indices=indices, updates=swap_fake, shape=fake_labels.shape)
@@ -460,10 +462,13 @@ def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 def train_GAN(_batch_size, _training_epochs, global_size):
 
 
+    policy = tf.keras.mixed_precision.Policy("mixed_float16")
+    tf.keras.mixed_precision.set_global_policy("mixed_float16")
+
 
     generator = Generator()
 
-    random_input = numpy.random.uniform(-1,1,[1,100]).astype(numpy.float32)
+    random_input = numpy.random.uniform(-1,1,[1,100]).astype(numpy.float16)
     generated_image = generator(random_input)
 
 

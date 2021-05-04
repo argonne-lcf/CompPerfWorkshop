@@ -11,7 +11,7 @@ Find the original script in `train_GAN.py`.
 All the scripts used here work in the Tensorflow 2 container:
 
 ```bash
-$ singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.02-py3.simg bash
+$ singularity exec --nv -B /lus -B /grand /grand/projects/Comp_Perf_Workshop/containers/tf2_cpw.simg bash
 ```
 
 
@@ -23,8 +23,7 @@ export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 ```
 
-Run the original script, single node, like so:
-`python train_GAN.py`
+Run the original script, single node, like so: `python train_GAN.py`.  Feel free to ctrl+C once it hits a stable throughput.
 
 Take note of the throughput reported!
 
@@ -43,13 +42,13 @@ Take note of the throughput reported!
 2021-04-30 20:22:04,159 - INFO - (0, 11), G Loss: 0.665, D Loss: 0.616, step_time: 0.540, throughput: 237.068 img/s
 ```
 
-On average, the A100 system is moving about 230 Images / second through this training loop.  Let's dig in to the first optimization in the [`line_profiler`](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow/line_profiler) directory.
+On average, the A100 system is moving about 237 Images / second through this training loop.  Let's dig in to the first optimization in the [`line_profiler`](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow/line_profiler) directory.
 
 Below are the wrap up conclusions which you can read ahead or come back to later.
 
 # Conclusions
 
-So, after all the profiling, what optimizations did we learn?
+Try the `optimized` version of the code - what throughput are you getting?  It should be a good deal faster! (~132000 Img/s - about 556x faster)  So, after all the profiling, what optimizations did we learn?
 
  - Make sure that IO isn't a bottleneck.  In this case it was simple.  With big datasets it can be a challenge to keep the GPU fed and not idle on IO.
  - Make sure to use graph compilation where you can.  It's easy to make mistakes here: you must make sure to use only tensorflow operations!
