@@ -15,7 +15,7 @@
   module load cobalt/cobalt-gpu
   qsub -I -q training -t 60 -n 1 -A comp_perf_workshop 
 # for Fortran:
-  # module load nvhpc-sdk/nvhpc/21.3
+  # module load nvhpc-nompi/21.3
 # for C/C++:
   module load llvm
  ```
