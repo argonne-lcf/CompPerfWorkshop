@@ -13,11 +13,11 @@
 
  ```
   module load cobalt/cobalt-gpu
+  qsub -I -q training -t 60 -n 1 -A comp_perf_workshop 
 # for Fortran:
-# module load nvhpc-sdk/nvhpc/21.3
+  # module load nvhpc-sdk/nvhpc/21.3
 # for C/C++:
   module load llvm
-  qsub -I -q training -t 60 -n 1 -A comp_perf_workshop 
  ```
 
  ## Offloading code to the device and getting device info
