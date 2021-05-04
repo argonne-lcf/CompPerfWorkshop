@@ -7,7 +7,7 @@ import torch.autograd.profiler as profiler
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 model = models.resnet18()
-inputs = torch.randn(5, 3, 224, 224)
+inputs = torch.randn(128, 3, 224, 224)
 
 with profiler.profile(record_shapes=True) as prof:
     model(inputs)

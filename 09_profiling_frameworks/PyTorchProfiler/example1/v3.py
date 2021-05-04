@@ -6,7 +6,7 @@ import torchvision.models as models
 import torch.autograd.profiler as profiler
 
 model = models.resnet18()
-inputs = torch.randn(5, 3, 224, 224)
+inputs = torch.randn(128, 3, 224, 224)
 
 with profiler.profile() as prof:
     model(inputs)
