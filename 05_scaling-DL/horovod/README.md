@@ -42,31 +42,30 @@
 2. **Data parallelization:** In this scheme, all of the workers own a replica of the model. The global batch of data is split into multiple minibatches and processed by different workers. Each worker computes the corresponding loss and gradients with respect to the data it possesses. Before the updating of the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective operation. This scheme is relatively simple to implement. `MPI_Allreduce` is the only communication operation required.
    1. Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
 
-### Example:
+### Example:  ([image credit](https://arxiv.org/pdf/2101.03961.pdf))
 
-- How the model **weights** are split over cores ([image credit][2]):
+- How the model **weights** are split over cores
 
-  - Shapes of different sizes in this row represent larger weight matrics in the networks' layers.
+  - **Data Parallelism**: Each worker maintains their own _complete_ copy of the model and its weights.
 
-  ![weights](../images/weights.png)
+  - **Model Parallelism**: Each worker receives a _unique subset_ of the model weights. This is useful in the case where our model is too large to fit on a single worker.
+
+    ![weights](../images/weights.png)
 
 - How the **data** is split over cores:
 
+  - **Data Parallelism**: Each worker receives a _unique subest_ of the dataset.
+  - **Model Parallelism**: Each worker receives their own *complete copy* of the dataset. 
+  
   ![data](../images/data.png)
+  
+- Another example ([image credit](https://horovod.readthedocs.io/en/stable/)):
 
-<!---![distributed](../assets/distributed.png)--->
+![distributed](../images/distributed.png)
 
 ## [Horovod Data Parallel Frameworks][3]
 
 ![Horovod](../images/horovod.png)
-
-[1]: https://github.com/horovod/horovod
-[2]: https://venturebeat.com/2021/01/12/google-trained-a-trillion-parameter-ai-language-model/
-[3]: https://horovod.readthedocs.io/en/stable/
-
-<!---## Handson--->
-
-<!---[`./thetagpu.md`](./thetagpu.md)--->
 
 ## Additional References
 

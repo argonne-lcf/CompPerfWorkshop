@@ -1,3 +1,8 @@
+"""
+data_torch.py
+
+Contains helper functions for creating datasets in pytorch.
+"""
 import sys
 import os
 import torch
@@ -5,13 +10,17 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+# pylint:disable=invalid-name
 here = os.path.abspath(os.path.dirname(__file__))
 modulepath = os.path.dirname(here)
 if modulepath not in sys.path:
     sys.path.append(modulepath)
 
+# Define a global dataset so we don't download unnecessary copies
 DATA_PATH = os.path.join(modulepath, 'datasets')
 
+
+# pylint:disable=too-few-public-methods
 class DistributedDataObject:
     """Object for grouping commonly used data structures."""
     def __init__(
@@ -38,12 +47,6 @@ def prepare_datasets(
         data: str = 'MNIST',
 ) -> (dict):
     """Build `train_data`, `test_data` as `DataObject`'s for easy access."""
-
-    #  kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': False}
-    kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': True} if torch.cuda.is_available() else {}
-    #  if args.device.find('gpu') != -1:
-    #  if not torch.cuda.is_available():
-        #  kwargs = {'rank': 0, 'num_workers': 1, 'pin_memory': True}
     if str(data).lower() == 'cifar10':
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -51,7 +54,6 @@ def prepare_datasets(
         ])
 
         # Build datasets
-        #  datadir = os.path.abspath('datasets/CIFAR10')
         datadir = os.path.join(DATA_PATH, 'CIFAR10')
         train_dataset = datasets.CIFAR10(
             datadir, train=True, download=True, transform=transform,
@@ -76,9 +78,18 @@ def prepare_datasets(
     else:
         raise ValueError('Expected `data` to be one of "cifar10", "mnist"')
 
-
     print(f'rank: {rank}, num_workers: {num_workers}')
-    train_data = DistributedDataObject(train_dataset, batch_size=args.batch_size, **kwargs)
-    test_data = DistributedDataObject(test_dataset, batch_size=args.test_batch_size, **kwargs)
+    #  kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': False}
+    if torch.cuda.is_available():
+        kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': True}
+    else:
+        kwargs = {'rank': rank, 'num_workers': num_workers, 'pin_memory': False}
+
+    train_data = DistributedDataObject(train_dataset,
+                                       batch_size=args.batch_size,
+                                       **kwargs)
+    test_data = DistributedDataObject(test_dataset,
+                                      batch_size=args.test_batch_size,
+                                      **kwargs)
 
     return {'training': train_data, 'testing': test_data}

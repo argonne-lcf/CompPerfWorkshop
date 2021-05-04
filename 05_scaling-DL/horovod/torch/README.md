@@ -4,8 +4,6 @@
 
 Using Horovod + PyTorch is similar to the procedure described above for TensorFlow.
 
-<!---Below, we omit the explanation for those steps which are logically equivalent (but syntatically different) to the TensorFlow example above, and simply provide the necessary code snippet to accomplish each item.--->
-
 1. **Initialize Horovod**
 
    After this initialization, the rank ID and the number of processes can be referred to as `hvd.rank()` and `hvd.size()`. Additionally, we can also call `hvd.local_rank()` to get the local rank ID within a node. This is useful when we are trying to assign GPUs to each rank.

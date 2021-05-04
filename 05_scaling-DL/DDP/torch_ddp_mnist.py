@@ -176,7 +176,6 @@ def train(
                    f'[{jdx:>5}/{len(data.sampler):<5} ({frac:>03.1f}%)]']
             io.print_metrics(metrics_, pre=pre, logger=logger)
 
-
     running_loss = running_loss / len(data.sampler)
     training_acc = training_acc / len(data.sampler)
     loss_avg = metric_average(running_loss)
@@ -186,18 +185,18 @@ def train(
                    f'accuracy: {training_acc * 100:.2f}%')
 
 
+# pylint:disable=too-many-statements
 def main():
     args = parse_args_ddp()
-    args.__dict__['cuda'] = torch.cuda.is_available()
     with_cuda = torch.cuda.is_available()
+    #  args.__dict__['cuda'] = torch.cuda.is_available()
+    #  args.cuda = with_cuda
 
     backend = 'nccl' if with_cuda else 'gloo'
     dist.init_process_group(backend=backend)
 
-    args.cuda = with_cuda
-
-    local_rank = args.local_rank
-    resume = args.resume
+    #  local_rank = args.local_rank
+    #  resume = args.resume
 
     world_size = 1 if not dist.is_available() else dist.get_world_size()
     backend = 'nccl' if with_cuda else 'gloo'
@@ -205,20 +204,14 @@ def main():
     outdir = os.path.join(os.getcwd(), 'results_mnist', f'size{world_size}')
     modeldir = os.path.join(outdir, 'saved_models')
     modelfile = os.path.join(modeldir, 'ddp_model_mnist.pth')
-    if local_rank == 0:
+    if args.local_rank == 0:
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
         if not os.path.isdir(modeldir):
             os.makedirs(modeldir)
 
-    # Create directories outside the PyTorch program
-    # Do not create directory here because it is not multiprocess safe
-    '''
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    '''
-
-    # We need to use seeds to make sure that the models initialized in different processes are the same
+    # We need to use seeds to make sure that the models initialized in
+    # different processes are the same
     set_random_seeds(random_seed=args.random_seed)
 
     # Encapsulate the model on the GPU assigned to the current process
@@ -240,38 +233,44 @@ def main():
 
     # We only save the model who uses device "cuda:0"
     # To resume, the device for the saved model would also be "cuda:0"
-    if resume == True:
+    if args.resume:
         if with_cuda:
-            map_location = {"cuda:0": "cuda:{}".format(local_rank)}
+            map_location = {"cuda:0": "cuda:{}".format(args.local_rank)}
         else:
-            map_location = {'0': f'{local_rank}'}
+            map_location = {'0': f'{args.local_rank}'}
 
         state_dict = torch.load(modelfile, map_location=map_location)
         ddp_model.load_state_dict(state_dict)
 
     # Prepare dataset and dataloader
-    data = prepare_datasets(args, rank=local_rank,
-                            num_workers=world_size,
-                            data='mnist')
+    data = prepare_datasets(args=args, rank=args.local_rank,
+                            num_workers=world_size, data='mnist')
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(ddp_model.parameters(),
-                           lr=args.lr * world_size,
+                           lr=args.lr*world_size,
                            weight_decay=1e-5)
 
     # Loop over the dataset multiple times
     epoch_times = []
+    kwargs = {
+        'device': device, 'rank': args.local_rank, 'model': ddp_model,
+        'loss_fn': loss_fn, 'optimizer': optimizer, 'args': args
+    }
     for epoch in range(args.epochs):
-        t0 = time.time()
-        train(epoch, data['training'], device=device,
-              rank=local_rank, model=ddp_model, loss_fn=loss_fn,
-              optimizer=optimizer, args=args, scaler=None)
+        start = time.time()
+        train(epoch, data['training'], **kwargs)
+        #  train(epoch, data['training'], device=device,
+        #        rank=args.local_rank, model=ddp_model,
+        #        loss_fn=loss_fn, optimizer=optimizer,
+        #        args=args, scaler=None)
 
+        # Skip first two to account for warmup
         if epoch > 2:
-            epoch_times.append(time.time() - t0)
+            epoch_times.append(time.time() - start)
 
         # Evaluate our model once every 10 epochs
         if epoch % 10 == 0:
-            if local_rank == 0:
+            if args.local_rank == 0:
                 accuracy = evaluate(model=ddp_model, device=device,
                                     test_loader=data['testing'].loader)
                 logger.log('-' * 75)
@@ -279,7 +278,7 @@ def main():
                 logger.log('-' * 75)
 
     # Save a copy of our model along with information from training
-    if local_rank == 0 and not args.nosave:
+    if args.local_rank == 0 and not args.nosave:
         # save a copy of our trained model
         logger.log(f'Saving model to: {modelfile}')
         torch.save(model.state_dict(), modelfile)
