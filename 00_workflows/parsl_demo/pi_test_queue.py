@@ -15,7 +15,7 @@ MY_COMPUTE_NODES = 1
 MY_COMPUTE_BLOCKS = 1
 MY_TIME = '00:05:00'
 
-WORKERS_PER_NODE = 68
+WORKERS_PER_NODE = 64
 
 parsl_config = Config(
     executors=[
