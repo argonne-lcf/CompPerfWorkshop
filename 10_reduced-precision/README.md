@@ -15,8 +15,12 @@ https://stackoverflow.com/questions/3426165/is-using-double-faster-than-float
 
 In the realm of deep learning, this strategy has enjoyed great success and has been
 extended to more extreme forms of reduced precision, incluidng half precision (`float16`),
-integer precision (`int8`), and custom formats designed for machine learning: "(Google)
-Brain floating point format" (`bfloat16`) and TensorFloat-32 (`tf32`).
+integer precision (`int8`, `int4`, `int1`), and custom types and modes designed for
+machine learning: "(Google) Brain floating point format" (`bfloat16`) and TensorFloat-32
+(`tf32`).
+
+<!-- TensorFloat-32 is not really a floating point format or type, but rather a Tensor 
+Core mode. See 2020 talk by Dusan Stosic -->
 
 Deep learning models are often highly tolerant of reduced floating point precision during
 training, and their model weights can typically be quantized to integers during inference
@@ -26,6 +30,13 @@ Mixed precision, as the name implies, mixes variables of reduced and possibly si
 precision in a single operation.
 
 This presentation will discuss the use of reduced and mixed precison in TensorFlow and
-PyTorch and explore the profiling of the models on the A100s.
+PyTorch and explore the profiling of the models on the A100 GPUs on ThetaGPU.
 
 ![Comparison of significands](images/fp32_tf32_fp16_bfloat16.png)
+
+
+## References
+
+- [ECCV 2020 Tutorial: Accelerating Computer Vision with Mixed Precision](https://nvlabs.github.io/eccv2020-mixed-precision-tutorial/)
+
+- [NERSC SC20 Tutorial: Deep Learning at Scale](https://github.com/NERSC/sc20-dl-tutorial#enabling-mixed-precision-training)
