@@ -377,7 +377,7 @@ def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 
         epoch_steps = int(60000/batch_size)
 
-        for i_batch in range(epoch_steps):
+        for i_batch in range(40):  # range(epoch_steps):
 
             start = time.time()
 
@@ -453,5 +453,5 @@ if __name__ == '__main__':
     configure_logger(rank)
 
     BATCH_SIZE=64
-    N_TRAINING_EPOCHS = 2
+    N_TRAINING_EPOCHS = 1
     train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)

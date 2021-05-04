@@ -1,4 +1,4 @@
-#TF Function and Graph Compilation
+# TF Function and Graph Compilation
 
 Using line profiler showed us that the largest computation use, by far, was the train loop and is subcalls.  Here, we'll wrap those functions in `@tf.function` decorators to improve performance with graph compilation.  This has a mild overhead at the start for tracing but then runs more quickly.  Note the first few iterations are slower.
 
