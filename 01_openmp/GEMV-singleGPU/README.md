@@ -15,6 +15,9 @@ Case 1: one matrix-vector multiplication running with CPU threads.
 Case 2: offload one matrix-vector multiplication running to a single GPU
 
 ```
+$ ./2-gemv-omp-target-reduction.f.x
+        total time:          0.2981
+
 $ nsys nvprof 2-gemv-omp-target-reduction.f.x
 ...
 CUDA Kernel Statistics:
@@ -25,3 +28,8 @@ CUDA Kernel Statistics:
 ```
 
 Case 3: offload one matrix-vector multiplication running to a single GPU. Data movement is separated from compute kernel.
+
+```
+$ ./3-gemv-omp-target-data.f.x
+        total time:          0.0045
+```
