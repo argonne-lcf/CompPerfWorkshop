@@ -12,7 +12,7 @@ from parsl.monitoring.monitoring import MonitoringHub
 import logging
 
 MY_USER_PATH = '/home/USERNAME/.local/miniconda-3/latest/bin/'
-MY_ALLOCATION = 'comp_perf_workshop'
+MY_ALLOCATION = 'Comp_Perf_Workshop'
 MY_QUEUE = 'comp_perf_workshop'
 MY_COMPUTE_NODES = 1
 MY_COMPUTE_BLOCKS = 1
