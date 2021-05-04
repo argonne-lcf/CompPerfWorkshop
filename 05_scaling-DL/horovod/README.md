@@ -20,7 +20,7 @@
 
 **Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/Horovod/README.md), written by Huihuo Zheng ([huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov)) and Corey Adams ([corey.adams@anl.gov](mailto:corey.adams@anl.gov)).
 
-Additional examples / information can be found at: [https://github.com/argonne-lcf/sdl_ai_workshop/01_DistributedDeepLearning](https://github.com/argonne-lcf/sdl_ai_workshop/01_DistributedDeepLearning)
+Additional examples / information can be found [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/README.md)
 
 **Goal:**
 

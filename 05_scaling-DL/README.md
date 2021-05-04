@@ -22,7 +22,7 @@ This section of the workshop will introduce you to some of the tools we use to r
 - [DDP](./DDP/README.md)
   - [torch_ddp_mnist.py](./DDP/torch_ddp_mnist.py)
 - [utils](./utils/README.md)
-  - [io.py](./utils/io.py)  (Helper functions for creating datasets, logging metrics, etc.)
+  - [io.py](./utils/io.py)  (Helper functions for logging metrics, etc.)
   - [parse_args.py](./utils/parse_args.py) (Helper functions for parsing command line arguments)
   - [data_torch.py](./utils/data_torch.py) (Helper functions for dealing with datasets in `torch`)
 
@@ -30,6 +30,5 @@ This section of the workshop will introduce you to some of the tools we use to r
 
 ### Simple Scaling Comparison
 
-<!---![./images/pytorch_scaling.png](./images/scaling_transparent.png)--->
+<img src="./images/scaling_transparent.png" alt="./images/pytorch_scaling.png" style="zoom:27%;" />
 
-<img src="./images/scaling_transparent.png" alt="./images/pytorch_scaling.png" style="zoom:33%;" />

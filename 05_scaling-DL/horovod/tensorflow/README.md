@@ -1,6 +1,6 @@
 # Tensorflow with Horovod
 
-**Note:** We provide a complete example here: [./horovod/tf2hvd_mnist.py](./horovod/tf2hvd_mnist.py).
+**Note:** We provide a complete example here: [tf2_hvd_mnist.py](./tf2_hvd_mnist.py).
 
 Below we describe each of the steps necessary to use Horovod for distributed data-parallel training using `TensorFlow >= 2.`
 
