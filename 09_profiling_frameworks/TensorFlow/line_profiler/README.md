@@ -429,4 +429,4 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    466                                               generator.save_weights("trained_GAN.h5")
 ```
 
-As you can see, the dominant calls are the generator, the discriminator (twice), and the gradient calculations.  We will see how to speed those up next.
+As you can see, the dominant calls are the generator, the discriminator (twice), and the gradient calculations.  We will see how to speed those up next with [`tf.function` decorators](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks/TensorFlow/tf_function).
