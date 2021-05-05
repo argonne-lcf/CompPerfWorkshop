@@ -55,7 +55,11 @@ PyTorch and explore the profiling of the models on the A100 GPUs on ThetaGPU.
 
 The 16:1 ratio of CUDA cores to Tensor cores in the Ampere SM and the 8:1 ratio in the
 Volta SM are evident from their layouts:
+
+### GA100 SM
 ![GA100 SM](./images/ga100-sm.png)
+
+### GV100 SM
 ![GV100 SM](./images/gv100-sm.png)
 
 
