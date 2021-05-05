@@ -131,7 +131,7 @@ Examples demonstrating how to run Horovod on ThetaKNL are available here [ALCF: 
    qsub -I -A Comp_Perf_Workshop -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
    ```
 
-4. Once your job has started, load the `conda/pytorch` module and activate the base conda environment
+4. Once your job has started, load the `conda/tensorflow` module and activate the base conda environment
 
    ```bash
    module load conda/tensorflow
@@ -144,16 +144,9 @@ Examples demonstrating how to run Horovod on ThetaKNL are available here [ALCF: 
    git clone https://github.com/argonne-lcf/CompPerfWorkshop-2021
    ```
 
-6. Download the MNIST dataset using the provided script:
+6. Navigate into the `horovod/tensorflow/` directory and run the example:
 
    ```bash
-   cd CompPerfWorkshop-2021/05_scaling-DL
-   # Download the MNIST dataset
-   ./download_mnist.sh
-   ```
-
-7. Navigate into the `horovod/tensorflow/` directory and run the example:
-
-   ```bash
+   cd CompPerfWorkshop-2021/05_scaling-DL/horovod/tensorflow
    mpirun -np 8 --verbose python3 ./tf2_hvd_mnist.py --batch_size=256 --epochs=10 > training.log&
    ```
