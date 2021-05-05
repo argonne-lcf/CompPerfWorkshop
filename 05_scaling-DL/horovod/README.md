@@ -24,18 +24,16 @@ Additional examples / information can be found [here](https://github.com/argonne
 
 **Goal:**
 
-2. Get familiar with Data Parallelism and Model Parallelism
+1. Get familiar with Data Parallelism and Model Parallelism
 2. Understand the differences between Data vs. Model Parallelism
 3. Know how to modify your code to work with Horovod
 
 **Examples:**
 
-1. Tensorflow
-   1. [`README.md`](./tensorflow/README.md)
-   2. [`tensorflow/tf2_hvd_mnist.py`](./tensorflow/tf2_hvd_mnist.py)
-2. PyTorch
-   1. [`README.md`](./torch/README.md)
-   2. [`torch/torch_hvd_mnist.py`](./torch/torch_hvd_mnist.py)
+1. [TensorFlow](./tensorflow/README.md)
+   - [`tensorflow/tf2_hvd_mnist.py`](./tensorflow/tf2_hvd_mnist.py)
+2. [PyTorch](./torch/README.md)
+   - [`torch/torch_hvd_mnist.py`](./torch/torch_hvd_mnist.py)
 
 ---
 

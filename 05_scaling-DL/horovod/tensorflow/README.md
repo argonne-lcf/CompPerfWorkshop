@@ -1,8 +1,24 @@
 # Tensorflow with Horovod
 
+---
+
+#### Table of Contents
+
+- [Tensorflow with Horovod](#tensorflow-with-horovod)
+    + [Running on ThetaKNL](#running-on-thetaknl)
+    + [Running on ThetaGPU](#running-on-thetagpu)
+
+---
+
 **Note:** We provide a complete example here: [tf2_hvd_mnist.py](./tf2_hvd_mnist.py).
 
 Below we describe each of the steps necessary to use Horovod for distributed data-parallel training using `TensorFlow >= 2.`
+
+- **Goal:** 
+  1. Understand how Horovod works with TensorFlow
+  2. Be able to modify existing code to be compatible with Horovod
+
+---
 
 1. **Initialize Horovod**
 
@@ -94,36 +110,50 @@ Examples demonstrating how to run Horovod on ThetaKNL are available here [ALCF: 
 
 ### Running on ThetaGPU
 
-1. Login to Theta
+1. Login to Theta:
 
    ```bash
+   # to theta login node from your local machine
    ssh username@theta.alcf.anl.gov
    ```
 
-2. Login to ThetaGPU service node
+2. Login to ThetaGPU service node (this is where we can submit jobs directly to ThetaGPU):
 
    ```bash
+   # to thetaGPU service node (sn) from theta login node
    ssh username@thetagpusn1
    ```
 
-3. Submit an interactive job
+3. Submit an interactive job to ThetaGPU
 
    ```bash
-   qsub -I -q training -A comp_perf_workshop -n 1 -t 00:30:00 --attrs=pubnet=true
+   # should be ran from a service node, thetagpusn1
+   qsub -I -A Comp_Perf_Workshop -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
    ```
 
-4. From ThetaGPU compute node, load the `conda/tensorflow ` module and navigate to the `horovod/tensorflow` directory
+4. Once your job has started, load the `conda/pytorch` module and activate the base conda environment
 
    ```bash
    module load conda/tensorflow
    conda activate base
-   
-   # Clone the Computational Performance Workshop github repo (if you haven't already)
+   ```
+
+5. Clone the `CompPerfWorkshop-2021` github repo (if you haven't already):
+
+   ```bash
    git clone https://github.com/argonne-lcf/CompPerfWorkshop-2021
-   
-   # navigate to the tensorflow repo
-   cd CompPerfWorkshop-2021/05_scaling-DL/horovod/tensorflow
-   
-   # note `-np 8` below specifies we want to use 8 GPUs
-   mpirun -np 8 python3 ./tf2_hvd_mnist.py --batch_size=256 --epochs=10 > tf2_hvd_mnist_batch256_gpu8.log&
+   ```
+
+6. Download the MNIST dataset using the provided script:
+
+   ```bash
+   cd CompPerfWorkshop-2021/05_scaling-DL
+   # Download the MNIST dataset
+   ./download_mnist.sh
+   ```
+
+7. Navigate into the `horovod/tensorflow/` directory and run the example:
+
+   ```bash
+   mpirun -np 8 --verbose python3 ./tf2_hvd_mnist.py --batch_size=256 --epochs=10 > training.log&
    ```

@@ -5,16 +5,17 @@
 #### Table of Contents
 
 - [Distributed training with PyTorch DDP](#distributed-training-with-pytorch-ddp)
+  
       - [Table of Contents](#table-of-contents)
+  
   * [What is DDP?](#what-is-ddp)
   * [How does DDP work?](#how-does-ddp-work)
   * [DDP Support](#ddp-support)
       - [Using Containers](#using-containers)
       - [Running Locally](#running-locally)
-  * [Preparation](#preparation)
-  * [Running DDP](#running-ddp)
   * [Setting up DDP](#setting-up-ddp)
-    + [Example Performance](#example-performance)
+  * [Hands-On: Running on ThetaGPU](#hands-on-running-on-thetagpu)
+  + [Example Performance](#example-performance)
   * [Additional References](#additional-references)
 
 ---
@@ -23,11 +24,13 @@
 
 **Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/DDP/README.md), written by Corey Adams ([corey.adams@anl.gov](mailto:corey.adams@anl.gov)) and Huihuo Zheng ([huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov))
 
-**Goal:** 
+- **Goal:** 
 
-1. Understand how PyTorch's DDP works
-2. Learn how to initialize DDP and select a communication backend (`NCCL` for GPUs, `gloo` for CPUs)
-3. Be able to modify existing code to be compatible with DDP
+  1. Understand how PyTorch's DDP works
+
+  2. Learn how to initialize DDP and select a communication backend (`NCCL` for GPUs, `gloo` for CPUs)
+
+  3. Be able to modify existing code to be compatible with DDP
 
 ---
 
@@ -60,50 +63,6 @@ Running DDP inside Nvidia's docker or singularity containers was covered at the 
 #### Running Locally
 
 Instead, we provide examples using DDP with a native PyTorch installation on ThetaGPU.
-
-## Preparation
-
-1. Login to Theta:
-
-   ```bash
-   # to theta login node from your local machine
-   ssh username@theta.alcf.anl.gov
-   ```
-   
-2. Login to ThetaGPU service node (this is where we can submit jobs directly to ThetaGPU):
-
-   ```bash
-   # to thetaGPU service node (sn) from theta login node
-   ssh username@thetagpusn1
-   ```
-
-3. Submit an interactive job to ThetaGPU
-
-   ```bash
-   # should be ran from a service node, thetagpusn1 
-   qsub -I -A Comp_Perf_Workshop -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
-   ```
-
-4. Once your job has started, load the `conda/pytorch` module and activate the base conda environment
-
-   ```bash
-   module load conda/pytorch
-   conda activate base
-   ```
-
-5. Clone the `CompPerfWorkshop-2021` github repo (if you haven't already):
-
-   ```bash
-   git clone https://github.com/argonne-lcf/CompPerfWorkshop-2021
-   ```
-
-6. Download the MNIST dataset using the provided script:
-
-   ```bash
-   cd CompPerfWorkshop-2021/05_scaling-DL
-   # Download the MNIST dataset
-   ./download_mnist.sh
-   ```
 
 ## Setting up DDP
 
@@ -181,22 +140,64 @@ if __name__ == '__main__':
     main(args)
 ```
 
-## Running DDP
+## Hands-On: Running on ThetaGPU
 
-To launch DDP using 8 workers on a ThetaGPU node, we use the command:
+1. Login to Theta:
 
-```bash
-python3 -m torch.distributed.launch --nproc_per_node=8 --nnodes=1 --node_rank 0 \
-	./DDP/torch_ddp_cifar10.py --device='gpu' --lr=0.001 --fp16_allreduce --batch_size=256 --epochs=50
-```
+   ```bash
+   # to theta login node from your local machine
+   ssh username@theta.alcf.anl.gov
+   ```
 
-**NOTE:** To safely shutdown the distributed training instance, we can use the command:
+2. Login to ThetaGPU service node (this is where we can submit jobs directly to ThetaGPU):
 
-```bash
-kill $(ps aux | grep torch_ddp_mnist.py | grep -v grep | awk '{print #2}')
-```
+   ```bash
+   # to thetaGPU service node (sn) from theta login node
+   ssh username@thetagpusn1
+   ```
 
-### Example Performance
+3. Submit an interactive job to ThetaGPU
+
+   ```bash
+   # should be ran from a service node, thetagpusn1 
+   qsub -I -A Comp_Perf_Workshop -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
+   ```
+
+4. Once your job has started, load the `conda/pytorch` module and activate the base conda environment
+
+   ```bash
+   module load conda/pytorch
+   conda activate base
+   ```
+
+5. Clone the `CompPerfWorkshop-2021` github repo (if you haven't already):
+
+   ```bash
+   git clone https://github.com/argonne-lcf/CompPerfWorkshop-2021
+   ```
+
+6. Download the MNIST dataset using the provided script:
+
+   ```bash
+   cd CompPerfWorkshop-2021/05_scaling-DL
+   # Download the MNIST dataset
+   ./download_mnist.sh
+   ```
+
+7. To launch DDP using 8 workers on a ThetaGPU node, we use the command:
+
+   ```bash
+   python3 -m torch.distributed.launch --nproc_per_node=8 --nnodes=1 --node_rank 0 \
+   	./DDP/torch_ddp_cifar10.py --device='gpu' --lr=0.001 --fp16_allreduce --batch_size=256 --epochs=50
+   ```
+
+8. **NOTE:** To safely shutdown the distributed training instance, we can use the command:
+
+   ```bash
+   kill $(ps aux | grep torch_ddp_mnist.py | grep -v grep | awk '{print #2}')
+   ```
+
+## Example Performance
 
 Here I show the results I got measuring the `time-per-epoch` averaged over the last 5 epochs of a training run. I scaled out over a single node, and out onto 4 nodes x 8 GPUs
 

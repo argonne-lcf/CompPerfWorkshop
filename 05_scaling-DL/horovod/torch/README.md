@@ -1,8 +1,25 @@
 # PyTorch with Horovod
 
-**Note:** We provide an example script, available here: [./horovod/torch/torch_cifar10_hvd.py](./torch/torch_cifar10_hvd.py)
+#### Table of Contents
 
-Using Horovod + PyTorch is similar to the procedure described previously for TensorFlow.
+- [PyTorch with Horovod](#pytorch-with-horovod)
+      - [Table of Contents](#table-of-contents)
+  * [Results](#results)
+  * [Running on ThetaGPU](#running-on-thetagpu)
+
+---
+
+**Note:** We provide an example script, available here: [./horovod/torch/torch_hvd_mnist.py](./torch/torch_hvd_mnist.py)
+
+Using Horovod + PyTorch is similar to the procedure described for TensorFlow, with some minor modifications.
+
+Below we describe each of the steps necessary to use Horovod for distributed data-parallel training using `pytorch`
+
+- **Goal:** 
+  1. Understand how Horovod works with PyTorch
+  2. Be able to modify existing code to be compatible with Horovod
+
+---
 
 1. **Initialize Horovod**
 
@@ -57,8 +74,10 @@ Using Horovod + PyTorch is similar to the procedure described previously for Ten
 
 6. **Loading data according to the rank ID**
 
-   One minor difference from the TensorFlow example is that PyTorch has some internal functions for dealing with parallel distribution of data
+   One minor difference from the TensorFlow example is that PyTorch has some internal functions for dealing with parallel distribution of data.
 
+   **Note**: We provide a helper function `prepare_datasets` in [`05_scaling-DL/utils/data_torch.py`](../utils/data_torch.py) that takes care of initializing the necessary dataset objects.
+   
    ```python
    transform = transforms.Compose([
        transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))
@@ -75,8 +94,6 @@ Using Horovod + PyTorch is similar to the procedure described previously for Ten
    ```
 
    In both cases, the total number of steps per epoch is `nsamples / hvd.size()`.
-
-   **Note**: We provide a helper function `prepare_datasets` in [`05_scaling-DL/utils/data_torch.py`](../utils/data_torch.py) that takes care of initializing the necessary dataset objects.
    
 7. **Checkpointing _only_ from root rank**
 
@@ -119,3 +136,53 @@ Using Horovod + PyTorch is similar to the procedure described previously for Ten
 |  16  |    79.1     |   63.8    |
 |  32  |    81.1     |   55.7    |
 
+## Running on ThetaGPU
+
+1. Login to Theta:
+
+   ```bash
+   # to theta login node from your local machine
+   ssh username@theta.alcf.anl.gov
+   ```
+
+2. Login to ThetaGPU service node (this is where we can submit jobs directly to ThetaGPU):
+
+   ```bash
+   # to thetaGPU service node (sn) from theta login node
+   ssh username@thetagpusn1
+   ```
+
+3. Submit an interactive job to ThetaGPU
+
+   ```bash
+   # should be ran from a service node, thetagpusn1
+   qsub -I -A Comp_Perf_Workshop -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
+   ```
+
+4. Once your job has started, load the `conda/pytorch` module and activate the base conda environment
+
+   ```bash
+   module load conda/pytorch
+   conda activate base
+   ```
+
+5. Clone the `CompPerfWorkshop-2021` github repo (if you haven't already):
+
+   ```bash
+   git clone https://github.com/argonne-lcf/CompPerfWorkshop-2021
+   ```
+
+6. Download the MNIST dataset using the provided script:
+
+   ```bash
+   cd CompPerfWorkshop-2021/05_scaling-DL
+   # Download the MNIST dataset
+   ./download_mnist.sh
+   ```
+
+7. Navigate into the `horovod/torch/` directory and run the example:
+
+   ```bash
+   cd horovod/torch
+   mpirun -np 8 --verbose python3 ./torch_hvd_mnist.py --batch_size=256 --epochs=10 > training.log&
+   ```
