@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
    ```bash
    # should be ran from a service node, thetagpusn1 
-   qsub -I -A Comp_Perf_Workshop -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
+   qsub -I -A Comp_Perf_Workshop -q training -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
    ```
 
 4. Once your job has started, load the `conda/pytorch` module and activate the base conda environment
