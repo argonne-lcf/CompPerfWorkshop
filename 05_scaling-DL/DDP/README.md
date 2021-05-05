@@ -5,9 +5,6 @@
 #### Table of Contents
 
 - [Distributed training with PyTorch DDP](#distributed-training-with-pytorch-ddp)
-  
-      - [Table of Contents](#table-of-contents)
-  
   * [What is DDP?](#what-is-ddp)
   * [How does DDP work?](#how-does-ddp-work)
   * [DDP Support](#ddp-support)
