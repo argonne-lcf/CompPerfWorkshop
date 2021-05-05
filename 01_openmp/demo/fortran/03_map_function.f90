@@ -1,13 +1,7 @@
-module data
-  double precision, allocatable :: a(:) 
-  double precision, allocatable :: b(:) 
-  double precision, allocatable :: c(:) 
-end module data
-
-subroutine daxpy( scalar, num_elements )
-  use data
+subroutine daxpy( a, b, scalar, num_elements )
   implicit none
   integer num_elements, j
+  double precision :: a(num_elements), b(num_elements)
   double precision scalar
 
 !$omp target teams distribute parallel do simd map(tofrom:a) map(to:b)
@@ -19,13 +13,16 @@ subroutine daxpy( scalar, num_elements )
 end subroutine daxpy
 
 program main
-  use data
   implicit none
   double precision  scalar
   integer err, j
   integer num_errors
   integer num_elements
 
+  double precision, allocatable :: a(:) 
+  double precision, allocatable :: b(:) 
+  double precision, allocatable :: c(:) 
+  
   scalar = 8d0
   num_errors = 0
   num_elements = 1024

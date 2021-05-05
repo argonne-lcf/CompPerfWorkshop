@@ -36,8 +36,8 @@ program main
 
   end do
 
-!  deallocate(a)
-!  deallocate(b)
+  deallocate(a)
+  deallocate(b)
 
   if(num_errors == 0) then 
     write(*,*) "Success!\n"
