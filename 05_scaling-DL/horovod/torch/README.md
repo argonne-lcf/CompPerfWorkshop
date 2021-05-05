@@ -177,6 +177,7 @@ Below we describe each of the steps necessary to use Horovod for distributed dat
    ```bash
    cd CompPerfWorkshop-2021/05_scaling-DL
    # Download the MNIST dataset
+   mkdir datasets
    ./download_mnist.sh
    ```
 

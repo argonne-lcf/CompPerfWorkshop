@@ -178,6 +178,7 @@ if __name__ == '__main__':
    ```bash
    cd CompPerfWorkshop-2021/05_scaling-DL
    # Download the MNIST dataset
+   mkdir datasets
    ./download_mnist.sh
    ```
 
