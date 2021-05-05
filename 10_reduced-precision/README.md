@@ -45,33 +45,45 @@ PyTorch and explore the profiling of the models on the A100 GPUs on ThetaGPU.
   
 ## Tensor Core utilization and changes in A100s
 
-![GA100 SM](./images/ga100-sm.png)
-
-
-|--------| V100  | A100 |
-|-------| ------------- | ------------- |
+|| V100  | A100 |
+|-------|:-------------:|:-------------:|
 | CUDA Cores | 5120  | 6912  |
 | Tensor Cores (TC) | 640  | 432  |
 | TC modes | fp16 | fp16, bfloat16, tf32, fp64 | 
 
 \* and `int8, int4, int1` for both generations. 
 
+The 16:1 ratio of CUDA cores to Tensor cores in the Ampere SM and the 8:1 ratio in the
+Volta SM are evident from their layouts:
+![GA100 SM](./images/ga100-sm.png)
+![GV100 SM](./images/gv100-sm.png)
+
+
+
 ## Automatic mixed precision
 
 
 ### Loss scaling
 
+![Loss scaling](./images/loss-scaling.png)
 
-### Gradient clipping
+
+<!-- ### Gradient clipping -->
 
 ## Tensor Float 32 (TF32) mode
 
-Default math mode for single precision training on A100s.
-
-Disable it at the system level via `NVIDIA_TF32_OVERRIDE=0`
-
-
 ![TensorFloat 32 input and output](./images/tf32-mode.png)
+
+This is the default math mode for single precision training on A100s.
+
+Disable it at the system level via `NVIDIA_TF32_OVERRIDE=0`, but:
+> it must be set before the application is launched, as the effect of any change after the
+application launch is unspecified. The variable affects only the mode of FP32
+operations. Operations using FP64 or one of the 16-bit formats are not affected and
+continue to use those corresponding types.
+
+
+
 
 ## Automatic mixed precision in deep learning frameworks: TensorFlow and PyTorch
 
