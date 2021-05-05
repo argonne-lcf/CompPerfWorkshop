@@ -16,7 +16,7 @@ Case 2: offload one matrix-vector multiplication running to a single GPU
 
 ```
 $ ./2-gemv-omp-target-reduction.f.x
-        total time:          0.2981
+        total time:          0.0465
 
 $ nsys nvprof 2-gemv-omp-target-reduction.f.x
 ...

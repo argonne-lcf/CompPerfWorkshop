@@ -4,7 +4,7 @@ program  main
 
   write(*,*) "Number of devices:", omp_get_num_devices()
 
-  !$omp target 
+  !$omp target
 !    if( .not. omp_is_initial_device() ) then
 !      write(*,*) "Hello world from accelerator"
 !    else

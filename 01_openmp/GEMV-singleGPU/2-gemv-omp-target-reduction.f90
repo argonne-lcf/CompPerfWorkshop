@@ -20,6 +20,11 @@ if(err/=0) print'(a30,i9,i3)', 'ERROR in allocation for Vout',err
 A(:) = 1.0
 V(:) = 1.0
 
+! add a fake omp region to flush out runtime initialization.
+!$omp target
+  err = 0
+!$omp end target
+
 !!starts here
 call system_clock(ti,tk)
 call gemv(N,alpha,A,V,Vout)
@@ -29,7 +34,7 @@ print'(a20,3x,f12.4)',"total time: ", dble(tj-ti)/dble(tk)
 
 do val=1,N
    if (int(Vout(val)) .NE. N) then
-        write(*,*) "Value does not match at",val,int(Vout(val)) 
+        write(*,*) "Value does not match at",val,int(Vout(val))
    end if
 end do
 
@@ -41,7 +46,7 @@ deallocate(Vout)
 if(err/=0) print'(a30,i9,i3)', 'ERROR in deallocation for Vout',err
 
 stop
-end 
+end
 
 !-------------------------------------------------------
 subroutine gemv(nval,alpha,A,V,Vout)

@@ -64,7 +64,7 @@ program main
   deallocate(b);
   deallocate(c);
 
-  if(num_errors == 0) then 
+  if(num_errors == 0) then
     write(*,*) "Success!\n"
   else
     write(*,*) "Wrong!\n"

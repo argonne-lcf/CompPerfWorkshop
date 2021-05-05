@@ -8,7 +8,7 @@ program  main
 !             "out of", omp_get_num_threads() ,&
 !             "threads in team", omp_get_team_num(), &
 !             "out of", omp_get_num_teams(), &
-!             "teams is using index" , i 
+!             "teams is using index" , i
      end do
 !$omp end target teams distribute parallel do simd
 end program main

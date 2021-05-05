@@ -32,7 +32,7 @@ print'(a20,3x,f12.4)',"total time: ", dble(tj-ti)/dble(tk)
 !$omp target update from(Vout)
 do val=1,N
    if (int(Vout(val)) .NE. N) then
-        write(*,*) "Value does not match at",val,int(Vout(val)) 
+        write(*,*) "Value does not match at",val,int(Vout(val))
    end if
 end do
 
@@ -45,7 +45,7 @@ deallocate(Vout)
 if(err/=0) print'(a30,i9,i3)', 'ERROR in deallocation for Vout',err
 
 stop
-end 
+end
 
 !-------------------------------------------------------
 subroutine gemv(nval,alpha,A,V,Vout)

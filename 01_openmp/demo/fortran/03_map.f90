@@ -1,7 +1,7 @@
 program main
   implicit none
-  double precision, allocatable :: a(:) 
-  double precision, allocatable :: b(:) 
+  double precision, allocatable :: a(:)
+  double precision, allocatable :: b(:)
   double precision  scalar
   integer err, i, j
   integer num_errors
@@ -39,7 +39,7 @@ program main
   deallocate(a)
   deallocate(b)
 
-  if(num_errors == 0) then 
+  if(num_errors == 0) then
     write(*,*) "Success!\n"
   else
     write(*,*) "Wrong!\n"

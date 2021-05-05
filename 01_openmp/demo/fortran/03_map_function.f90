@@ -19,10 +19,10 @@ program main
   integer num_errors
   integer num_elements
 
-  double precision, allocatable :: a(:) 
-  double precision, allocatable :: b(:) 
-  double precision, allocatable :: c(:) 
-  
+  double precision, allocatable :: a(:)
+  double precision, allocatable :: b(:)
+  double precision, allocatable :: c(:)
+
   scalar = 8d0
   num_errors = 0
   num_elements = 1024
