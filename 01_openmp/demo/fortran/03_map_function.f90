@@ -47,7 +47,7 @@ program main
 
   ! error checking
   do j=1,num_elements
-     if( c(j) - j*scalar*scalar .gt. 0.000001 ) then
+     if( abs(c(j) - j*scalar*scalar) .gt. 0.000001 ) then
         num_errors = num_errors + 1
      end if
 
@@ -57,7 +57,10 @@ program main
   deallocate(b);
   deallocate(c);
 
-  if(num_errors == 0) write(*,*) "Success!\n"
-
+  if(num_errors == 0) then
+    write(*,*) "Success!\n"
+  else
+    write(*,*) "Wrong!\n"
+  endif
 end program main
 
