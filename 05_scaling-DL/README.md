@@ -41,7 +41,6 @@ This section of the workshop will introduce you to some of the tools we use to r
 
 ---
 
-## Simple Scaling Comparison
+<!---## Simple Scaling Comparison--->
 
-<img src="./images/scaling_transparent.png" alt="./images/pytorch_scaling.png" style="zoom:27%;" />
-
+<!---<img src="./images/scaling_transparent.png" alt="./images/pytorch_scaling.png" style="zoom:27%;" />--->
