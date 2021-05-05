@@ -3,7 +3,7 @@ import torchvision.models as models
 
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 model = models.resnet18()
-inputs = torch.randn(5, 3, 224, 224)
+inputs = torch.randn(32, 3, 224, 224)
 
 dir_name = './'
 

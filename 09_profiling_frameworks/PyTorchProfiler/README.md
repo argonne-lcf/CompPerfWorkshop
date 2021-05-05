@@ -55,7 +55,7 @@ import torch.autograd.profiler as profiler
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 model = models.resnet18()
-inputs = torch.randn(5, 3, 224, 224)
+inputs = torch.randn(128, 3, 224, 224)
 ```
 One can profile execution with profiler as a context manager and print results:
 ```python
@@ -68,18 +68,18 @@ For convenience, this example is stored in [example1/v0.py](example1/v0.py). Pro
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
                              Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                     aten::conv2d         0.12%     297.650us        75.64%     183.870ms       9.194ms            20  
-                aten::convolution         0.13%     309.871us        75.52%     183.573ms       9.179ms            20  
-               aten::_convolution         0.21%     512.073us        75.39%     183.263ms       9.163ms            20  
-       aten::_convolution_nogroup         0.15%     359.211us        75.18%     182.751ms       9.138ms            20  
-                aten::thnn_conv2d         0.10%     243.129us        75.01%     182.336ms       9.117ms            20  
-        aten::thnn_conv2d_forward        21.84%      53.091ms        74.91%     182.093ms       9.105ms            20  
-                     aten::addmm_        52.10%     126.652ms        52.10%     126.652ms       6.333ms            20  
-                 aten::batch_norm         0.09%     212.893us        17.60%      42.787ms       2.139ms            20  
-     aten::_batch_norm_impl_index         0.19%     469.533us        17.51%      42.574ms       2.129ms            20  
-          aten::native_batch_norm        15.22%      37.000ms        17.30%      42.063ms       2.103ms            20  
+                     aten::conv2d         0.00%     205.227us        80.65%        4.745s     237.245ms            20  
+                aten::convolution         0.00%     151.037us        80.65%        4.745s     237.234ms            20  
+               aten::_convolution         0.00%     286.113us        80.65%        4.745s     237.227ms            20  
+       aten::_convolution_nogroup         0.00%     227.487us        80.64%        4.744s     237.212ms            20  
+                aten::thnn_conv2d         0.00%     148.750us        80.64%        4.744s     237.198ms            20  
+        aten::thnn_conv2d_forward        30.72%        1.807s        80.64%        4.744s     237.191ms            20  
+                     aten::addmm_        49.69%        2.923s        49.69%        2.923s      36.539ms            80  
+                 aten::batch_norm         0.00%     154.610us        13.06%     768.367ms      38.418ms            20  
+     aten::_batch_norm_impl_index         0.00%     231.829us        13.06%     768.212ms      38.411ms            20  
+          aten::native_batch_norm        12.97%     762.916ms        13.05%     767.934ms      38.397ms            20  
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 243.086ms
+Self CPU time total: 5.883s
 ```
 In the output, the function calls are sorted by total CPU time. It is important to note that `CPU total time` includes the time from all subroutines calls, but `Self CPU time` excludes it. For example, the total execution time of `aten::conv2d` consists of several operations `297.650us` and calling other functions which make in total 183.870ms. In opposite, in function `aten::addmm_` no time spend on calling subroutines. It is possible to sort results by another metric such as `self_cpu_time_total` or [other](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile.table).
 
@@ -89,22 +89,24 @@ with profiler.profile(record_shapes=True) as prof:
     model(inputs)
 print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
 ```
-In the output convolutions are grouped by input tensor shape (some columns deleted for a better presentation)
+In the output convolutions are grouped by input tensor shape
 ```bash
----------------------------------  ------------  -----------     ------------------------------
-                             Name    Self CPU %  CPU total %     Input S
-                     aten::conv2d         0.04%       21.61%     [[5,64, 64, 3, 3], [], [], [],  
-                aten::convolution         0.02%       21.57%     [[5, 64, 4, 3, 3], [], [], [],  
-               aten::_convolution         0.05%       21.55%     [[5, 64, 5, 3, 3], [], [], [],  
-       aten::_convolution_nogroup         0.03%       21.50%     [[5, 64, 56, 56],  [], [], [],  
-                aten::thnn_conv2d         0.02%       21.46%     [[5, 64, 4, 3, 3], [], [], [],  
-        aten::thnn_conv2d_forward         7.80%       21.45%     [[5, 64, 56, 56],, [], [], [],  
-                     aten::addmm_        13.48%       13.48%     [[6476], [576, 3136], [], [] 
-                     aten::conv2d         0.01%       12.57%     [[5,12, 512, 3, 3], [], [], []  
-                aten::convolution         0.01%       12.55%     [[5, 512,12, 3, 3], [], [], []  
-               aten::_convolution         0.02%       12.54%     [[5, 512, 2, 3, 3], [], [], []  
----------------------------------  ------------  ------------    ------------------------------
-Self CPU time total: 246.923ms
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------  
+                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls                                   Input Shapes  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------  
+                     aten::conv2d         0.00%      50.848us        29.83%        1.707s     426.702ms             4  [[128, 64, 56, 56], [64, 64, 3, 3], [], [], [  
+                aten::convolution         0.00%      71.394us        29.83%        1.707s     426.689ms             4  [[128, 64, 56, 56], [64, 64, 3, 3], [], [], [  
+               aten::_convolution         0.00%      95.369us        29.83%        1.707s     426.671ms             4  [[128, 64, 56, 56], [64, 64, 3, 3], [], [], [  
+       aten::_convolution_nogroup         0.00%      58.251us        29.83%        1.707s     426.647ms             4  [[128, 64, 56, 56], [64, 64, 3, 3], [], [], [  
+                aten::thnn_conv2d         0.00%      40.978us        29.83%        1.707s     426.631ms             4  [[128, 64, 56, 56], [64, 64, 3, 3], [], [], [  
+        aten::thnn_conv2d_forward        10.68%     611.171ms        29.83%        1.706s     426.621ms             4  [[128, 64, 56, 56], [64, 64, 3, 3], [], [], [  
+                     aten::addmm_        19.12%        1.094s        19.12%        1.094s      68.352ms            16   [[64, 3136], [64, 576], [576, 3136], [], []]  
+                     aten::conv2d         0.00%      29.956us        15.41%     881.441ms     293.814ms             3  [[128, 128, 28, 28], [128, 128, 3, 3], [], []  
+                aten::convolution         0.00%      26.290us        15.41%     881.411ms     293.804ms             3  [[128, 128, 28, 28], [128, 128, 3, 3], [], []  
+               aten::_convolution         0.00%      60.715us        15.41%     881.385ms     293.795ms             3  [[128, 128, 28, 28], [128, 128, 3, 3], [], []  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------  
+Self CPU time total: 5.721s
+
 ```
 ### Analysis of memory allocation
 Profiler also allows to analyze the memory allocated in different parts of the model. Similar to CPU execution time, 'self' memory accounts for memory allocated in the function excluding calls of subroutines. The profiler will analyze memory if attibute `profile_memory=True` is set  - [example1/v2.py](example1/v2.py).
@@ -115,21 +117,21 @@ print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
 ```
 You will see some warning of the profiler mentioning that not all memory allocation/deallocation events are analyzed. This happens because we profile only model forward pass and some allocations in the initialization are missed. You will see the following profile:
 ```bash
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg       CPU Mem  Self CPU Mem    # of Calls  
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                    aten::resize_         0.43%       1.019ms         0.43%       1.019ms      24.257us     670.40 Mb     670.40 Mb            42  
-                      aten::empty         0.90%       2.149ms         0.90%       2.149ms      14.926us      94.84 Mb      94.84 Mb           144  
-                      aten::addmm         0.12%     286.240us         0.13%     313.193us     313.193us      39.06 Kb      39.06 Kb             1  
-                        aten::add         0.26%     626.444us         0.26%     626.444us      31.322us         160 b         160 b            20  
-              aten::empty_strided         0.00%       3.624us         0.00%       3.624us       3.624us           8 b           8 b             1  
-                     aten::conv2d         0.07%     161.425us        76.35%     182.082ms       9.104ms     655.09 Mb           0 b            20  
-                aten::convolution         0.09%     205.545us        76.28%     181.921ms       9.096ms     655.09 Mb           0 b            20  
-               aten::_convolution         0.20%     469.240us        76.20%     181.715ms       9.086ms     655.09 Mb           0 b            20  
-       aten::_convolution_nogroup         0.12%     280.513us        76.00%     181.246ms       9.062ms     655.09 Mb           0 b            20  
-          aten::_nnpack_available         0.02%      49.942us         0.02%      49.942us       2.497us           0 b           0 b            20  
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 238.486ms
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                     aten::conv2d         0.01%     134.860us        56.49%        1.023s      51.149ms            20  
+                aten::convolution         0.01%     141.280us        56.48%        1.023s      51.142ms            20  
+               aten::_convolution         0.02%     384.628us        56.47%        1.023s      51.135ms            20  
+         aten::mkldnn_convolution        56.41%        1.022s        56.45%        1.022s      51.116ms            20  
+                 aten::batch_norm         0.01%     114.737us        25.80%     467.331ms      23.367ms            20  
+     aten::_batch_norm_impl_index         0.01%     182.307us        25.80%     467.217ms      23.361ms            20  
+          aten::native_batch_norm        25.59%     463.451ms        25.79%     467.005ms      23.350ms            20  
+                      aten::relu_         0.02%     300.869us         8.25%     149.418ms       8.789ms            17  
+                 aten::clamp_min_         0.01%     131.496us         8.23%     149.118ms       8.772ms            17  
+                  aten::clamp_min         8.23%     148.986ms         8.23%     148.986ms       8.764ms            17  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 1.811s
 ```
 
 ### Fixing performance issue
@@ -138,20 +140,20 @@ A careful reader could notice that PyTorch used the native algorithm `aten::thnn
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
                              Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                     aten::conv2d         0.14%     130.420us        64.71%      60.008ms       3.000ms            20  
-                aten::convolution         0.12%     106.667us        64.57%      59.878ms       2.994ms            20  
-               aten::_convolution         0.37%     345.810us        64.46%      59.771ms       2.989ms            20  
-         aten::mkldnn_convolution        63.72%      59.083ms        64.09%      59.425ms       2.971ms            20  
-                 aten::batch_norm         0.15%     139.862us        21.30%      19.752ms     987.623us            20  
-     aten::_batch_norm_impl_index         0.20%     189.244us        21.15%      19.613ms     980.630us            20  
-          aten::native_batch_norm        17.24%      15.987ms        20.90%      19.385ms     969.236us            20  
-                 aten::max_pool2d         0.03%      30.184us         8.70%       8.069ms       8.069ms             1  
-    aten::max_pool2d_with_indices         8.61%       7.988ms         8.67%       8.038ms       8.038ms             1  
-                     aten::select         1.96%       1.815ms         3.28%       3.041ms       6.992us           435  
+                     aten::conv2d         0.01%     125.590us        64.83%        1.178s      58.914ms            20  
+                aten::convolution         0.01%     134.744us        64.82%        1.178s      58.908ms            20  
+               aten::_convolution         0.02%     346.988us        64.82%        1.178s      58.901ms            20  
+         aten::mkldnn_convolution        64.76%        1.177s        64.80%        1.178s      58.884ms            20  
+                 aten::batch_norm         0.01%     124.978us        17.24%     313.257ms      15.663ms            20  
+     aten::_batch_norm_impl_index         0.01%     185.441us        17.23%     313.132ms      15.657ms            20  
+          aten::native_batch_norm        17.02%     309.403ms        17.22%     312.915ms      15.646ms            20  
+                      aten::relu_         0.02%     301.198us        11.30%     205.418ms      12.083ms            17  
+                 aten::clamp_min_         0.01%     136.508us        11.29%     205.117ms      12.066ms            17  
+                  aten::clamp_min        11.28%     204.981ms        11.28%     204.981ms      12.058ms            17  
 ---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 92.728ms
+Self CPU time total: 1.817s
 ```
-As a result, `aten::mkldnn_convolution` was used. Due to optimizations in MKLDNN, execution time was decreased more than twice (92.728ms vs 243.086ms).
+As a result, `aten::mkldnn_convolution` was used. Due to optimizations in MKLDNN, execution time was decreased more than twice (1.817s vs 5.883s).
 
 ## Example of profiling
 In this section let's build a simple model and profile it. We build a model which takes a tensor of size 512, does several linear transformations with activation, and calculates a threshold. We want to compare this threshold with our mask and get indexes:
@@ -206,26 +208,26 @@ This time we execute models on GPU. At the first call, CUDA does some benchmarki
 -----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
                          Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  Source Location                                                              
 -----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
-              LABEL2: masking        85.48%        2.440s        99.94%        2.853s        2.853s             1  ...8/lib/python3.8/site-packages/torch/autograd/profiler.py(616): __enter__  
+              LABEL2: masking        84.66%        1.790s        99.94%        2.113s        2.113s             1  ...3/lib/python3.8/site-packages/torch/autograd/profiler.py(616): __enter__  
                                                                                                                                                                                                 
-                  aten::copy_         7.83%     223.551ms         7.83%     223.551ms     223.551ms             1  example2/v0.py(28): forward                                                  
+                  aten::copy_         7.86%     166.179ms         7.86%     166.179ms     166.179ms             1  v0.py(30): forward                                                           
                                                                                                                                                                                                 
-                  aten::copy_         6.54%     186.715ms         6.54%     186.715ms     186.715ms             1  example2/v0.py(27): forward                                                  
+                  aten::copy_         7.40%     156.435ms         7.40%     156.435ms     156.435ms             1  v0.py(31): forward                                                           
                                                                                                                                                                                                 
-    aten::_local_scalar_dense         0.08%       2.177ms         0.08%       2.177ms       2.177ms             1  example2/v0.py(26): forward                                                  
+                  aten::addmm         0.01%     276.443us         0.02%     463.267us     115.817us             4  ...mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1755): linear  
                                                                                                                                                                                                 
-                  aten::addmm         0.01%     289.035us         0.02%     481.874us     120.468us             4  ...orch1.8/lib/python3.8/site-packages/torch/nn/functional.py(1753): linear  
+              aten::clamp_min         0.01%     133.522us         0.02%     349.911us      43.739us             8  ...2/mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1206): relu  
                                                                                                                                                                                                 
-          LABEL1: linear pass         0.01%     193.168us         0.05%       1.340ms       1.340ms             1  ...8/lib/python3.8/site-packages/torch/autograd/profiler.py(616): __enter__  
+          LABEL1: linear pass         0.01%     119.615us         0.05%       1.113ms       1.113ms             1  ...3/lib/python3.8/site-packages/torch/autograd/profiler.py(616): __enter__  
                                                                                                                                                                                                 
-                   aten::relu         0.01%     153.368us         0.01%     317.394us      79.349us             4  .../torch1.8/lib/python3.8/site-packages/torch/nn/functional.py(1206): relu  
+    aten::_local_scalar_dense         0.01%     116.550us         0.01%     116.550us     116.550us             1  v0.py(29): forward                                                           
                                                                                                                                                                                                 
-                  aten::empty         0.01%     146.710us         0.01%     146.710us     146.710us             1  example2/v0.py(28): forward                                                  
+             aten::as_strided         0.00%      85.131us         0.00%      85.131us      10.641us             8  ...mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1755): linear  
                                                                                                                                                                                                 
 -----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
-Self CPU time total: 2.855s
+Self CPU time total: 2.114s
 ```
-The profile shows that the execution time of section `LABEL2: masking` takes 99.95% of total CPU time while in section `LABEL1: linear pass` code spends only 0.04%. Operations of copying tensors to the device at `example2/v0.py(28): forward` and copying back at `example2/v0.py(29): forward` take about 20% of execution time. We can optimize it if instead of `np.argwhere` do indexing on GPU with `torch.nonzero` - [example2/v1.py](example2/v1.py):
+The profile shows that the execution time of section `LABEL2: masking` takes 99.95% of total CPU time while in section `LABEL1: linear pass` code spends only 0.04%. Operations of copying tensors to the device at `v0.py(30): forward` and copying back at `v0.py(31): forward` take about 20% of execution time. We can optimize it if instead of `np.argwhere` do indexing on GPU with `torch.nonzero` - [example2/v1.py](example2/v1.py):
 ```python
     def forward(self, input, mask):
         with profiler.record_function("LABEL1: linear pass"):
@@ -240,42 +242,41 @@ The profile shows that the execution time of section `LABEL2: masking` takes 99.
 -----------------------  ------------  ------------  ------------  ------------  ------------  ------------  
                    Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
 -----------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-          aten::nonzero        96.00%      15.948ms        96.08%      15.962ms      15.962ms             1  
-    LABEL1: linear pass         0.82%     136.417us         2.67%     442.910us     442.910us             1  
-            aten::addmm         0.78%     130.082us         0.93%     153.704us      38.426us             4  
-        LABEL2: masking         0.34%      56.329us        96.98%      16.112ms      16.112ms             1  
-        aten::threshold         0.26%      43.308us         0.33%      54.649us      13.662us             4  
+          aten::nonzero        93.21%       6.463ms        93.34%       6.473ms       6.473ms             1  
+            aten::addmm         1.82%     126.070us         2.08%     144.334us      36.084us             4  
+    LABEL1: linear pass         1.06%      73.669us         4.77%     330.876us     330.876us             1  
+        aten::clamp_min         0.61%      41.977us         1.32%      91.672us      11.459us             8  
+        LABEL2: masking         0.37%      25.869us        94.71%       6.567ms       6.567ms             1  
 -----------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 16.613ms
+Self CPU time total: 6.934ms
 ```
 After this optimization total execution time was improved more than 100 times which is much better than just elimination of copy operation. The reason for that is that we computed `np.argwhere` on CPU while now we do this operation on GPU. PyTorch profile does not analyze NumPy operations so we missed them in the profile. 
 
 ### Python cProfile
 PyTorch profile analyses only PyTorch operations which makes understanding of hotspots confusing. To profile all operations, one may use python profiler - [example2/v2.py](example2/v2.py):
 ```bash
-         181 function calls (169 primitive calls) in 3.434 seconds
+         101 function calls (89 primitive calls) in 2.032 seconds
 
    Ordered by: cumulative time
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-     10/1    0.000    0.000    3.434    3.434 module.py:866(_call_impl)
-        1    0.078    0.078    3.434    3.434 v2.py:21(forward)
-        1    0.000    0.000    2.817    2.817 <__array_function__ internals>:2(argwhere)
-      4/1    0.000    0.000    2.817    2.817 {built-in method numpy.core._multiarray_umath.implement_array_function}
-        1    0.005    0.005    2.817    2.817 numeric.py:537(argwhere)
-        2    0.000    0.000    2.812    1.406 fromnumeric.py:52(_wrapfunc)
-        1    0.000    0.000    1.476    1.476 <__array_function__ internals>:2(nonzero)
-        1    0.000    0.000    1.476    1.476 fromnumeric.py:1816(nonzero)
-        1    1.476    1.476    1.476    1.476 {method 'nonzero' of 'numpy.ndarray' objects}
-        1    0.000    0.000    1.335    1.335 <__array_function__ internals>:2(transpose)
-        1    0.000    0.000    1.335    1.335 fromnumeric.py:601(transpose)
-        1    0.000    0.000    1.335    1.335 fromnumeric.py:39(_wrapit)
-        1    0.000    0.000    1.335    1.335 _asarray.py:14(asarray)
-        1    1.335    1.335    1.335    1.335 {built-in method numpy.array}
-        1    0.348    0.348    0.348    0.348 {method 'cuda' of 'torch._C._TensorBase' objects}
-        1    0.188    0.188    0.188    0.188 {method 'cpu' of 'torch._C._TensorBase' objects}
-        1    0.003    0.003    0.003    0.003 {method 'item' of 'torch._C._TensorBase' objects}
-
+     10/1    0.000    0.000    2.032    2.032 module.py:1009(_call_impl)
+        1    0.084    0.084    2.032    2.032 v2.py:24(forward)
+        1    0.000    0.000    1.658    1.658 <__array_function__ internals>:2(argwhere)
+      4/1    0.000    0.000    1.658    1.658 {built-in method numpy.core._multiarray_umath.implement_array_function}
+        1    0.002    0.002    1.658    1.658 numeric.py:537(argwhere)
+        2    0.000    0.000    1.656    0.828 fromnumeric.py:52(_wrapfunc)
+        1    0.000    0.000    1.298    1.298 <__array_function__ internals>:2(nonzero)
+        1    0.000    0.000    1.298    1.298 fromnumeric.py:1816(nonzero)
+        1    1.298    1.298    1.298    1.298 {method 'nonzero' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.358    0.358 <__array_function__ internals>:2(transpose)
+        1    0.000    0.000    0.358    0.358 fromnumeric.py:601(transpose)
+        1    0.000    0.000    0.358    0.358 fromnumeric.py:39(_wrapit)
+        1    0.000    0.000    0.358    0.358 _asarray.py:14(asarray)
+        1    0.357    0.357    0.357    0.357 {built-in method numpy.array}
+        1    0.166    0.166    0.166    0.166 {method 'cpu' of 'torch._C._TensorBase' objects}
+        1    0.123    0.123    0.123    0.123 {method 'cuda' of 'torch._C._TensorBase' objects}
+        1    0.001    0.001    0.001    0.001 {method 'item' of 'torch._C._TensorBase' objects}
 ```
 Most of the time `2.817s` was spent in `argwhere` function which we compute on CPU. Moreover, this function called `{method 'nonzero' of 'numpy.ndarray' objects}` so our optimization was natural.
 
@@ -300,7 +301,7 @@ import torchvision.models as models
 
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 model = models.resnet18()
-inputs = torch.randn(5, 3, 224, 224)
+inputs = torch.randn(32, 3, 224, 224)
 
 dir_name = './'
 
