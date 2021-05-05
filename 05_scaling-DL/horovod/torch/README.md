@@ -39,8 +39,8 @@ Below we describe each of the steps necessary to use Horovod for distributed dat
 
    ```python
    if torch.cuda.is_available():
-   	device = torch.device(f'cuda:{hvd.local_rank()}')
-   	torch.cuda.set_device(device)
+       device = torch.device(f'cuda:{hvd.local_rank()}')
+       torch.cuda.set_device(device)
    ```
 
 3. **Scale the learning rate**
