@@ -1,6 +1,10 @@
 
  # OpenMP Offload 101
 
+NOTE: As of 5/4/2021, the Nvidia Fortran compiler
+is still beta and does not correctly compile/run
+everything in this demo set
+
  This covers the three basic offloading concepts:
  transferring execution control, expressing parallelism, and 
  mapping data.

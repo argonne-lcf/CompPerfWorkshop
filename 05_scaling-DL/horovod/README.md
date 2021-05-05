@@ -1,20 +1,18 @@
-# Distributed Training with [Horovod](https://github.com/horovod/horovod)
+# Distributed Training with Horovod
 
 ---
 
 #### Table of Contents
 
-- [Distributed Training with Horovod](#distributed-training-with-horovod1)
-  - Examples:
-    - [Tensorflow with Horovod](./tensorflow/README.md)
-    - [PyTorch with Horovod](./torch/README.md)
-  - [Model Parallelism and Data Parallelism](#model-parallelism-and-data-parallelism)
-    + [Example](#example)
-  - [Horovod Data Parallel Frameworks](#horovod-data-parallel-frameworks3)
-    + [Tensorflow with Horovod](#tensorflow-with-horovod)
-    * [PyTorch with Horovod](#pytorch-with-horovod)
-  - [Handson](#handson)
-  - [Additional References](#additional-references)
+- [Distributed Training with Horovod](#distributed-training-with-horovod)
+  * [Model Parallelism and Data Parallelism](#model-parallelism-and-data-parallelism)
+    + [Detailed Description](#detailed-description)
+    + [Internal Mechanics](#internal-mechanics)
+  * [Additional References](#additional-references)
+
+- Examples:
+  - [Tensorflow with Horovod](./tensorflow/README.md)
+  - [PyTorch with Horovod](./torch/README.md)
 
 ---
 
@@ -22,27 +20,51 @@
 
 **Note**:  Adapted from original material [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/Horovod/README.md), written by Huihuo Zheng ([huihuo.zheng@anl.gov](mailto:huihuo.zheng@anl.gov)) and Corey Adams ([corey.adams@anl.gov](mailto:corey.adams@anl.gov)).
 
+Additional examples / information can be found [here](https://github.com/argonne-lcf/sdl_ai_workshop/blob/master/01_distributedDeepLearning/README.md)
+
 **Goal:**
 
-1. Understand how to run jobs on Theta / ThetaGPU
-2. Get familiar with the software frameworks on Theta / ThetaGPU
-3. Understand Data Parallelism (scaling efficiency, warmup, etc)
-4. Know how to modify your code to work with Horovod
+2. Get familiar with Data Parallelism and Model Parallelism
+2. Understand the differences between Data vs. Model Parallelism
+3. Know how to modify your code to work with Horovod
 
 **Examples:**
 
-1. [Tensorflow with Horovod](./tensorflow/README.md)
-2. [PyTorch with Horovod](./torch/README.md)
+1. Tensorflow
+   1. [`README.md`](./tensorflow/README.md)
+   2. [`tensorflow/tf2_hvd_mnist.py`](./tensorflow/tf2_hvd_mnist.py)
+2. PyTorch
+   1. [`README.md`](./torch/README.md)
+   2. [`torch/torch_hvd_mnist.py`](./torch/torch_hvd_mnist.py)
 
 ---
 
 ## Model Parallelism and Data Parallelism
 
-1. **Model parallelization:** In this scheme, disjoint subsets of a neural network are assigned to different devices. Therefore, all the computation associated with the subsets are distributed. Communication happens between devices whenever there is dataflow between two subsets. Model parallelization is suitable when the model is too large to fit into a single device (CPU/GPU) because of the memory capacity. However, partitionining the model into different subsets is not an easy task, and there might potentially introduce load imbalance issues limiting the scaling efficiency.
-2. **Data parallelization:** In this scheme, all of the workers own a replica of the model. The global batch of data is split into multiple minibatches and processed by different workers. Each worker computes the corresponding loss and gradients with respect to the data it possesses. Before the updating of the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective operation. This scheme is relatively simple to implement. `MPI_Allreduce` is the only communication operation required.
-   1. Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
+1. **Model parallelization:** 
 
-### Example:  ([image credit](https://arxiv.org/pdf/2101.03961.pdf))
+   - In this scheme, disjoint subsets of a neural network are assigned to different devices. Therefore, all the computation associated with the subsets are distributed. 
+   - Communication happens between devices whenever there is dataflow between two subsets. 
+   - Model parallelization is suitable when the model is too large to fit into a single device (CPU/GPU) because of the memory capacity. 
+     - However, partitionining the model into different subsets is not an easy task, and there might potentially introduce load imbalance issues limiting the scaling efficiency.
+
+2. **Data parallelization:** 
+
+   - In this scheme, all of the workers own a replica of the model. 
+   - The global batch of data is split into multiple minibatches and processed by different workers. 
+   - Each worker computes the corresponding loss and gradients with respect to the data it possesses. 
+   - Before the updating of the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective operation. 
+     - This scheme is relatively simple to implement. `MPI_Allreduce` is the only communication operation required.
+
+   - Our recent presentation about the data parallel training can be found here: https://youtu.be/930yrXjNkgM
+
+![distributed](../images/distributed.png)
+
+([image credit](https://horovod.readthedocs.io/en/stable/))
+
+### Detailed Description
+
+- [image credit](https://arxiv.org/pdf/2101.03961.pdf)
 
 - How the model **weights** are split over cores
 
@@ -58,12 +80,10 @@
   - **Model Parallelism**: Each worker receives their own *complete copy* of the dataset. 
   
   ![data](../images/data.png)
-  
-- Another example ([image credit](https://horovod.readthedocs.io/en/stable/)):
 
-![distributed](../images/distributed.png)
+### Internal Mechanics
 
-## [Horovod Data Parallel Frameworks][3]
+- [image credit](https://horovod.readthedocs.io/en/stable/)
 
 ![Horovod](../images/horovod.png)
 

@@ -190,12 +190,9 @@ def main():
             lr_scaler = hvd.local_size()
 
     # Horovod: scale learning rate by lr_scaler.
-    optimizer = optim.SGD(model.parameters(), lr=args.lr * lr_scaler,
+    optimizer = optim.SGD(model.parameters(),
+                          lr=args.lr*lr_scaler,
                           momentum=args.momentum)
-
-    # Horovod: broadcast parameters & optimizer state.
-    hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-    hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
     # Horovod: (optional) compression algorithm.
     compression = (
@@ -210,6 +207,10 @@ def main():
         op=hvd.Adasum if args.use_adasum else hvd.Average,
         gradient_predivide_factor=args.gradient_predivide_factor
     )
+
+    # Horovod: broadcast parameters & optimizer state.
+    hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+    hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
     loss_fn = nn.CrossEntropyLoss()
     epoch_times = []
