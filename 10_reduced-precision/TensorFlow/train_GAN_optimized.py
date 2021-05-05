@@ -1,6 +1,9 @@
 import sys, os
 import time
 
+os.environ["TF_XLA_FLAGS"]="--tf_xla_auto_jit=2"
+
+import datetime
 import logging
 from logging import handlers
 
@@ -40,6 +43,11 @@ dataset = tf.data.Dataset.from_tensor_slices((x_train))
 dataset.shuffle(60000)
 
 
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+generator_log_dir = 'logs/' + current_time + '/generator'
+discriminator_log_dir = 'logs/' + current_time + '/discriminator'
+generator_summary_writer = tf.summary.create_file_writer(generator_log_dir)
+discriminator_summary_writer = tf.summary.create_file_writer(discriminator_log_dir)
 
 def init_mpi():
 
@@ -308,7 +316,7 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         # Use the generator to make fake images:
 
         # Use the generator to make fake images:
-        random_noise = tf.random.uniform(shape=[_batch_size,_input_size], minval=-1, maxval=1)
+        random_noise = tf.random.uniform(shape=[_batch_size,_input_size], minval=-1, maxval=1, dtype=tf.float16)
         fake_images  = _generator(random_noise)
 
 
@@ -318,7 +326,7 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         prediction_on_fake_data = _discriminator(fake_images)
 
 
-        soften = 0.1
+        soften = 0.01
         real_labels = tf.zeros(shape=[_batch_size,1], dtype=tf.float16) + soften
         fake_labels = tf.ones( shape=[_batch_size,1], dtype=tf.float16) - soften
         gen_labels  = tf.zeros(shape=[_batch_size,1], dtype=tf.float16)
@@ -336,8 +344,8 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         swap_real = tf.constant(-soften, shape = indices.shape, dtype=tf.float16)
         swap_fake = tf.constant( soften, shape = indices.shape, dtype=tf.float16)
 
-        real_labels = real_labels + tf.scatter_nd(indices=indices, updates=swap_real, shape=real_labels.shape, dtype=tf.float16)
-        fake_labels = fake_labels + tf.scatter_nd(indices=indices, updates=swap_fake, shape=fake_labels.shape, dtype=tf.float16)
+        real_labels = real_labels + tf.scatter_nd(indices=indices, updates=swap_real, shape=real_labels.shape)
+        fake_labels = fake_labels + tf.scatter_nd(indices=indices, updates=swap_fake, shape=fake_labels.shape)
 
 
         # Compute the loss for the discriminator on the real images:
@@ -431,7 +439,6 @@ def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 
 
     rank = hvd.rank()
-    tf.profiler.experimental.start('logdir')
     for i_epoch in range(n_training_epochs):
 
         epoch_steps = int(60000/batch_size)
@@ -456,10 +463,21 @@ def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 
 
             logger.info(f"({i_epoch}, {i_batch}), G Loss: {loss['generator']:.3f}, D Loss: {loss['discriminator']:.3f}, step_time: {end-start :.3f}, throughput: {images/(end-start):.3f} img/s.")
+            # with generator_summary_writer.as_default():
+            #     tf.summary.scalar('loss', loss['generator'], step=i_epoch*len(batches)+i_batch)
+            # with discriminator_summary_writer.as_default():
+            #     tf.summary.scalar('loss', loss['discriminator'], step=i_epoch*len(batches)+i_batch)
 
-    tf.profiler.experimental.stop()
 
-# @tf.function
+        with generator_summary_writer.as_default():
+            tf.summary.scalar('loss', loss['generator'], step=i_epoch)
+            #tf.summary.scalar('accuracy', generator_accuracy.result(), step=i_epoch)
+
+        with discriminator_summary_writer.as_default():
+            tf.summary.scalar('loss', loss['discriminator'], step=i_epoch)
+            #tf.summary.scalar('accuracy', discriminator_accuracy.result(), step=i_epoch)
+
+
 def train_GAN(_batch_size, _training_epochs, global_size):
 
     tf.keras.mixed_precision.set_global_policy("mixed_float16")
@@ -467,6 +485,7 @@ def train_GAN(_batch_size, _training_epochs, global_size):
     generator = Generator()
 
     random_input = numpy.random.uniform(-1,1,[1,100]).astype(numpy.float16)
+    #random_input = tf.random.uniform(shape=[1,100], minval=-1, maxval=1, dtype=tf.float16)
     generated_image = generator(random_input)
 
 
@@ -494,11 +513,18 @@ def train_GAN(_batch_size, _training_epochs, global_size):
     train_loop(_batch_size, _training_epochs, models, opts, global_size)
 
 
+    # Save the model:
+    if global_size == 1:
+        generator.save_weights("trained_GAN_100epochs.h5")
+    else:
+        if hvd.rank() == 0:
+            generator.save_weights("trained_GAN_100epochs.h5")
+
 if __name__ == '__main__':
 
     rank, size = init_mpi()
     configure_logger(rank)
 
-    BATCH_SIZE=1024
-    N_TRAINING_EPOCHS = 10
+    BATCH_SIZE=4096
+    N_TRAINING_EPOCHS = 100
     train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)

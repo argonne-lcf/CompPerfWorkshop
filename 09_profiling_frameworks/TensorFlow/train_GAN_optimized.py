@@ -461,8 +461,6 @@ def train_loop(batch_size, n_training_epochs, models, opts, global_size):
 # @tf.function
 def train_GAN(_batch_size, _training_epochs, global_size):
 
-
-    policy = tf.keras.mixed_precision.Policy("mixed_float16")
     tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 

@@ -1,9 +1,8 @@
 # Reduced Precision
 
-Switching to reduced precision is not that hard in tensorflow:
+Switching to reduced precision is not that hard in TensorFlow:
 
 ```python
-policy = tf.keras.mixed_precision.Policy("mixed_float16")
 tf.keras.mixed_precision.set_global_policy("mixed_float16")
 ```
 

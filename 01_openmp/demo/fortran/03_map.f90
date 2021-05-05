@@ -16,13 +16,13 @@ program main
 
   ! initialize on the host
   do j=1,num_elements
-     a(i) = 0d0
-     b(i) = j
+     a(j) = 0d0
+     b(j) = j
   end do
 
 
 !$omp target teams distribute parallel do simd map(tofrom:a) map(to:b)
-    do i=1,num_elements
+    do j=1,num_elements
        a(j) = a(j)+scalar*b(j)
     end do
 !$omp end target teams distribute parallel do simd
@@ -30,15 +30,19 @@ program main
 
   ! error checking
   do j=1,num_elements
-     if( a(i) - j*scalar .gt. 0.000001 ) then
+     if( abs(a(j) - j*scalar) .gt. 0.000001 ) then
         num_errors = num_errors + 1
      end if
 
   end do
 
-!  deallocate(a)
-!  deallocate(b)
+  deallocate(a)
+  deallocate(b)
 
-  if(num_errors == 0) write(*,*) "Success!\n"
+  if(num_errors == 0) then 
+    write(*,*) "Success!\n"
+  else
+    write(*,*) "Wrong!\n"
+  endif
 
 end program main
