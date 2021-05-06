@@ -345,6 +345,9 @@ index 3f933e6..f6163a3 100644
 
 ![float16 profile with bad layer sizes](images/float16-XLA-dlprof-bad-sizes.png)
 
+These changes have dramatically decreased the performance of the generator training. The
+TC efficincy has dropped to 28% and the average iteration time has nearly tripled.
+
 ![float16 profile with bad layer sizes- zoomed](images/float16-XLA-dlprof-bad-sizes-iter.png)
 
 We can even identify when the generator is being trained (first half of each iteration)
