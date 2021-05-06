@@ -117,21 +117,21 @@ print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
 ```
 You will see some warning of the profiler mentioning that not all memory allocation/deallocation events are analyzed. This happens because we profile only model forward pass and some allocations in the initialization are missed. You will see the following profile:
 ```bash
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg       CPU Mem  Self CPU Mem    # of Calls  
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                    aten::resize_         0.01%     915.645us         0.01%     915.645us      21.801us      16.76 Gb      16.76 Gb            42  
-                      aten::empty         0.11%       7.330ms         0.11%       7.330ms      50.904us       2.37 Gb       2.37 Gb           144  
-                      aten::addmm         0.02%       1.443ms         0.02%       1.551ms       1.551ms    1000.00 Kb    1000.00 Kb             1  
-                        aten::add         0.02%       1.407ms         0.02%       1.407ms      70.373us         160 b         160 b            20  
-              aten::empty_strided         0.00%       6.052us         0.00%       6.052us       6.052us           8 b           8 b             1  
-                     aten::conv2d         0.00%     251.835us        71.89%        4.664s     233.224ms      16.38 Gb           0 b            20  
-                aten::convolution         0.00%     216.004us        71.88%        4.664s     233.211ms      16.38 Gb           0 b            20  
-               aten::_convolution         0.01%     345.879us        71.88%        4.664s     233.200ms      16.38 Gb           0 b            20  
-       aten::_convolution_nogroup         0.00%     249.293us        71.87%        4.664s     233.183ms      16.38 Gb           0 b            20  
-          aten::_nnpack_available         0.00%      46.784us         0.00%      46.784us       2.339us           0 b           0 b            20  
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 6.489s
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                     aten::conv2d         0.01%     134.860us        56.49%        1.023s      51.149ms            20  
+                aten::convolution         0.01%     141.280us        56.48%        1.023s      51.142ms            20  
+               aten::_convolution         0.02%     384.628us        56.47%        1.023s      51.135ms            20  
+         aten::mkldnn_convolution        56.41%        1.022s        56.45%        1.022s      51.116ms            20  
+                 aten::batch_norm         0.01%     114.737us        25.80%     467.331ms      23.367ms            20  
+     aten::_batch_norm_impl_index         0.01%     182.307us        25.80%     467.217ms      23.361ms            20  
+          aten::native_batch_norm        25.59%     463.451ms        25.79%     467.005ms      23.350ms            20  
+                      aten::relu_         0.02%     300.869us         8.25%     149.418ms       8.789ms            17  
+                 aten::clamp_min_         0.01%     131.496us         8.23%     149.118ms       8.772ms            17  
+                  aten::clamp_min         8.23%     148.986ms         8.23%     148.986ms       8.764ms            17  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 1.811s
 ```
 
 ### Fixing performance issue
@@ -239,16 +239,21 @@ The profile shows that the execution time of section `LABEL2: masking` takes 99.
         return out, hi_idx
 ```
 ```bash
------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-          aten::nonzero        93.21%       6.463ms        93.34%       6.473ms       6.473ms             1  
-            aten::addmm         1.82%     126.070us         2.08%     144.334us      36.084us             4  
-    LABEL1: linear pass         1.06%      73.669us         4.77%     330.876us     330.876us             1  
-        aten::clamp_min         0.61%      41.977us         1.32%      91.672us      11.459us             8  
-        LABEL2: masking         0.37%      25.869us        94.71%       6.567ms       6.567ms             1  
------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 6.934ms
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg       CPU Mem  Self CPU Mem    # of Calls  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                    aten::resize_         0.01%     915.645us         0.01%     915.645us      21.801us      16.76 Gb      16.76 Gb            42  
+                      aten::empty         0.11%       7.330ms         0.11%       7.330ms      50.904us       2.37 Gb       2.37 Gb           144  
+                      aten::addmm         0.02%       1.443ms         0.02%       1.551ms       1.551ms    1000.00 Kb    1000.00 Kb             1  
+                        aten::add         0.02%       1.407ms         0.02%       1.407ms      70.373us         160 b         160 b            20  
+              aten::empty_strided         0.00%       6.052us         0.00%       6.052us       6.052us           8 b           8 b             1  
+                     aten::conv2d         0.00%     251.835us        71.89%        4.664s     233.224ms      16.38 Gb           0 b            20  
+                aten::convolution         0.00%     216.004us        71.88%        4.664s     233.211ms      16.38 Gb           0 b            20  
+               aten::_convolution         0.01%     345.879us        71.88%        4.664s     233.200ms      16.38 Gb           0 b            20  
+       aten::_convolution_nogroup         0.00%     249.293us        71.87%        4.664s     233.183ms      16.38 Gb           0 b            20  
+          aten::_nnpack_available         0.00%      46.784us         0.00%      46.784us       2.339us           0 b           0 b            20  
+---------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 6.489s
 ```
 After this optimization total execution time was improved more than 100 times which is much better than just elimination of copy operation. The reason for that is that we computed `np.argwhere` on CPU while now we do this operation on GPU. PyTorch profile does not analyze NumPy operations so we missed them in the profile. 
 
