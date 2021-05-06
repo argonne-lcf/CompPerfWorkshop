@@ -269,7 +269,6 @@ Or, more explicitly:
 * Then, MPI rank 0 can use its CPU buffer to send data to MPI rank 1's CPU buffer
 * Now that MPI rank 1 has the data in its CPU memory buffer, it can transfer it to a buffer in GPU 1's memory.
 
-![my image](images/cuda_staged.png)
 
 Getting back to the code, we now perform our actual ping pong loop (with the same structure as the warm-up loop we just discussed) while timing the execution:
 
@@ -423,7 +422,6 @@ Transfer size (B): 1073741824, Transfer Time (s):     0.022840518, Bandwidth (GB
 
 The magenta line in the following diagram shows how the data is transferred between the two GPUs across NVLink, which is the reason for the improved performance. 
 
-![my image](images/cuda_aware.png)
 
 ### Additional Notes
 
