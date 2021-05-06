@@ -20,9 +20,10 @@ singularity exec --nv -B /lus /grand/projects/Comp_Perf_Workshop/containers/tf2_
 
 When discussing [reduced precision](../../09_profiling_frameworks/TensorFlow/reduced_precision/README.md) in the
 profiling module, it was claimed that only one additional line was necessary to enable
-mixed precision in Keras. That was not quite true; since we only cared about raw
-performance, we did not even consider the effects on model accuracy. In general, loss
-scaling is a necessary addition to your deep learning code in order to ensure
+mixed precision in Keras. That was not quite true, in general; since we only cared about raw
+performance, we did not even consider the effects on model accuracy. For some network
+architectures, loss
+scaling might be a necessary addition to your deep learning code in order to ensure
 that mixed precision does not harm training. 
 In [`train_GAN_optimized.py`](train_GAN_optimized.py), 
 we have added a switch `use_scaled_loss` at the top of the file to enable loss scaling, which does the
@@ -103,6 +104,15 @@ NVIDIA notes that many networks train out-of-the-box without loss scaling, howev
 
 > If you use `tf.keras.Model.fit`, loss scaling is done for you so you do not have to do any extra work. If you use a custom training loop, you must explicitly use the special optimizer wrapper `tf.keras.mixed_precision.LossScaleOptimizer` in order to use loss scaling.
 
+
+### Automatic loss scale factor
+The strategy in TensorFlow AMP is to start with a very large scale factor,
+e.g. `max(float16) = 65,536` or 2^24 = 16,777,216 (the largest integer representable in
+`float32`).
+
+The code automatically checks for gradient overflow, and if none occurs after some time,
+it will increase the scale further (typically by 2x). Otherwise, it will decrease the
+scale by 2x and skip the weight update. 
 
 ## Manual profiling
 If you grabbed a full DGX node, let's exclude all but one A100 GPU, since we are not

@@ -120,7 +120,13 @@ mixed precision, but other GPUs and models might benefit from the decrease in me
 and bandwidth usage. 
 
 <!--  Computations are done in float16 for performance, but variables must be kept in float32 for numeric stability. -->
+Convolution and matrix multiplication are performance critical operations that can benefit
+from being computed in `float16` while also remaining numerically stable. Most
+activiation functions are also safe to perform in half precision.
 
+Other operations should alwyas be done in `float32` for numerical stability concerns,
+since they either require the larger range and/or precision: pointwise operaitons like
+`exp`, loss function, optimizer (Adam), batch norm, softmax. 
 
 <!-- ### Gradient clipping -->
 

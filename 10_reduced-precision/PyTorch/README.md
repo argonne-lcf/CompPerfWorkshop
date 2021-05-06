@@ -32,3 +32,6 @@ scaler.update()
 Essentially, the only difference is: instead of wrapping the optimizer object with a loss
 scaling optimizer object, PyTorch has the user explicitly call the adaptive loss scale
 update from a separate object.
+
+Refer to the [PyTorch AMP
+Recipe](https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html) for a detailed walkthrough.
