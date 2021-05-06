@@ -72,9 +72,9 @@ more useful.
 
 
 ### Tensor Float 32 (TF32) mode
+This is the default math mode for single precision training on A100s.
 
 ![TensorFloat 32 input and output](./images/tf32-mode.png)
-This is the default math mode for single precision training on A100s.
 
 Given two `float32` operand matrices, TF32 mode formats the operand entries to 19-bit
 (sign bit + 8 bits exponent + 10 bits significand) TF32 and multiplied.  This mode

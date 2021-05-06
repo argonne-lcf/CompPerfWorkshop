@@ -1,15 +1,17 @@
 # Mixed Precision in TensorFlow
 
-Here we will build on the GAN example from the previous profiling module.  We will by
-default run the training for 4 epochs, each consisting of 14 iterations when the batch
-size is 4096.
+Here we will build on the GAN example from the previous TensorFlow profiling module.  We
+will by default run the training for 4 epochs, each consisting of 14 iterations when the
+batch size is 4096.
 
 We will use the April 2021 release NVIDIA-optimiized NGC Singularity container for
 TensorFlow 2.x in this walkthrough:
 ```
 singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.04-py3.simg bash
 ```
-
+Note, this is different from the custom-built container from the previous TensorFlow
+module, which had additional profiling tools and plugins installed (and has some issues
+when trying to disable TensorFloat-32 mode).
 <!-- ```
 singularity exec --nv -B /lus /grand/projects/Comp_Perf_Workshop/containers/tf2_cpw.simg bash
 ``` -->
@@ -38,7 +40,7 @@ following:
 				# new line; not used if use_scaled_loss=False
                 scaled_gen_loss = _opts["generator"].get_scaled_loss(loss['generator'])
 ```
-2. Undo the scaling to the grads and apply to the unscaled gradient updates to the model weights
+2. Undo the gradient scaling and apply the unscaled gradient updates to the model weights
 ```python
         # Apply the update to the network (one at a time):
         if use_scaled_loss:
@@ -63,6 +65,24 @@ We have also added a few quality-of-life improvements to this script, including:
 - A switch at the top of the file to activate `float16` mixed precision
 - TensorBoard logging of discriminator and generator loss, per epoch
 
+Let's compare the loss curves with and without loss scaling:
+```
+# float32, no loss scaling
+python train_GAN_optimized.py
+
+# edit file, set use_mixed_precision=True
+# float16, no loss scaling
+python train_GAN_optimized.py
+
+# edit file, set use_scaled_loss=True
+# float16, w/ loss scaling
+python train_GAN_optimized.py
+
+tensorboard --logdir logs/
+```
+Connect to the TensorBoard process from you local machine by following [ThetaGPU: TensorBoard Instructions](https://argonne-lcf.github.io/ThetaGPU-Docs/ml_frameworks/tensorflow/tensorboard_instructions/)
+or copy the directory to your local machine.
+
 In the GAN, it shouldn’t make as big of a difference since the loss never gets so low that
 you get near the clipping range, but it could matter.
 ![GAN loss scaling comparison](images/GAN-loss-curves-loss-scaling-vs-none-vs-float32.png)
@@ -82,7 +102,6 @@ NVIDIA notes that many networks train out-of-the-box without loss scaling, howev
 ### `tf.keras.Model.fit`
 
 > If you use `tf.keras.Model.fit`, loss scaling is done for you so you do not have to do any extra work. If you use a custom training loop, you must explicitly use the special optimizer wrapper `tf.keras.mixed_precision.LossScaleOptimizer` in order to use loss scaling.
-
 
 
 ## Manual profiling
@@ -134,7 +153,9 @@ Nsight Systems.
 For deep learning software, we can use DLProf to profile TC utilization and more. 
 This software lives on top of the Nsight Systems and Nsight Compute profilers. The results
 can be dumped to CSV and/or visualized in TensorBoard. You can correlate GPU performance
-with the model timeline. 
+with the model timeline. All you have to do (in theory) is preface your normal command
+with `dlprof`. However, there are a few options and tweaks that are really necessary to
+get useful profiling info out of it.
 
 In TensorFlow 2.x, there is no universal marker for the beginning/end of a training
 interation. Therefore, we must specify an operation ("node") which demarcates the
