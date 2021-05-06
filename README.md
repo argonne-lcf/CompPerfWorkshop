@@ -1,5 +1,5 @@
 # CompPerfWorkshop-2021
-2021 ALCF Computational Performance Workshop
+Example code repository for the [2021 ALCF Computational Performance Workshop](https://www.alcf.anl.gov/events/2021-alcf-computational-performance-workshop)
 
 ## Tuesday, May 4
 - [Enabling Workflows](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/00_workflows "Workflows")
