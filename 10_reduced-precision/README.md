@@ -102,7 +102,7 @@ continue to use those corresponding types.
 
 NVIDIA started publishing their techniques on mixed precision training in mid 2017. Note,
 the V100 was released on 2017-12-07. Micikevicius and Narang (ICLR 2018) was released in
-May the next year, and the NVIDIA Apex library, with its AMP module, was released in June
+May the next year, and the NVIDIA Apex ("A PyTorch Extension") library, with its AMP module, was released in June
 at CVPR 2018. Most of Apex was moved upstream into PyTorch in 2020. 
 <!-- https://developer.nvidia.com/blog/mixed-precision-training-deep-neural-networks/ -->
 <!-- https://developer.nvidia.com/blog/apex-pytorch-easy-mixed-precision-training/ -->
