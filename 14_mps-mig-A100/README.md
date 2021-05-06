@@ -1,12 +1,30 @@
-# Nvidia Multi-Instance GPU (MIG) mode:
+## Nvidia Multi-Instance GPU (MIG) mode:
 
-MIG mode will enable multi-tenancy on a GPU where different instances can run simultaneously on a GPU by sharing the resources. This capability will improve
-the utilization of the GPUs by running either separate applications or multiple instances of single application.
+MIG mode will enable multi-tenancy on a GPU where different instance can run simultaneously on the GPU by sharing the resources. Each instance has its own share of high-bandwidth memory, cache, compute cores and can run in isolation.
 
-Currently, a GPU can be partitioned in 5 ways, with varying amount of resources in each. A GPU instance (GI) denotes the partitioned GPU resource and Compute
-instance (CI) denotes the compute resources in each GI. 
+This capability will improve the utilization of the GPUs by running either separate applications or multiple instances of single application with deterministic latency and throughput.
 
-MIG user guide is available at https://docs.nvidia.com/datacenter/tesla/mig-user-guide/index.html
+Currently, a GPU can be partitioned in 5 ways, with varying amount of resources in each. A GPU instance (GI) denotes the partitioned GPU resource and can be further sliced into Compute Instances (CI). 
+
+MIG user guide is available at: https://docs.nvidia.com/datacenter/tesla/mig-user-guide/index.html
+
+
+![image](./images/mig.png)
+
+
+## Nvidia Multi-Process Service (MPS) mode:
+Allows multiple CUDA processes to share a single GPU context. Each process receive some subset of the available connections to that GPU. 
+
+MPS allows overlapping of kernel and memcopy operations from different processes on the GPU to achieve maximum utilization.
+
+More details are at: https://docs.nvidia.com/deploy/mps/
+
+<img src="./images/mps.png" width="350">
+
+## MPS vs. MIG
+
+<img src="./images/migvsmps.png" width="500">
+
 
 ## Running applications with MIG-mode on ThetaGPU:
 
