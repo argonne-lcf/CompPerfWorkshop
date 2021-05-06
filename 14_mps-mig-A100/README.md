@@ -6,25 +6,26 @@ This capability will improve the utilization of the GPUs by running either separ
 
 Currently, a GPU can be partitioned in 5 ways, with varying amount of resources in each. A GPU instance (GI) denotes the partitioned GPU resource and can be further sliced into Compute Instances (CI). 
 
-MIG user guide is available at: https://docs.nvidia.com/datacenter/tesla/mig-user-guide/index.html
+MIG user guide is available at: https://docs.nvidia.com/datacenter/tesla/mig-user-guide/
 
 
 ![image](./images/mig.png)
 
+[source: https://docs.nvidia.com/datacenter/tesla/mig-user-guide/]
 
 ## Nvidia Multi-Process Service (MPS) mode:
 Allows multiple CUDA processes to share a single GPU context. Each process receive some subset of the available connections to that GPU. 
 
 MPS allows overlapping of kernel and memcopy operations from different processes on the GPU to achieve maximum utilization.
 
-More details are at: https://docs.nvidia.com/deploy/mps/
-
 <img src="./images/mps.png" width="350">
 
+[source: https://docs.nvidia.com/deploy/mps/]
 ## MPS vs. MIG
 
 <img src="./images/migvsmps.png" width="500">
 
+[source: https://docs.nvidia.com/datacenter/tesla/mig-user-guide/]
 
 ## Running applications with MIG-mode on ThetaGPU:
 
