@@ -1,7 +1,7 @@
 import sys, os
 import time
 
-#os.environ["TF_XLA_FLAGS"]="--tf_xla_auto_jit=2"
+os.environ["TF_XLA_FLAGS"]="--tf_xla_auto_jit=2"
 #### os.environ["NVIDIA_TF32_OVERRIDE"]="0"  # cant set this here; too late
 
 import datetime

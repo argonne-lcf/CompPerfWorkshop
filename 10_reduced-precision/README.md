@@ -64,7 +64,9 @@ Volta SM are evident from their layouts:
 
 
 
-## Automatic mixed precision
+## Automatic mixed precision (AMP)
+
+
 
 
 ### Loss scaling
