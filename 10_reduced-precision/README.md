@@ -109,7 +109,12 @@ at CVPR 2018. Most of Apex was moved upstream into PyTorch in 2020.
 
 Announced at GTC 2019 (and first available in the 19.03 NGC container) for TensorFlow,
 NVIDIA's AMP tool made what was originally a manual, labor-intensive process of variable
-casting and optimizer tuning in TensorFlow very easy. AMP is now considered
+casting and optimizer tuning in TensorFlow very easy. "NVIDIA AMP" is now used to refer to
+the collection of cuBLAS, cuDNN, etc. library calls which target TCs and the associated
+techniques for stable mixed precision training implemented in the separate frameworks. 
+<!-- i.e. it is not an actual standalone library -->
+
+![NVIDIA AMP](images/nvidia_amp_hierarchy.png)
 
 The mixed precision training (vs. `float16` training) continues to store the copies of the
 model weights in single precision `float32`. However, during training some of these
