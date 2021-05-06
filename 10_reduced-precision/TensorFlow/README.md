@@ -126,7 +126,7 @@ Note, even with TF32 disabled, TensorFlow diagnostics (erroneously?) report:
 ```
 NVIDIA is aware of this anomaly and is looking into it (maybe TensorFlow still tries TF32
 cuBLAS calls, even though they are disabled at this lower level?). Regardless of the
-logged output, we will now see definitive evidence that TF32 is actually disabled.
+TensorFlow log, we will now see definitive evidence that TF32 is actually disabled.
 
 We recall that we achieved 90-100K img/s with TF32 enabled. The throughput drops by 33%
 when none of the `float32` operands are able to utilize any of the 492 TCs:
@@ -143,8 +143,6 @@ Note, `NVIDIA_TF32_OVERRIDE=0` will have no effect in this example if
 `float16` matrices without using a TF32 intermediate format.
 
 
-
-
 ## NVIDIA DLProf
 
 `nvidia-smi` has no way of showing Tensor Core utilization. Nor is it really exposed in
@@ -156,6 +154,50 @@ can be dumped to CSV and/or visualized in TensorBoard. You can correlate GPU per
 with the model timeline. All you have to do (in theory) is preface your normal command
 with `dlprof`. However, there are a few options and tweaks that are really necessary to
 get useful profiling info out of it.
+
+First, let's collect basic statistics using Simple Mode. With `float32` set in our code
+(`use_mixed_precision=False`) and XLA with TF32 active:
+```
+> dlprof --mode=simple python train_GAN_optimized.py
+...
+     Wall Time: 40.41 s
+Total GPU Time: 17.09 s
+   TC GPU Time:  2.64 s
+```
+
+Next, disable TF32 again:
+```
+> NVIDIA_TF32_OVERRIDE=0 dlprof --mode=simple python train_GAN_optimized.py
+...
+     Wall Time: 41.94 s
+Total GPU Time: 19.60 s
+   TC GPU Time:  1.22 s
+```
+This confirms our assumption: enabling TensorFloat-32 leads to greater Tensor Core
+utilization and faster time to solution when using single precision training. The simple
+mode diagnostics are useful to quickly confirm that your code is taking advantage of the
+Tensor Cores.
+
+Finally, check mixed precision after editing the file to flip the switch:
+
+```
+> dlprof --mode=simple python train_GAN_optimized.py
+...
+     Wall Time: 48.08 s
+Total GPU Time: 26.88 s
+   TC GPU Time:  1.80 s
+```
+
+It seems counter-intuitive that mixed precision took the longest wall and GPU time,
+especially since it posted the largest img/sec throughput on the `STDOUT`
+diagnostics. However, you may have noticed that the initial iterations in this mode are
+particularly slow. Let's now move to the full profile to understand this.
+
+
+### Default `--mode=tensorflow2` full profiling
+
+The framework-dependent modes require NVTX annotation markers embedded in the framework
+source code. 
 
 In TensorFlow 2.x, there is no universal marker for the beginning/end of a training
 interation. Therefore, we must specify an operation ("node") which demarcates the
@@ -175,15 +217,40 @@ have also found that `--iter_stop` caused issues in the environment / with this 
 version. If you are on a single GPU interactive job, the profiler might fail to detect
 AMP. 
 
-![float32 no TF32 profile](images/float32-XLA-disable-TF32-dlprof.png)
+Again, we repeat 
+
+#### `float32`, XLA, TF32
 
 ![float32 TF32 profile](images/float32-XLA-TF32-dlprof.png)
 
+Each end of an epoch is visible in the iteration bar chart. 
+
+#### `float32`, XLA, disabled TF32
+
+![float32 no TF32 profile](images/float32-XLA-disable-TF32-dlprof.png)
+
+#### Mixed precision, XLA
+
 ![float16 profile](images/float16-XLA-dlprof.png)
+
+DLProf suggests increasing the batch size, since we are using <20% of the GPU memory. With
+mixed precision training, we are able to scale the GAN training up to a batch size of
+32,768 images on the 40 GiB A100. The throughput is somewhat worse, however (85k
+img/s). The GAN model is relatively small, so we arent able to push this further.
 
 ### Pitfall: incompatible tensor sizes
 
-One of the most common mistakes when it comes to using Tensor Cores
+One of the most common mistakes when it comes to using Tensor Cores is using layer sizes
+which are incompatible with Tensor Core primitives.
+
+From [NVIDIA's Deep Learning Performance
+Documentation](https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html):
+> cuDNN v7 and cuBLAS 9 include some functions that invoke Tensor Core operations, for 
+performance reasons these require that input and output feature map sizes are multiples
+of 8. 
+
+LSTM and Dense layers should have 8*L units, Convolutional layers should have 8*M filters,
+and the batch size should be 8*N for optimal performance
 
 <!-- Ensuring GPU Tensor Cores are used
 As mentioned previously, modern NVIDIA GPUs use a special hardware unit called Tensor Cores that can multiply float16 matrices very quickly. However, Tensor Cores requires certain dimensions of tensors to be a multiple of 8. In the examples below, an argument is bold if and only if it needs to be a multiple of 8 for Tensor Cores to be used.
@@ -196,14 +263,76 @@ And similar for other RNNs, such as tf.keras.layers.GRU
 tf.keras.Model.fit(epochs=2, batch_size=128)
 --> 
 
+To illustrate this, let's mess up the generator network. First, we change the batch size
+from 4096 to 4090.  Next, we change the number of filters in each convolutional and dense
+layer from a multiple of 8 to an odd number, e.g.:
 
-Let's mess up the generator network. First, we change the batch size from 4096 to 4090. 
-Next, we change the number of filters in each convolutional and dense layer from a
-multiple of 8 to an odd number
+```
+diff --git a/10_reduced-precision/TensorFlow/train_GAN_optimized.py b/10_reduced-precision/TensorFlow/train_GAN_optimized.py
+index 3f933e6..f6163a3 100644
+--- a/10_reduced-precision/TensorFlow/train_GAN_optimized.py
++++ b/10_reduced-precision/TensorFlow/train_GAN_optimized.py
+@@ -211,7 +211,7 @@ class Generator(tf.keras.models.Model):
+         #make it the right shape
+
+         self.dense = tf.keras.layers.Dense(
+-            units = 7 * 7 * 64  # 63
++            units = 7 * 7 * 63
+         )
+
+         # This will get reshaped into a 7x7 image with 64 filters.
+@@ -224,7 +224,7 @@ class Generator(tf.keras.models.Model):
+
+         self.generator_layer_1 = tf.keras.layers.Convolution2D(
+             kernel_size = [5, 5],
+-            filters     = 64,  # 63
++            filters     = 63,
+             padding     = "same",
+             use_bias    = True,
+             activation  = activation,
+@@ -241,7 +241,7 @@ class Generator(tf.keras.models.Model):
+
+         self.generator_layer_2 = tf.keras.layers.Convolution2D(
+             kernel_size = [5, 5],
+-            filters     = 32,  # 31
++            filters     = 31,
+             padding     = "same",
+             use_bias    = True,
+             activation  = activation,
+@@ -257,7 +257,7 @@ class Generator(tf.keras.models.Model):
+
+         self.generator_layer_3 = tf.keras.layers.Convolution2D(
+             kernel_size = [5, 5],
+-            filters     = 8,
++            filters     = 7,
+             padding     = "same",
+             use_bias    = True,
+             activation  = activation,
+@@ -291,7 +291,7 @@ class Generator(tf.keras.models.Model):
 
 
+         # First Step is to to un-pool the encoded state into the right shape:
+-        x = tf.reshape(x, [batch_size, 7, 7, 64])  # 63
++        x = tf.reshape(x, [batch_size, 7, 7, 63])
+
+         x = self.batch_norm_1(x)
+         x = self.generator_layer_1(x)
+@@ -548,6 +548,6 @@ if __name__ == '__main__':
+     rank, size = init_mpi()
+     configure_logger(rank)
+
+-    BATCH_SIZE=4096  # 4090
+-    N_TRAINING_EPOCHS = 100 # 100
++    BATCH_SIZE=4090
++    N_TRAINING_EPOCHS = 20
+     train_GAN(BATCH_SIZE, N_TRAINING_EPOCHS, size)
+```	 
 
 
 ![float16 profile with bad layer sizes](images/float16-XLA-dlprof-bad-sizes.png)
 
 ![float16 profile with bad layer sizes- zoomed](images/float16-XLA-dlprof-bad-sizes-iter.png)
+
+We can even identify when the generator is being trained (first half of each iteration)
+vs. when the discriminator, which still has optimal layer sizes, is being trained within
+each iteration.
