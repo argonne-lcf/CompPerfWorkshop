@@ -66,7 +66,11 @@ We have also added a few quality-of-life improvements to this script, including:
 - A switch at the top of the file to activate `float16` mixed precision
 - TensorBoard logging of discriminator and generator loss, per epoch
 
-Let's compare the loss curves with and without loss scaling:
+Let's compare the loss curves with and without loss scaling. First, edit the file at the bottom so:
+```
+N_TRAINING_EPOCHS = 100
+```
+Then, run the code three times:
 ```
 # float32, no loss scaling
 python train_GAN_optimized.py
