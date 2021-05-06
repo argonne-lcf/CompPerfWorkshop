@@ -217,25 +217,39 @@ have also found that `--iter_stop` caused issues in the environment / with this 
 version. If you are on a single GPU interactive job, the profiler might fail to detect
 AMP. 
 
-Again, we repeat 
+Again, we repeat the above command for the three configurations of interest
 
 #### `float32`, XLA, TF32
 
 ![float32 TF32 profile](images/float32-XLA-TF32-dlprof.png)
 
-Each end of an epoch is visible in the iteration bar chart. 
+TC Kernel efficiency: 33.9%
+Average iteration time: 101 ms
+
+Each end of an epoch is visible in the iteration bar chart, since the dataset has to be
+reshuffled then (which takes as long as a single training iteration). 
 
 #### `float32`, XLA, disabled TF32
 
 ![float32 no TF32 profile](images/float32-XLA-disable-TF32-dlprof.png)
 
+TC Kernel efficiency: 0.0%
+Average iteration time: 150 ms
+
 #### Mixed precision, XLA
 
 ![float16 profile](images/float16-XLA-dlprof.png)
 
-DLProf suggests increasing the batch size, since we are using <20% of the GPU memory. With
-mixed precision training, we are able to scale the GAN training up to a batch size of
-32,768 images on the 40 GiB A100. The throughput is somewhat worse, however (85k
+TC Kernel efficiency: 44.4%
+Average iteration time: 68.4 ms
+
+Mixed precision has the highest TC efficiency and by far the best average per-iteration
+time. But the initial 4 iterations take much longer than the `float32` configurations,
+thus leading to a larger overall runtime when we are limiting training to only 20 epochs.
+
+DLProf suggests increasing the batch size in this case, since we are using <20% of the GPU
+memory. With mixed precision training, we are able to scale the GAN training up to a batch
+size of 32,768 images on the 40 GiB A100. The throughput is somewhat worse, however (85k
 img/s). The GAN model is relatively small, so we arent able to push this further.
 
 ### Pitfall: incompatible tensor sizes
@@ -249,8 +263,8 @@ Documentation](https://docs.nvidia.com/deeplearning/performance/mixed-precision-
 performance reasons these require that input and output feature map sizes are multiples
 of 8. 
 
-LSTM and Dense layers should have 8*L units, Convolutional layers should have 8*M filters,
-and the batch size should be 8*N for optimal performance
+LSTM and Dense layers should have 8\*L units, Convolutional layers should have 8\*M filters,
+and the batch size should be 8\*N for optimal performance.
 
 <!-- Ensuring GPU Tensor Cores are used
 As mentioned previously, modern NVIDIA GPUs use a special hardware unit called Tensor Cores that can multiply float16 matrices very quickly. However, Tensor Cores requires certain dimensions of tensors to be a multiple of 8. In the examples below, an argument is bold if and only if it needs to be a multiple of 8 for Tensor Cores to be used.
