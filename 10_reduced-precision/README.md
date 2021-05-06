@@ -62,25 +62,28 @@ Volta SM are evident from their layouts:
 ### GV100 SM
 ![GV100 SM](./images/gv100-sm.png)
 
-
+While there are half as many TC per CUDA cores in the Ampere architecture, they are much
+more useful. 
 
 ## Automatic mixed precision (AMP)
 
-
-
-
-### Loss scaling
-
-![Loss scaling](./images/loss-scaling.png)
+Announced at GTC 2019 (and first available in the 19.03 NGC container for TensorFlow),
+NVIDIA's AMP tool made what was originally a manual, labor-intensive process of variable
+casting and optimizer tuning in TensorFlow very easy. 
 
 
 <!-- ### Gradient clipping -->
 
-## Tensor Float 32 (TF32) mode
+### Tensor Float 32 (TF32) mode
 
 ![TensorFloat 32 input and output](./images/tf32-mode.png)
-
 This is the default math mode for single precision training on A100s.
+
+Given two `float32` operand matrices, TF32 mode formats the operand entries to 19-bit
+(sign bit + 8 bits exponent + 10 bits significand) TF32 and multiplied.  This mode
+provides the range of `float32` (8-bit exponent) with the precision of `float16` (10-bit
+significand). The multiplications are accumulated in the `float32` matrix output of the
+Tensor Core. 
 
 Disable it at the system level via `NVIDIA_TF32_OVERRIDE=0`, but:
 > it must be set before the application is launched, as the effect of any change after the
@@ -90,6 +93,24 @@ continue to use those corresponding types.
 
 
 
+## Loss scaling
+
+A well-studied problem in deep learning is vanishing gradients. The limited range of the
+`float16` half precision format means that this problem is exacerbated. 
+<!--- is that the correct explanation? a bit more complicated in mixed precision; are the -->
+<!--grads stored in float16??? multiplied by small learning rate -->
+`min(float16) = 0.00006103515625` whereas `min(float32) = 1.175494 x 10^{-38}`. 
+
+If we multiply the loss after a forward pass by a constant factor, the corresponding
+gradients are also scaled by this factor (see chain rule).
+
+![Loss scaling histogram](./images/loss-scaling.png)
+
+Loss scaling is an essential technique for stable training when using mixed precision. 
+
+![No loss scaling flowchart](./images/no_loss_scaling_flowchart.png)
+
+![Loss scaling flowchart](./images/loss_scaling_flowchart.png)
 
 ## Automatic mixed precision in deep learning frameworks: TensorFlow and PyTorch
 
