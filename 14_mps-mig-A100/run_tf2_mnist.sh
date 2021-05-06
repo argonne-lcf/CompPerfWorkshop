@@ -9,4 +9,4 @@ export http_proxy=http://theta-proxy.tmi.alcf.anl.gov:3128
 export https_proxy=https://theta-proxy.tmi.alcf.anl.gov:3128
 
 ## run the application
-python ./tf2_mnist.py 
+python ./tf2_mnist.py  > tf2_mnist.log 2>&1
