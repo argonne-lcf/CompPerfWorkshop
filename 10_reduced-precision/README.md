@@ -114,7 +114,7 @@ the collection of cuBLAS, cuDNN, etc. library calls which target TCs and the ass
 techniques for stable mixed precision training implemented in the separate frameworks. 
 <!-- i.e. it is not an actual standalone library -->
 
-![NVIDIA AMP](images/nvidia_amp_hierarchy.png)
+![NVIDIA AMP](images/nvidia-amp-hierarchy.png)
 
 The mixed precision training (vs. `float16` training) continues to store the copies of the
 model weights in single precision `float32`. However, during training some of these
