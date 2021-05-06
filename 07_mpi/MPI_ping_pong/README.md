@@ -133,34 +133,34 @@ And, of course, we must free the allocated memory, finalize MPI, and exit the pr
 Running this code on Summit yields the following results:
 
 ```c
-Transfer size (B):          8, Transfer Time (s):     0.000000866, Bandwidth (GB/s):     0.008604834
-Transfer size (B):         16, Transfer Time (s):     0.000000954, Bandwidth (GB/s):     0.015614021
-Transfer size (B):         32, Transfer Time (s):     0.000000801, Bandwidth (GB/s):     0.037217958
-Transfer size (B):         64, Transfer Time (s):     0.000000944, Bandwidth (GB/s):     0.063143770
-Transfer size (B):        128, Transfer Time (s):     0.000000614, Bandwidth (GB/s):     0.194074658
-Transfer size (B):        256, Transfer Time (s):     0.000000543, Bandwidth (GB/s):     0.438679164
-Transfer size (B):        512, Transfer Time (s):     0.000000604, Bandwidth (GB/s):     0.789064065
-Transfer size (B):       1024, Transfer Time (s):     0.000000638, Bandwidth (GB/s):     1.495130605
-Transfer size (B):       2048, Transfer Time (s):     0.000000735, Bandwidth (GB/s):     2.594737042
-Transfer size (B):       4096, Transfer Time (s):     0.000001039, Bandwidth (GB/s):     3.672554470
-Transfer size (B):       8192, Transfer Time (s):     0.000001340, Bandwidth (GB/s):     5.691813849
-Transfer size (B):      16384, Transfer Time (s):     0.000003743, Bandwidth (GB/s):     4.076747560
-Transfer size (B):      32768, Transfer Time (s):     0.000004754, Bandwidth (GB/s):     6.418955979
-Transfer size (B):      65536, Transfer Time (s):     0.000006878, Bandwidth (GB/s):     8.874576996
-Transfer size (B):     131072, Transfer Time (s):     0.000011319, Bandwidth (GB/s):    10.784259681
-Transfer size (B):     262144, Transfer Time (s):     0.000020535, Bandwidth (GB/s):    11.889026561
-Transfer size (B):     524288, Transfer Time (s):     0.000035697, Bandwidth (GB/s):    13.678342615
-Transfer size (B):    1048576, Transfer Time (s):     0.000067051, Bandwidth (GB/s):    14.564560915
-Transfer size (B):    2097152, Transfer Time (s):     0.000130098, Bandwidth (GB/s):    15.012707619
-Transfer size (B):    4194304, Transfer Time (s):     0.000253810, Bandwidth (GB/s):    15.390456458
-Transfer size (B):    8388608, Transfer Time (s):     0.000558763, Bandwidth (GB/s):    13.981780467
-Transfer size (B):   16777216, Transfer Time (s):     0.001188749, Bandwidth (GB/s):    13.144070659
-Transfer size (B):   33554432, Transfer Time (s):     0.002449044, Bandwidth (GB/s):    12.760083414
-Transfer size (B):   67108864, Transfer Time (s):     0.005215280, Bandwidth (GB/s):    11.984016904
-Transfer size (B):  134217728, Transfer Time (s):     0.009999430, Bandwidth (GB/s):    12.500712246
-Transfer size (B):  268435456, Transfer Time (s):     0.019972757, Bandwidth (GB/s):    12.517049850
-Transfer size (B):  536870912, Transfer Time (s):     0.039737416, Bandwidth (GB/s):    12.582599598
-Transfer size (B): 1073741824, Transfer Time (s):     0.078949097, Bandwidth (GB/s):    12.666389375
+Transfer size (B):          8, Transfer Time (s):     0.000000610, Bandwidth (GB/s):     0.012215068
+Transfer size (B):         16, Transfer Time (s):     0.000000585, Bandwidth (GB/s):     0.025489063
+Transfer size (B):         32, Transfer Time (s):     0.000000588, Bandwidth (GB/s):     0.050648905
+Transfer size (B):         64, Transfer Time (s):     0.000000660, Bandwidth (GB/s):     0.090371685
+Transfer size (B):        128, Transfer Time (s):     0.000001578, Bandwidth (GB/s):     0.075540714
+Transfer size (B):        256, Transfer Time (s):     0.000000894, Bandwidth (GB/s):     0.266541358
+Transfer size (B):        512, Transfer Time (s):     0.000000914, Bandwidth (GB/s):     0.521914953
+Transfer size (B):       1024, Transfer Time (s):     0.000001275, Bandwidth (GB/s):     0.748208720
+Transfer size (B):       2048, Transfer Time (s):     0.000001691, Bandwidth (GB/s):     1.127674490
+Transfer size (B):       4096, Transfer Time (s):     0.000002343, Bandwidth (GB/s):     1.627895886
+Transfer size (B):       8192, Transfer Time (s):     0.000002978, Bandwidth (GB/s):     2.561893108
+Transfer size (B):      16384, Transfer Time (s):     0.000005093, Bandwidth (GB/s):     2.996255182
+Transfer size (B):      32768, Transfer Time (s):     0.000008885, Bandwidth (GB/s):     3.434888737
+Transfer size (B):      65536, Transfer Time (s):     0.000017002, Bandwidth (GB/s):     3.589874636
+Transfer size (B):     131072, Transfer Time (s):     0.000032039, Bandwidth (GB/s):     3.810059709
+Transfer size (B):     262144, Transfer Time (s):     0.000021980, Bandwidth (GB/s):    11.107535215
+Transfer size (B):     524288, Transfer Time (s):     0.000032818, Bandwidth (GB/s):    14.878630748
+Transfer size (B):    1048576, Transfer Time (s):     0.000062507, Bandwidth (GB/s):    15.623167715
+Transfer size (B):    2097152, Transfer Time (s):     0.000102356, Bandwidth (GB/s):    19.081661255
+Transfer size (B):    4194304, Transfer Time (s):     0.000197997, Bandwidth (GB/s):    19.728786447
+Transfer size (B):    8388608, Transfer Time (s):     0.000394892, Bandwidth (GB/s):    19.783901301
+Transfer size (B):   16777216, Transfer Time (s):     0.000793706, Bandwidth (GB/s):    19.686121208
+Transfer size (B):   33554432, Transfer Time (s):     0.001564052, Bandwidth (GB/s):    19.980148875
+Transfer size (B):   67108864, Transfer Time (s):     0.003132349, Bandwidth (GB/s):    19.953074009
+Transfer size (B):  134217728, Transfer Time (s):     0.006278125, Bandwidth (GB/s):    19.910404613
+Transfer size (B):  268435456, Transfer Time (s):     0.010468920, Bandwidth (GB/s):    23.880210004
+Transfer size (B):  536870912, Transfer Time (s):     0.020949296, Bandwidth (GB/s):    23.867149998
+Transfer size (B): 1073741824, Transfer Time (s):     0.041904565, Bandwidth (GB/s):    23.863748251
 ```
 
 ## CUDA Staged Version
@@ -325,34 +325,34 @@ And finally, we free the memory on both the CPU and GPU, finalize MPI, and exit 
 Running this code yields the results below. The lower bandwidth obtained in this example is not surprising considering the data transfers between CPU and GPU that are not present in the CPU only version. 
 
 ```c
-Transfer size (B):          8, Transfer Time (s):     0.000031405, Bandwidth (GB/s):     0.000237238
-Transfer size (B):         16, Transfer Time (s):     0.000031500, Bandwidth (GB/s):     0.000473056
-Transfer size (B):         32, Transfer Time (s):     0.000031253, Bandwidth (GB/s):     0.000953594
-Transfer size (B):         64, Transfer Time (s):     0.000031277, Bandwidth (GB/s):     0.001905674
-Transfer size (B):        128, Transfer Time (s):     0.000030981, Bandwidth (GB/s):     0.003847860
-Transfer size (B):        256, Transfer Time (s):     0.000031053, Bandwidth (GB/s):     0.007677847
-Transfer size (B):        512, Transfer Time (s):     0.000031447, Bandwidth (GB/s):     0.015163110
-Transfer size (B):       1024, Transfer Time (s):     0.000031438, Bandwidth (GB/s):     0.030335168
-Transfer size (B):       2048, Transfer Time (s):     0.000031780, Bandwidth (GB/s):     0.060016886
-Transfer size (B):       4096, Transfer Time (s):     0.000033170, Bandwidth (GB/s):     0.115003491
-Transfer size (B):       8192, Transfer Time (s):     0.000033989, Bandwidth (GB/s):     0.224466891
-Transfer size (B):      16384, Transfer Time (s):     0.000038330, Bandwidth (GB/s):     0.398084800
-Transfer size (B):      32768, Transfer Time (s):     0.000041540, Bandwidth (GB/s):     0.734657127
-Transfer size (B):      65536, Transfer Time (s):     0.000048461, Bandwidth (GB/s):     1.259469903
-Transfer size (B):     131072, Transfer Time (s):     0.000061390, Bandwidth (GB/s):     1.988446644
-Transfer size (B):     262144, Transfer Time (s):     0.000081654, Bandwidth (GB/s):     2.989952549
-Transfer size (B):     524288, Transfer Time (s):     0.000131619, Bandwidth (GB/s):     3.709813882
-Transfer size (B):    1048576, Transfer Time (s):     0.000211197, Bandwidth (GB/s):     4.623936913
-Transfer size (B):    2097152, Transfer Time (s):     0.000355879, Bandwidth (GB/s):     5.488169482
-Transfer size (B):    4194304, Transfer Time (s):     0.000747434, Bandwidth (GB/s):     5.226212107
-Transfer size (B):    8388608, Transfer Time (s):     0.001695559, Bandwidth (GB/s):     4.607624607
-Transfer size (B):   16777216, Transfer Time (s):     0.003465020, Bandwidth (GB/s):     4.509353233
-Transfer size (B):   33554432, Transfer Time (s):     0.007005371, Bandwidth (GB/s):     4.460862842
-Transfer size (B):   67108864, Transfer Time (s):     0.014682284, Bandwidth (GB/s):     4.256830800
-Transfer size (B):  134217728, Transfer Time (s):     0.034339137, Bandwidth (GB/s):     3.640161378
-Transfer size (B):  268435456, Transfer Time (s):     0.067559225, Bandwidth (GB/s):     3.700456901
-Transfer size (B):  536870912, Transfer Time (s):     0.132207124, Bandwidth (GB/s):     3.781944463
-Transfer size (B): 1073741824, Transfer Time (s):     0.262666065, Bandwidth (GB/s):     3.807115313
+Transfer size (B):          8, Transfer Time (s):     0.000020403, Bandwidth (GB/s):     0.000365172
+Transfer size (B):         16, Transfer Time (s):     0.000020564, Bandwidth (GB/s):     0.000724618
+Transfer size (B):         32, Transfer Time (s):     0.000020956, Bandwidth (GB/s):     0.001422118
+Transfer size (B):         64, Transfer Time (s):     0.000020820, Bandwidth (GB/s):     0.002862863
+Transfer size (B):        128, Transfer Time (s):     0.000020755, Bandwidth (GB/s):     0.005743664
+Transfer size (B):        256, Transfer Time (s):     0.000020953, Bandwidth (GB/s):     0.011378846
+Transfer size (B):        512, Transfer Time (s):     0.000021163, Bandwidth (GB/s):     0.022531654
+Transfer size (B):       1024, Transfer Time (s):     0.000021400, Bandwidth (GB/s):     0.044563929
+Transfer size (B):       2048, Transfer Time (s):     0.000021855, Bandwidth (GB/s):     0.087271675
+Transfer size (B):       4096, Transfer Time (s):     0.000024189, Bandwidth (GB/s):     0.157703802
+Transfer size (B):       8192, Transfer Time (s):     0.000026381, Bandwidth (GB/s):     0.289197613
+Transfer size (B):      16384, Transfer Time (s):     0.000031257, Bandwidth (GB/s):     0.488169401
+Transfer size (B):      32768, Transfer Time (s):     0.000046707, Bandwidth (GB/s):     0.653378357
+Transfer size (B):      65536, Transfer Time (s):     0.000058954, Bandwidth (GB/s):     1.035306802
+Transfer size (B):     131072, Transfer Time (s):     0.000087381, Bandwidth (GB/s):     1.396982636
+Transfer size (B):     262144, Transfer Time (s):     0.000140982, Bandwidth (GB/s):     1.731718672
+Transfer size (B):     524288, Transfer Time (s):     0.000266125, Bandwidth (GB/s):     1.834779795
+Transfer size (B):    1048576, Transfer Time (s):     0.000484124, Bandwidth (GB/s):     2.017175236
+Transfer size (B):    2097152, Transfer Time (s):     0.000803233, Bandwidth (GB/s):     2.431579144
+Transfer size (B):    4194304, Transfer Time (s):     0.001656954, Bandwidth (GB/s):     2.357488628
+Transfer size (B):    8388608, Transfer Time (s):     0.003207830, Bandwidth (GB/s):     2.435447327
+Transfer size (B):   16777216, Transfer Time (s):     0.006903458, Bandwidth (GB/s):     2.263358319
+Transfer size (B):   33554432, Transfer Time (s):     0.015314410, Bandwidth (GB/s):     2.040561734
+Transfer size (B):   67108864, Transfer Time (s):     0.029280032, Bandwidth (GB/s):     2.134560485
+Transfer size (B):  134217728, Transfer Time (s):     0.058107654, Bandwidth (GB/s):     2.151179596
+Transfer size (B):  268435456, Transfer Time (s):     0.118616563, Bandwidth (GB/s):     2.107631467
+Transfer size (B):  536870912, Transfer Time (s):     0.238929797, Bandwidth (GB/s):     2.092664898
+Transfer size (B): 1073741824, Transfer Time (s):     0.469888118, Bandwidth (GB/s):     2.128166176
 ```
 
 ## CUDA-Aware Version
@@ -390,34 +390,34 @@ Now let's take a look at the code. It's essentially the same as the CUDA staged 
 There is a noticeable improvement in bandwidth relative to the CUDA staged version. This is because Summit has GPUDirect support (both peer-to-peer and RDMA) that allows data transfers between peer GPUs across NVLink.
 
 ```c
-Transfer size (B):          8, Transfer Time (s):     0.000023285, Bandwidth (GB/s):     0.000319968
-Transfer size (B):         16, Transfer Time (s):     0.000022864, Bandwidth (GB/s):     0.000651721
-Transfer size (B):         32, Transfer Time (s):     0.000022066, Bandwidth (GB/s):     0.001350614
-Transfer size (B):         64, Transfer Time (s):     0.000021910, Bandwidth (GB/s):     0.002720440
-Transfer size (B):        128, Transfer Time (s):     0.000021974, Bandwidth (GB/s):     0.005425002
-Transfer size (B):        256, Transfer Time (s):     0.000021859, Bandwidth (GB/s):     0.010906970
-Transfer size (B):        512, Transfer Time (s):     0.000021851, Bandwidth (GB/s):     0.021822642
-Transfer size (B):       1024, Transfer Time (s):     0.000021901, Bandwidth (GB/s):     0.043544172
-Transfer size (B):       2048, Transfer Time (s):     0.000021715, Bandwidth (GB/s):     0.087836679
-Transfer size (B):       4096, Transfer Time (s):     0.000021824, Bandwidth (GB/s):     0.174796899
-Transfer size (B):       8192, Transfer Time (s):     0.000021769, Bandwidth (GB/s):     0.350462892
-Transfer size (B):      16384, Transfer Time (s):     0.000021730, Bandwidth (GB/s):     0.702213060
-Transfer size (B):      32768, Transfer Time (s):     0.000021875, Bandwidth (GB/s):     1.395117345
-Transfer size (B):      65536, Transfer Time (s):     0.000022900, Bandwidth (GB/s):     2.665275249
-Transfer size (B):     131072, Transfer Time (s):     0.000024108, Bandwidth (GB/s):     5.063377202
-Transfer size (B):     262144, Transfer Time (s):     0.000026803, Bandwidth (GB/s):     9.108750160
-Transfer size (B):     524288, Transfer Time (s):     0.000032308, Bandwidth (GB/s):    15.113262703
-Transfer size (B):    1048576, Transfer Time (s):     0.000043602, Bandwidth (GB/s):    22.397425198
-Transfer size (B):    2097152, Transfer Time (s):     0.000065720, Bandwidth (GB/s):    29.718880055
-Transfer size (B):    4194304, Transfer Time (s):     0.000110288, Bandwidth (GB/s):    35.418609771
-Transfer size (B):    8388608, Transfer Time (s):     0.000200170, Bandwidth (GB/s):    39.029370637
-Transfer size (B):   16777216, Transfer Time (s):     0.000378465, Bandwidth (GB/s):    41.285197534
-Transfer size (B):   33554432, Transfer Time (s):     0.000735136, Bandwidth (GB/s):    42.509119599
-Transfer size (B):   67108864, Transfer Time (s):     0.001448561, Bandwidth (GB/s):    43.146273061
-Transfer size (B):  134217728, Transfer Time (s):     0.002878520, Bandwidth (GB/s):    43.425097318
-Transfer size (B):  268435456, Transfer Time (s):     0.005728381, Bandwidth (GB/s):    43.642346264
-Transfer size (B):  536870912, Transfer Time (s):     0.011432438, Bandwidth (GB/s):    43.735204395
-Transfer size (B): 1073741824, Transfer Time (s):     0.022840518, Bandwidth (GB/s):    43.781843371
+Transfer size (B):          8, Transfer Time (s):     0.000015785, Bandwidth (GB/s):     0.000472016
+Transfer size (B):         16, Transfer Time (s):     0.000015637, Bandwidth (GB/s):     0.000952966
+Transfer size (B):         32, Transfer Time (s):     0.000015594, Bandwidth (GB/s):     0.001911085
+Transfer size (B):         64, Transfer Time (s):     0.000015657, Bandwidth (GB/s):     0.003806789
+Transfer size (B):        128, Transfer Time (s):     0.000015745, Bandwidth (GB/s):     0.007571041
+Transfer size (B):        256, Transfer Time (s):     0.000015763, Bandwidth (GB/s):     0.015125338
+Transfer size (B):        512, Transfer Time (s):     0.000015635, Bandwidth (GB/s):     0.030497240
+Transfer size (B):       1024, Transfer Time (s):     0.000015797, Bandwidth (GB/s):     0.060372011
+Transfer size (B):       2048, Transfer Time (s):     0.000016035, Bandwidth (GB/s):     0.118947011
+Transfer size (B):       4096, Transfer Time (s):     0.000016338, Bandwidth (GB/s):     0.233479753
+Transfer size (B):       8192, Transfer Time (s):     0.000016270, Bandwidth (GB/s):     0.468926370
+Transfer size (B):      16384, Transfer Time (s):     0.000016056, Bandwidth (GB/s):     0.950335668
+Transfer size (B):      32768, Transfer Time (s):     0.000016178, Bandwidth (GB/s):     1.886322037
+Transfer size (B):      65536, Transfer Time (s):     0.000016172, Bandwidth (GB/s):     3.774118416
+Transfer size (B):     131072, Transfer Time (s):     0.000016766, Bandwidth (GB/s):     7.280842403
+Transfer size (B):     262144, Transfer Time (s):     0.000017187, Bandwidth (GB/s):    14.204834717
+Transfer size (B):     524288, Transfer Time (s):     0.000018376, Bandwidth (GB/s):    26.571379517
+Transfer size (B):    1048576, Transfer Time (s):     0.000020024, Bandwidth (GB/s):    48.769528412
+Transfer size (B):    2097152, Transfer Time (s):     0.000024074, Bandwidth (GB/s):    81.131068344
+Transfer size (B):    4194304, Transfer Time (s):     0.000031821, Bandwidth (GB/s):   122.757061536
+Transfer size (B):    8388608, Transfer Time (s):     0.000045985, Bandwidth (GB/s):   169.893058164
+Transfer size (B):   16777216, Transfer Time (s):     0.000076010, Bandwidth (GB/s):   205.565922656
+Transfer size (B):   33554432, Transfer Time (s):     0.000136284, Bandwidth (GB/s):   229.300140750
+Transfer size (B):   67108864, Transfer Time (s):     0.000256476, Bandwidth (GB/s):   243.687670542
+Transfer size (B):  134217728, Transfer Time (s):     0.000494715, Bandwidth (GB/s):   252.670607034
+Transfer size (B):  268435456, Transfer Time (s):     0.000971699, Bandwidth (GB/s):   257.281400678
+Transfer size (B):  536870912, Transfer Time (s):     0.001928221, Bandwidth (GB/s):   259.306330465
+Transfer size (B): 1073741824, Transfer Time (s):     0.003841230, Bandwidth (GB/s):   260.333286796
 ```
 
 The magenta line in the following diagram shows how the data is transferred between the two GPUs across NVLink, which is the reason for the improved performance. 
