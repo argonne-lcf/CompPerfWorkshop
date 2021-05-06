@@ -41,9 +41,14 @@ PyTorch and explore the profiling of the models on the A100 GPUs on ThetaGPU.
 
 - [NERSC SC20 Tutorial: Deep Learning at
   Scale](https://github.com/NERSC/sc20-dl-tutorial#enabling-mixed-precision-training)
-  
+
+- 2021 ALCF GPU Hackathon: DLProf tutorial
   
 ## Tensor Core utilization and changes in A100s
+
+![Tensor Core calculation Volta](images/Tensor-Core-Matrix-Volta.png)
+<!-- KGF: certain dims need to be a multiple of 8 to be TC-compatible; but does the A100 TC look different in this picture?
+ Why 8, when the matrices are 4x4? -->
 
 || V100  | A100 |
 |-------|:-------------:|:-------------:|
@@ -65,14 +70,6 @@ Volta SM are evident from their layouts:
 While there are half as many TC per CUDA cores in the Ampere architecture, they are much
 more useful. 
 
-## Automatic mixed precision (AMP)
-
-Announced at GTC 2019 (and first available in the 19.03 NGC container for TensorFlow),
-NVIDIA's AMP tool made what was originally a manual, labor-intensive process of variable
-casting and optimizer tuning in TensorFlow very easy. 
-
-
-<!-- ### Gradient clipping -->
 
 ### Tensor Float 32 (TF32) mode
 
@@ -85,34 +82,79 @@ provides the range of `float32` (8-bit exponent) with the precision of `float16`
 significand). The multiplications are accumulated in the `float32` matrix output of the
 Tensor Core. 
 
-Disable it at the system level via `NVIDIA_TF32_OVERRIDE=0`, but:
+![](images/two-modes-of-operation-on-ampere-tensor-cores.png)
+
+<!-- The tensor cores will receive IEEE 754 FP32 numbers.
+The tensor cores will convert the FP32 numbers into TF32 by reducing the mantissa to 10-bits.
+The multiply step will be performed in TF32.
+The accumulate step will be performed in standard FP32, resulting in an IEEE 754 FP32
+tensor output.
+-->
+
+You can disable it at the system level via environment variable `NVIDIA_TF32_OVERRIDE=0`, 
+but:
 > it must be set before the application is launched, as the effect of any change after the
 application launch is unspecified. The variable affects only the mode of FP32
 operations. Operations using FP64 or one of the 16-bit formats are not affected and
 continue to use those corresponding types.
 
+## Automatic mixed precision (AMP)
+
+NVIDIA started publishing their techniques on mixed precision training in mid 2017. Note,
+the V100 was released on 2017-12-07. Micikevicius and Narang (ICLR 2018) was released in
+May the next year, and the NVIDIA Apex library, with its AMP module, was released in June
+at CVPR 2018. Most of Apex was moved upstream into PyTorch in 2020. 
+<!-- https://developer.nvidia.com/blog/mixed-precision-training-deep-neural-networks/ -->
+<!-- https://developer.nvidia.com/blog/apex-pytorch-easy-mixed-precision-training/ -->
+
+Announced at GTC 2019 (and first available in the 19.03 NGC container) for TensorFlow,
+NVIDIA's AMP tool made what was originally a manual, labor-intensive process of variable
+casting and optimizer tuning in TensorFlow very easy. AMP is now considered
+
+The mixed precision training (vs. `float16` training) continues to store the copies of the
+model weights in single precision `float32`. However, during training some of these
+weights are down-casted to `float16` to be used in the actual calculations. 
+
+Really need a GPU with compute capability >= 7.0 (aka those with TCs) to benefit from
+mixed precision, but other GPUs and models might benefit from the decrease in memory
+and bandwidth usage. 
+
+<!--  Computations are done in float16 for performance, but variables must be kept in float32 for numeric stability. -->
+
+
+<!-- ### Gradient clipping -->
 
 
 ## Loss scaling
 
 A well-studied problem in deep learning is vanishing gradients. The limited range of the
-`float16` half precision format means that this problem is exacerbated. 
+`float16` half precision format means that this problem is exacerbated, specifically for
+the activation gradients (weights, weight gradients, and activations are less
+susceptible). Smallest normalized value `min(float16) = 0.00006103515625` whereas
+`min(float32) = 1.175494 x 10^{-38}`. 
+<!-- 2^-14 for float16, but can represent down to 2^-24 denormalized -->
 <!--- is that the correct explanation? a bit more complicated in mixed precision; are the -->
 <!--grads stored in float16??? multiplied by small learning rate -->
-`min(float16) = 0.00006103515625` whereas `min(float32) = 1.175494 x 10^{-38}`. 
+<!-- https://towardsdatascience.com/understanding-mixed-precision-training-4b246679c7c4 -->
+
 
 If we multiply the loss after a forward pass by a constant factor, the corresponding
 gradients are also scaled by this factor (see chain rule).
 
 ![Loss scaling histogram](./images/loss-scaling.png)
 
-Loss scaling is an essential technique for stable training when using mixed precision. 
+Loss scaling is an essential technique for stable training when using mixed precision in
+some networks.
+
+### Without loss sclaing
 
 ![No loss scaling flowchart](./images/no_loss_scaling_flowchart.png)
 
+### With loss scaling
+
 ![Loss scaling flowchart](./images/loss_scaling_flowchart.png)
 
-## Automatic mixed precision in deep learning frameworks: TensorFlow and PyTorch
+## Hands-on AMP in deep learning frameworks: TensorFlow and PyTorch
 
 Enablilng automatic `float16`/`float32` mixed precision in TensorFlow and PyTorch only
 requires changes to a few lines of code, as shown in the previous section for TensorFlow

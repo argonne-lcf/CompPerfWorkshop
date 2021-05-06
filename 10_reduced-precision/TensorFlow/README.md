@@ -67,9 +67,22 @@ In the GAN, it shouldn’t make as big of a difference since the loss never gets
 you get near the clipping range, but it could matter.
 ![GAN loss scaling comparison](images/GAN-loss-curves-loss-scaling-vs-none-vs-float32.png)
 
+How do you know a GAN has converged? The loss curves are never exactly duplicated. 
+You are really looking to see that one isn’t “winning” and the losses both remain 
+around the same order of magnitude. That is evident in all three cases above (mixed
+precision, no loss scaling; mixed precsiion with loss scaling, `float32`). 
+
 So a GAN was not the best example to illustrate loss scaling. But certainly LSTMs are more
-vulnerable to these concerns, as shown in this example from NVIDIA:
+vulnerable to these concerns, as shown in this example from NVIDIA which plots the model
+perplexity as a function of training interation:
 ![bigLSTM loss scaling importance](images/NVIDIA-bigLSTM-loss-scaling.png)
+
+NVIDIA notes that many networks train out-of-the-box without loss scaling, however. 
+
+### `tf.keras.Model.fit`
+
+> If you use `tf.keras.Model.fit`, loss scaling is done for you so you do not have to do any extra work. If you use a custom training loop, you must explicitly use the special optimizer wrapper `tf.keras.mixed_precision.LossScaleOptimizer` in order to use loss scaling.
+
 
 
 ## Manual profiling
@@ -86,11 +99,20 @@ First, let's check the importance of TF32 mode.
 With `use_mixed_precision=False` at the top of the file so that operands are all single
 precision, execute the code with TF32 disabled at the system level:
 ```
-Singularity> NVIDIA_TF32_OVERRIDE=0 python train_GAN_optimized.py
+NVIDIA_TF32_OVERRIDE=0 python train_GAN_optimized.py
 ```
+Note, even with TF32 disabled, TensorFlow diagnostics (erroneously?) report:
+```
+2021-05-05 15:42:04.684246: I tensorflow/stream_executor/cuda/cuda_blas.cc:1838] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+```
+NVIDIA is aware of this anomaly and is looking into it (maybe TensorFlow still tries TF32
+cuBLAS calls, even though they are disabled at this lower level?). Regardless of the
+logged output, we will now see definitive evidence that TF32 is actually disabled.
+
 We recall that we achieved 90-100K img/s with TF32 enabled. The throughput drops by 33%
 when none of the `float32` operands are able to utilize any of the 492 TCs:
 ```
+...
 2021-05-05 04:30:05,967 - INFO - (2, 13), G Loss: 0.699, D Loss: 0.612, step_time: 0.129, throughput: 63603.233 img/s.
 2021-05-05 04:30:06,212 - INFO - (3, 0), G Loss: 0.698, D Loss: 0.615, step_time: 0.129, throughput: 63499.559 img/s.
 2021-05-05 04:30:06,351 - INFO - (3, 1), G Loss: 0.700, D Loss: 0.615, step_time: 0.129, throughput: 63326.235 img/s.
