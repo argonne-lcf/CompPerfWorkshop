@@ -42,7 +42,8 @@ PyTorch and explore the profiling of the models on the A100 GPUs on ThetaGPU.
 - [NERSC SC20 Tutorial: Deep Learning at
   Scale](https://github.com/NERSC/sc20-dl-tutorial#enabling-mixed-precision-training)
 
-- 2021 ALCF GPU Hackathon: DLProf tutorial
+- 2021 ALCF GPU Hackathon: DLProf tutorial (not yet available online)
+  - [GTC 2021 presentation](https://gtc21.event.nvidia.com/media/Deep%20Learning%20Performance%20Optimization%20with%20Profiling%20Tools%20%5BS31228%5D/1_o8wx0hso)
   
 ## Tensor Core utilization and changes in A100s
 
