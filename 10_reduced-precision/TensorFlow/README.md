@@ -95,7 +95,7 @@ you get near the clipping range, but it could matter.
 How do you know a GAN has converged? The loss curves are never exactly duplicated. 
 You are really looking to see that one isn’t “winning” and the losses both remain 
 around the same order of magnitude. That is evident in all three cases above (mixed
-precision, no loss scaling; mixed precsiion with loss scaling, `float32`). 
+precision, no loss scaling; mixed precsion with loss scaling, `float32`). 
 
 So a GAN was not the best example to illustrate loss scaling. But certainly LSTMs are more
 vulnerable to these concerns, as shown in this example from NVIDIA which plots the model
