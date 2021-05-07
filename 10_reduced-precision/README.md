@@ -158,11 +158,11 @@ gradients are also scaled by this factor (see chain rule).
 Loss scaling is an essential technique for stable training when using mixed precision in
 some networks.
 
-### Without loss sclaing
+### Forward/backward pass without loss scaling
 
 ![No loss scaling flowchart](./images/no_loss_scaling_flowchart.png)
 
-### With loss scaling
+### Forward/backward pass with loss scaling
 
 ![Loss scaling flowchart](./images/loss_scaling_flowchart.png)
 
