@@ -10,8 +10,7 @@ TensorFlow 2.x in this walkthrough:
 singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.04-py3.simg bash
 ```
 Note, this is different from the custom-built container from the previous TensorFlow
-module, which had additional profiling tools and plugins installed (and has some issues
-when trying to disable TensorFloat-32 mode).
+module, which had additional profiling tools and plugins installed.
 <!-- ```
 singularity exec --nv -B /lus /grand/projects/Comp_Perf_Workshop/containers/tf2_cpw.simg bash
 ``` -->
@@ -134,15 +133,13 @@ precision, execute the code with TF32 disabled at the system level:
 ```
 NVIDIA_TF32_OVERRIDE=0 python train_GAN_optimized.py
 ```
-Note, even with TF32 disabled, TensorFlow diagnostics (erroneously?) report:
+Note, even with TF32 disabled, TensorFlow diagnostics will continue to report:
 ```
 2021-05-05 15:42:04.684246: I tensorflow/stream_executor/cuda/cuda_blas.cc:1838] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
 ```
-NVIDIA is aware of this anomaly and is looking into it (maybe TensorFlow still tries TF32
-cuBLAS calls, even though they are disabled at this lower level?). Regardless of the
-TensorFlow log, we will now see definitive evidence that TF32 is actually disabled.
+This may be changed in the future; it is mentioned here: https://github.com/tensorflow/tensorflow/pull/49486
 
-We recall that we achieved 90-100K img/s with TF32 enabled. The throughput drops by 33%
+Regardless of the TensorFlow logger diagnostics, we will now see definitive evidence that TF32 is actually disabled. Recall that we achieved 90-100K img/s with TF32 enabled. The throughput drops by roughly 33%
 when none of the `float32` operands are able to utilize any of the 492 TCs:
 ```
 ...
