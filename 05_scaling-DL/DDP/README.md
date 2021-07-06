@@ -186,7 +186,7 @@ if __name__ == '__main__':
 
    ```bash
    python3 -m torch.distributed.launch --nproc_per_node=8 --nnodes=1 --node_rank 0 \
-   	./DDP/torch_ddp_mnist10.py --device='gpu' --lr=0.001 --fp16_allreduce --batch_size=256 --epochs=50
+   	./DDP/torch_ddp_mnist.py --device='gpu' --lr=0.001 --fp16_allreduce --batch_size=256 --epochs=50
    ```
 
 8. **NOTE:** To safely shutdown the distributed training instance, we can use the command:
