@@ -20,4 +20,3 @@ Example code repository for the [2022 ALCF Computational Performance Workshop](h
 - [File System,  I/O Performance](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/11_filesystems-io "IO")
 - [Data Transfer and Sharing (with Globus (and hands-on (including Eagle share)))](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/12_globus "Globus")
 - [Portability with SYCL/OneAPI](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/13_sycl-oneAPI "oneAPI")
-- [MPS/MIG Mode on A100](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/14_mps-mig-A100 "MPS/MIG")
