@@ -1,20 +1,20 @@
-# CompPerfWorkshop-2021
-Example code repository for the [2021 ALCF Computational Performance Workshop](https://www.alcf.anl.gov/events/2021-alcf-computational-performance-workshop)
+# CompPerfWorkshop-2022
+Example code repository for the [2022 ALCF Computational Performance Workshop](https://www.alcf.anl.gov/events/2022-alcf-computational-performance-workshop)
 
-## Tuesday, May 4
+## Tuesday, May 24
 - [Enabling Workflows](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/00_workflows "Workflows")
 - [Portability with OpenMP](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/01_openmp "OpenMP")
 - [Visualizing Your Data](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/02_visualization "Visualization")
 - [Containers](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/03_containers "Containers")
 
-## Wednesday, May 5
+## Wednesday, May 25
 - [NVIDIA ecosystem](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/04_nvidia "Nvidia")
 - [Scaling Deep Learning Apps](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/05_scaling-DL "Scaling DL")
 - [Portability with Kokkos/Raja](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/06_kokkos-raja "Kokkos")
 - [MPI/Network](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/07_mpi "MPI")
 - [Vtune/Advisor Session](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/08_vtune-advisor "VTune")
 
-##  Thursday, May 6
+##  Thursday, May 26
 - [Profiling Frameworks](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/09_profiling_frameworks "Profiling Frameworks")
 - [Reduced Precision in TF, Torch](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/10_reduced-precision "Reduced Precision")
 - [File System,  I/O Performance](https://github.com/argonne-lcf/CompPerfWorkshop-2021/tree/main/11_filesystems-io "IO")
