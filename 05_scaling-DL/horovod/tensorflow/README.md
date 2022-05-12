@@ -1,152 +1,146 @@
-# Tensorflow with Horovod
+# Horovod with Tensorflow
+
+Authors: Sam Foreman [foremans@anl.gov](mailto:///foremans@anl.gov), Huihuo Zheng [huihuo.zheng@anl.gov](mailto:///huihuo.zheng@anl.gov)
+
+**Note:** We provide a complete example in [`./main.py`](./main.py)
+
+Below we describe each of the steps necessary to use Horovod for distributed data-parallel training using `tensorflow >= 2.x`
+
+Horovod core principles are based on [MPI](http://mpi-forum.org/) concepts such as _size_, _rank_, _local rank_, **allreduce**, **allgather**, **broadcast**, and **alltoall**. See [this page](https://github.com/horovod/horovod/blob/master/docs/concepts.rst) for more details.[^1]
+
+**Goal:**
+1. Understand how Horovod works with TensorFlow
+2. Be able to modify existing code to be compatible with Horovod
+
+**Steps to use Horovod:**
+1. [Initialize Horovod](#Initialize%20Horovod)
+2. [Assign GPUs to each rank](#Assign%20GPUs%20to%20each%20rank)
+3. [Scale the learning rate](#Scale%20the%20learning%20rate)
+4. [Distribute Gradients and Broadcast Variables](#Distribute%20Gradients%20and%20Broadcast%20Variables)
+5. [Deal with Data](#Deal%20with%20Data)
+6. [Average across workers](#Average%20across%20workers)
+7. [Checkpoint only on root rank](#Checkpoint%20only%20on%20root%20rank)
 
 ---
+## Initialize Horovod
+After this initialization, the rank ID and the number of processes can be referred to as `hvd.rank()` and `hvd.size()`, whereas `hvd.local_rank()` refers to the local rank ID within a node.
 
-#### Table of Contents
-
-- [Tensorflow with Horovod](#tensorflow-with-horovod)
-    + [Running on ThetaKNL](#running-on-thetaknl)
-    + [Running on ThetaGPU](#running-on-thetagpu)
+This is useful when we are trying to assign GPUs to each rank
+```python
+import horovod as hvd
+hvd.init()
+```
+  
+  ---
+## Assign GPUs to each rank
+In this case, we set one GPU per process ID `hvd.local_rank()`
+```python
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+  tf.config.experimental.set_memory_growth(gpu, True)
+  if gpus:
+      local_rank = hvd.local_rank()
+      tf.config.experimental.set_visible_devices(gpus[local_rank], 'GPU')
+```
 
 ---
+## Scale the learning rate
+We scale the learning rate by the number of workers to account for the increased batch size.
 
-**Note:** We provide a complete example here: [tf2_hvd_mnist.py](./tf2_hvd_mnist.py).
+This is trivial in tensorflow via:
+```python
+# Horovod: adjust learning rate based on number of GPUs
+optimizer = tf.optimizers.Adam(lr_init * hvd.size())
+```
 
-Below we describe each of the steps necessary to use Horovod for distributed data-parallel training using `TensorFlow >= 2.`
+---  
+## Distribute Gradients and Broadcast Variables
+To use `tensorflow` for distributed training with Horovod:
+1. At the start of training we must make sure that all of the workers are initialized consistently by broadcasting our model and optimizer states from the chief (`rank = 0`) worker
+2. Wrap our optimizer with the `hvd.DistributedOptimizer`
 
-- **Goal:** 
-  1. Understand how Horovod works with TensorFlow
-  2. Be able to modify existing code to be compatible with Horovod
+Explicitly,
+```python
+@tf.function
+def train_step(data, model, loss_fn, optimizer, first_batch, compress=True):
+  batch, target = data
+  with tf.GradientTape() as tape:
+      output = model(batch, training=True)
+      loss = loss_fn(target, output)
+  compression = (
+      hvd.Compression.fp16 if compress
+      else hvd.Compression.none
+  )
+  # Wrap `tf.GradientTape` with `hvd.DistributedGradientTape`
+  tape = hvd.DistributedGradientTape(tape, compression=compression)
+  grads = tape.gradient(loss, model.trainable_variables)
+  optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
+  # Horovod: Broadcast initial variable states from rank 0 to all other
+  # processes. This is necessary to ensure consistent initialization
+  # of all workers when training is started with random weights or
+  # restored from a checkpoint
+  #
+  # Note: broadcast should be done after the first gradient step
+  # to ensure consistent optimizer initialization
+  if first_batch:
+      hvd.broadcast_variables(model.variables, root_rank=0)
+      hvd.broadcast_variables(optimizer.variables, root_rank=0)
+
+  return loss, output
+```
 
 ---
+## Deal with Data
+At each training step, we want to ensure that each worker receives unique data.
 
-1. **Initialize Horovod**
+Naively, this can be done in one of two ways:
+1. From each worker, randomly select a minibatch (i.e. each worker can see the *full dataset*). 
+    > [!warning] Dont forget your seed!
+    >  In this case, it is important that each worker uses different seeds to ensure that they receive unique data
+2. Manually partition the data (ahead of time) and assign different sections to different workers (i.e. each worker can only see *their local portion* of the dataset).
 
-   After this initialization, the rank ID and the number of processes can be referred to as `hvd.rank()` and `hvd.size()`. Besides, one can also call `hvd.local_rank()` to get the local rank ID within a node. This is useful when we are trying to assign GPUs to each rank.
+```python
+TF_FLOAT = tf.keras.backend.get_floatx()
 
-   ```python
-   import horovod.tensorflow as hvd
-   hvd.init()
-   ```
+(images, labels), (xtest, ytest) = tf.keras.datasets.mnist.load_data(path='mnist.npz')
 
-2. **Assign GPUs to each rank**
+dataset = tf.data.Dataset.from_tensor_slices(
+    (tf.cast(images[..., None] / 255.0, TF_FLOAT),
+     tf.cast(labels, tf.int64))
+)
+test_dataset = tf.data.Dataset.from_tensor_slices(
+    (tf.cast(xtest[..., None] / 255.0, TF_FLOAT),
+     tf.cast(ytest, tf.int64))
+)
 
-   In this case, we set one GPU per process: ID=`hvd.local_rank()`
+nsamples = len(list(dataset))
+ntest = len(list(test_dataset))
+dataset = dataset.repeat().shuffle(1000).batch(args.batch_size)
+test_dataset = test_dataset.shard(num_shards=hvd.size(), index=hvd.rank()).repeat().batch(args.batch_size)
+    
+```
 
-   ```python
-   gpus = tf.config.experimental.list_physical_devices('GPU')
-   for gpu in gpus:
-       tf.config.experimental.set_memory_growth(gpu, True)
-   if gpus:
-       tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-   ```
+---
+## Average across workers
+Typically we will want to take the global average of the loss across all our workers, for example
 
-3. **Scale the learning rate by the number of workers**
+```python
+global_loss = hvd.allreduce(loss, average=True)
+global_acc = hvd.allreduce(acc, average=True)
+...
+```
 
-   ```python
-   # Horovod: adjust learning rate based on number of GPUs
-   optimizer = tf.optimizers.Adam(0.001 * hvd.size())
-   ```
+---
+## Checkpoint only on root rank
+It is important to let _only_ one process deal with the checkpointing file I/O to prevent a race condition
 
-4. Decorate our `train_step` function with the `@tf.function` decorator:
+```python
+if hvd.rank() == 0:
+    checkpoint.save(checkpoint_dir)
+```
 
-   ```python
-   @tf.function
-   def train_step(data, model, loss_fn, optimizer, first_batch, compress=True):
-       batch, target = data
-       with tf.GradientTape() as tape:
-           output = model(batch, training=True)
-           loss = loss_fn(target, output)
-           
-       compression = (
-           hvd.Compression.fp16 if compress
-           else hvd.Compression.none
-       )
-       # Wrap `tf.GradientTape` with `hvd.DistributedGradientTape`
-       tape = hvd.DistributedGradientTape(tape, compression=compression)
-   
-       grads = tape.gradient(loss, model.trainable_variables)
-       optimizer.apply_gradients(zip(grads, model.trainable_variables))
-       
-       # Horovod: broadcast initial variable states from rank 0 to all other
-       # processes. This is necessary to ensure consistent initialization
-       # of all workers when training is started with random weights or
-       # restored from a checkpoint.
-       #
-       # Note: broadcast should be done after the first gradient step
-       # to ensure optimizer initialization.
-       if first_batch:
-           hvd.broadcast_variables(model.variables, root_rank=0)
-           hvd.broadcast_variables(optimizer.variables(), root_rank=0)
-       
-       return loss, output
-   ```
+The steps for using Horovod with PyTorch is similar, and are explained in the next section, [Horovod with PyTorch](work/datascience/CompPerfWorkshop/horovod/pytorch/README.md))
 
-5. **Checkpointing _only_ on root rank**
 
-   It is important to let _only_ one process deal with the checkpointing file I/O to prevent a race condition.
-
-   ```python
-   if hvd.rank() == 0:
-       checkpoint.save(checkpoint_dir)
-   ```
-
-6. **Loading data according to rank ID**
-
-   In data parallelism, we distributed the dataset to different workers. It is important to make sure different workers work on different parts of the dataset, and that together they cover the entire dataset at each epoch.
-
-   In general, one has two ways of dealing with the data loading:
-
-   1. Each worker randomly selects one batch of data from the dataset at each step. In this case, each worker can see the entire dataset. It is important to make sure that the different workers have different random seeds so that they will get different data at each step.
-   2. Each worker accesses a subset of the dataset. One can manually partition the entire dataset into different partitions and let each rank access one of the distinct partitions.
-
-7. **Adjusting the number of steps per epoch**
-
-   The total number of steps per epoch is `nsamples / hvd.size()`.
-
-### Running on ThetaKNL
-
-Examples demonstrating how to run Horovod on ThetaKNL are available here [ALCF: Simulation, Data, and Learning Workshop for AI: 01--Distributed Deep Learning](https://github.com/argonne-lcf/sdl_ai_workshop/01_distributedDeepLearning/README.md).
-
-### Running on ThetaGPU
-
-1. Login to Theta:
-
-   ```bash
-   # to theta login node from your local machine
-   ssh username@theta.alcf.anl.gov
-   ```
-
-2. Login to ThetaGPU service node (this is where we can submit jobs directly to ThetaGPU):
-
-   ```bash
-   # to thetaGPU service node (sn) from theta login node
-   ssh username@thetagpusn1
-   ```
-
-3. Submit an interactive job to ThetaGPU
-
-   ```bash
-   # should be ran from a service node, thetagpusn1
-   qsub -I -A Comp_Perf_Workshop -q training -n 1 -t 00:30:00 -O ddp_tutorial --attrs=pubnet=true
-   ```
-
-4. Once your job has started, load the `conda/tensorflow` module and activate the base conda environment
-
-   ```bash
-   module load conda/tensorflow
-   conda activate base
-   ```
-
-5. Clone the `CompPerfWorkshop-2021` github repo (if you haven't already):
-
-   ```bash
-   git clone https://github.com/argonne-lcf/CompPerfWorkshop-2021
-   ```
-
-6. Navigate into the `horovod/tensorflow/` directory and run the example:
-
-   ```bash
-   cd CompPerfWorkshop-2021/05_scaling-DL/horovod/tensorflow
-   mpirun -np 8 --verbose python3 ./tf2_hvd_mnist.py --batch_size=256 --epochs=10 > training.log&
-   ```
+[^1]: `fas:Github` [`horovod/horovod` Distributed training framework for TensorFlow, Keras, PyTorch, and Apache MXNet.](https://github.com/horovod/horovod)
