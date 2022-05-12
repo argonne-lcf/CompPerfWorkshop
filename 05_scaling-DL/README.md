@@ -1,9 +1,3 @@
----
-title: Scaling Deep Learning Applications
-description: Prepared for the Computational Performance Workshop @ ALCF 2022
-created: 2022-05-08 07:18:57
----
-
 # Scaling Deep Learning Applications
 
 Computational Performance Workshop @ ALCF 2022
