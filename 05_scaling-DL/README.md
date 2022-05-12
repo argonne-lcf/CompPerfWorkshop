@@ -2,8 +2,6 @@
 title: Scaling Deep Learning Applications
 description: Prepared for the Computational Performance Workshop @ ALCF 2022
 created: 2022-05-08 07:18:57
-cssClass:
-- img-grid
 ---
 
 # Scaling Deep Learning Applications
@@ -109,10 +107,11 @@ From [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](h
 
     - There are multiple different ways to implement the allreduce, and it may vary from problem to problem[^4], [^5]
     
-
-<img src="./assets/svgs/CPW-avgGrads.svg" align="center" width="80%" />
-
-<!-- ![CPW-avgGrads|500|center](assets/CPW-avgGrads.svg) -->
+<div align="center">
+<object type="image/svg+xml" data="assets/avgGrads.svg" align="center" width="908">
+<img src="assets/pngs/avgGrads.png" width="908" align="center" />
+</object>
+</div>
 
 ## Best Practices
 > [!NOTE] 
@@ -146,16 +145,28 @@ In the **data parallel** approach, each worker receives the **complete** model w
 
 In the **model parallel** approach, each worker receives the **complete** data, but only receives a **subset** of the model weights. This can be useful when a model is too large to fit onto a single device (CPU / GPU).
 
-<img src="./assets/svgs/CPW-ParallelismSplits.svg" align="center" width="75%" />
-
-<img src="./assets/svgs/CPW-data-parallel.svg" align="left" width="45%" /> <img src="./assets/svgs/CPW-model-parallel.svg" align="right" width="45%" />
-
-<!-- ![908|center](assets/CPW-ParallelismSplits.svg) -->
-
-<!-- ![|400](assets/CPW-data-parallel.svg)  ![|508](assets/CPW-model-parallel.svg) -->
 
 
----
+<div align="center">
+    
+<object type="image/svg+xml" data="assets/ParallelismSplits.svg" align="center" width="908">
+<img src="assets/pngs/ParallelismSplits.png" width="908" align="center" />
+</object>
+
+<br>
+    
+<object type="image/svg+xml" data="assets/data-parallel.svg" width="400" align="left">
+<img src="assets/pngs/data-parallel.png" width="400" align="left" />
+</object>
+
+
+<object type="image/svg+xml" data="assets/model-parallel.svg" width="508" align="right">
+<img src="assets/pngs/model-parallel.png" width="508" align="right" />
+</object>
+   
+<br>
+    
+
 |   Year   |       Author       |        Batch Size         |         Processor       | DL Library |     Time     |   Accuracy |
 |:--------:|:------------------:|:-------------------------:|:-----------------------:|:----------:|:------------:| ----------:|
 | ==2016== |   He et al. [1]    |            256            |       Tesla P100 x8     |   Caffe    |    29 Hrs    |      75.3% |
@@ -166,6 +177,15 @@ In the **model parallel** approach, each worker receives the **complete** data, 
 |          |  Ying et al. [6]   |          65,536           |       TPU v3 x1024      | TensorFlow |   1.8 mins   |      75.2% |
 |          | Mikami et al. [7]  |          55,296           |     Tesla V100 x3456    |    NNL     |   2.0 mins   |     75.29% |
 | ==2019== | **Yamazaki et al** |        **81,920**         |  **Tesla V100 x 2048**  | **MXNet**  | **1.2 mins** | **75.08%** |
+
+</div>
+
+---
+<!--<img src="05_scaling-DL/assets/data-parallel.svg" width="400" align="left" /> <img src="05_scaling-DL/assets/data-parallel.svg" width="508" align="right" />-->
+
+<!-- ![908|center](assets/CPW-ParallelismSplits.svg) -->
+
+<!-- ![|400](assets/CPW-data-parallel.svg)  ![|508](assets/CPW-model-parallel.svg) -->
 
 
 
