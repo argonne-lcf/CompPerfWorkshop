@@ -30,6 +30,7 @@ WORKDIR /usr
 COPY source/* /usr/source/
 COPY submit.sh /usr/
 RUN chmod +x /usr/submit.sh
+RUN mpicc -o /usr/source/mpi_hello_world /usr/source/mpi_hello_world.c
 
 #### SPECIFY SCRIPT FOR CONTAINER TO RUN ####
 ENTRYPOINT ["/usr/submit.sh"]
