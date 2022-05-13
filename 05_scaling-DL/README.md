@@ -150,10 +150,11 @@ In the **data parallel** approach, each worker receives the **complete** model w
 
 In the **model parallel** approach, each worker receives the **complete** data, but only receives a **subset** of the model weights. This can be useful when a model is too large to fit onto a single device (CPU / GPU).
 
+The [Switch Transformer](https://arxiv.org/abs/2101.03961) has a clear discussion of hybrid (data + model)-parallel training as well as general advice on scaling large models.
 
-<img src="assets/ParallelismSplits.svg" width="90%">
+<img src="assets/ParallelismSplits.svg" width="72%">
 
-<img src="assets/data-parallel.svg" width="40%"> <img src="assets/model-parallel.svg" width="50%">
+<img src="assets/data-parallel.svg" width="32%"> <img src="assets/model-parallel.svg" width="40%">
 
 [^ddp]: [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](https://pytorch.org/tutorials/beginner/dist_overview.html):
 [^1]: Sergeev, A., Del Balso, M. (2017) [Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow](https://eng.uber.com/horovod/)
