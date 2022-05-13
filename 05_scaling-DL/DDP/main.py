@@ -4,11 +4,12 @@ DDP/main.py
 Conains simple implementation illustrating how to use PyTorch DDP for
 distributed data parallel training.
 """
+from __future__ import absolute_import, division, print_function, annotations
 import os
 import socket
 import logging
 
-from typing import Optional
+from typing import Optional, Union
 
 import hydra
 import time
@@ -33,7 +34,8 @@ log = logging.getLogger(__name__)
 try:
     from mpi4py import MPI
     WITH_DDP = True
-    LOCAL_RANK = os.environ['OMPI_COMM_WORLD_LOCAL_RANK']
+    LOCAL_RANK = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK', '0')
+    # LOCAL_RANK = os.environ['OMPI_COMM_WORLD_LOCAL_RANK']
     SIZE = MPI.COMM_WORLD.Get_size()
     RANK = MPI.COMM_WORLD.Get_rank()
 
@@ -67,8 +69,8 @@ Tensor = torch.Tensor
 
 
 def init_process_group(
-    rank: int | str,
-    world_size: int | str,
+    rank: Union[int, str],
+    world_size: Union[int, str],
     backend: Optional[str] = None,
 ) -> None:
     if WITH_CUDA:
@@ -134,27 +136,22 @@ class Trainer:
         self.model = self.build_model()
         if self.device == 'gpu':
             self.model.cuda()
-            # self.model.to(RANK)
 
-        if WITH_DDP:
+        if WITH_DDP and SIZE > 1:
             self.model = DDP(self.model)
 
         self.loss_fn = nn.CrossEntropyLoss()
         self.optimizer = self.build_optimizer(self.model)
+        # if WITH_CUDA:
+        #    self.loss_fn = self.loss_fn.cuda()
+
 
     def build_model(self) -> nn.Module:
-        # Create model and move it to the GPU with id rank
         model = Net()
-        if WITH_CUDA:
-            model.cuda()
-
         return model
 
     def build_optimizer(self, model: nn.Module) -> torch.optim.Optimizer:
         # Horovod: scale learning rate by the number of GPUs
-        # optimizer = optim.SGD(model.parameters(),
-        #                       lr=SIZE * self.cfg.lr_init,
-        #                       momentum=self.cfg.momentum)
         optimizer = optim.Adam(model.parameters(),
                                lr=SIZE * self.cfg.lr_init)
         return optimizer
@@ -252,8 +249,26 @@ class Trainer:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        pred = probs.data.argmax(1)
-        acc = pred.eq(target.data.view_as(pred)).float().sum()
+        _, pred = probs.data.max(1)
+        acc = (pred == target).sum() / pred.shape[0]
+        # acc = (pred == target.data.view_as(pred)).float().sum()
+        # acc = pred.eq(target.data.view_as(pred)).float().sum()
+
+        return loss, acc
+
+    def test_step(
+        self,
+        data: Tensor,
+        target: Tensor,
+    ) -> tuple[Tensor, Tensor]:
+        if WITH_CUDA:
+            data, target = data.cuda(), target.cuda()
+
+        with torch.no_grad():
+            probs = self.model(data)
+            loss = self.loss_fn(probs, target)
+            _, pred = probs.data.max(1)
+            acc = (pred == target).sum() / pred.shape[0]
 
         return loss, acc
 
@@ -298,8 +313,8 @@ class Trainer:
 
         running_loss /= len(train_sampler)
         running_acc /= len(train_sampler)
+        training_acc = metric_average(running_acc)
         loss_avg = metric_average(running_loss / self.cfg.batch_size)
-        training_acc = metric_average(running_acc / self.cfg.batch_size)
 
         if RANK == 0:
             summary = '  '.join([
@@ -330,14 +345,7 @@ class Trainer:
         #     len(self.data['test']['loader']) // SIZE // self.cfg.batch_size
         # )
         for data, target in self.data['test']['loader']:
-            if WITH_CUDA:
-                data, target = data.cuda(), target.cuda()
-
-            output = self.model(data)
-            # Sum up the batch loss
-            loss = self.loss_fn(output, target).item()
-            pred = output.data.argmax(1, keepdim=True)
-            acc = pred.eq(target.data.view_as(pred)).float().sum()
+            loss, acc = self.test_step(data, target)
             running_acc += acc
             running_loss += loss
             # test_loss += F.nll_loss(output, target).item()
@@ -359,7 +367,7 @@ class Trainer:
             summary = ' '.join([
                 '[TEST]',
                 f'loss={(running_loss):.4f}',
-                f'acc={(running_acc * 100):.2f}%'
+                f'acc={(running_acc):.2f}%'
             ])
             log.info((sep := '-' * len(summary)))
             log.info(summary)
