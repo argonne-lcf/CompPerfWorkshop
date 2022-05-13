@@ -26,24 +26,6 @@ This section of the workshop will introduce you to some of the tools that we use
     1. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
 7. [ZeRO Data Parallel](./src/cpw/zero/README.md)
 
-<!-- ## Organization -->
-<!-- 1. [Distributed Training](#distributed-training) -->
-<!--     1. [Why train on multiple GPUs?](#why-train-on-omultiple-gpus) -->
-<!--     2. [Data vs Model Parallelism](#data-vs-model-parallelism) -->
-<!--         1. [Model Parallelism](#model-parallelism) -->
-<!--         2. [Data Parallelism](#data-parallelism) -->
-<!-- 2. [Horovod](./horovod/README.md) -->
-<!--     1. [Horovod with TensorFlow](./horovod/tensorflow/README.md) -->
-<!--         1. [`horovod/tensorflow/main.py`](./horovod/tensorflow/main.py) -->
-<!--     3. [Horovod with PyTorch](./horovod/pytorch/README.md) -->
-<!--         1. [`horovod/pytorch/main.py`](./horovod/pytorch/main.py) -->
-<!-- 3. [PyTorch DistributedDataParallel](./DDP/README.md) -->
-<!--     1. [`DDP/main.py`](./ddp/main.py) -->
-<!-- 4. [DeepSpeed](./deepspeed/README.md) -->
-<!--     1. [`deepspeed/main.py`](./deepspeed/main.py) -->
-<!-- 5. [ZeRO Data Parallel](./zero/README.md) -->
-
----
 # Distributed Training
 
 ## Why train on multiple GPUs?

@@ -143,45 +143,16 @@ Here I show the results I got measuring the time-per-epoch averaged over the las
 |  4   |          2.66          |  5.113  | 2.64                 | 4.4318  |
 |  8   |          1.43          |  9.510  | 1.37                 | 8.5401  |
 |  16  |          0.82          | 16.585  | 0.80                 | 14.625  |
-|  32  |          0.5           |  27.2   | 0.49                 | 23.878        |
-
-```chart
-type: line
-labels: [1, 4, 8, 16, 32]
-series:
-  - title: CIFAR10
-    data: [13.6,2.66,1.43,0.82,0.5]
-  - title: MNIST
-    data: [11.7,2.64,1.37,0.80,0.49]
-tension: 0.2
-width: 80%
-labelColors: false
-fill: false
-beginAtZero: false
-```
+|  32  |          0.5           |  27.2   | 0.49                 | 23.878  |
 
 
-```chart
-type: bar
-labels: [1,4,8,16,32]
-series:
-  - title: Speedup (CIFAR10)
-    data: [1.0,5.11278,9.51048,16.58536,27.2]
-  - title: Speedup (MNIST)
-    data: [1.0, 4.431818, 8.5401, 14.625, 23.878]
-tension: 0.2
-width: 80%
-labelColors: false
-fill: false
-beginAtZero: false
-```
-
+![scaling_results](assets/scaling_results.svg)
 
 ## Example
 Modified from: [Distributed Data Parallel — PyTorch 1.11.0 documentation](https://pytorch.org/docs/stable/notes/ddp.html) 
 
-> [!warning]
-> The implementation of `torch.nn.parallel.DistributedDataParallel` is under relatively active development and should be expected to change over time.
+> :warning: **Active Development**
+> <br> The implementation of `torch.nn.parallel.DistributedDataParallel` is under relatively active development and should be expected to change over time.
 
 ## References
 1.  [DDP notes](https://pytorch.org/docs/stable/notes/ddp.html) offer a starter example and some brief descriptions of its design and implementation. If this is your first time using DDP, start from this document.
