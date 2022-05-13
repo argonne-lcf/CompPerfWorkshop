@@ -147,7 +147,7 @@ Here I show the results I got measuring the time-per-epoch averaged over the las
 
 <!--![scaling_results](./assets/scaling_results.svg)-->
 
-<img src="./assets/scaling_results.svg">
+<img src="05_scaling-DL/src/cpw/DDP/assets/scaling_results.svg">
 
 ## Example
 Modified from: [Distributed Data Parallel — PyTorch 1.11.0 documentation](https://pytorch.org/docs/stable/notes/ddp.html) 
