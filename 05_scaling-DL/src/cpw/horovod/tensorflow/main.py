@@ -61,9 +61,12 @@ class Trainer:
         self.ckpt_dir = Path(os.getcwd()).joinpath('checkpoints').as_posix()
         self.checkpoint = tf.train.Checkpoint(model=self.model,
                                               optimizer=self.optimizer)
+        self.manager = tf.train.CheckpointManager(self.checkpoint,
+                                                  max_to_keep=5,
+                                                  directory=self.ckpt_dir)
 
     def save_checkpoint(self):
-        self.checkpoint.save(self.ckpt_dir)
+        self.manager.save()
 
     def setup_data(self) -> dict[str, tf.data.Dataset]:
         (xtrain, ytrain), (xtest, ytest) = (
@@ -182,7 +185,7 @@ class Trainer:
                 '[TRAIN]',
                 f'dt={time.time() - t0:.6f}',
                 f'loss={running_loss:.4f}',
-                f'acc={running_acc * tf.constant(100.0):.2f}%'
+                f'acc={running_acc:.2f}%'
             ])
             log.info((sep := '-' * len(summary)))
             log.info(summary)
@@ -210,15 +213,15 @@ class Trainer:
             test_acc += acc
             test_loss += loss
 
+        test_acc = metric_average(test_acc)
         test_loss = metric_average(test_loss / self.ntest)
-        test_acc = metric_average(test_acc / self.ntest)
         dt_test = time.time() - t0
         if RANK == 0:
             summary = ', '.join([
                 '[TEST]',
                 f'dt={dt_test:.6f}',
                 f'loss={(test_loss):.4f}',
-                f'acc={(test_acc * tf.constant(100.0)):.2f}%'
+                f'acc={test_acc:.2f}%'
             ])
             log.info((sep := '-' * len(summary)))
             log.info(summary)
