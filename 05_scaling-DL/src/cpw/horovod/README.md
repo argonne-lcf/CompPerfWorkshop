@@ -1,5 +1,5 @@
     
-# Horovod  ![[work/datascience/CompPerfWorkshop/horovod/assets/horovod-logo.png|75]]
+# Horovod <img src="assets/horovod-logo.png" width="50" style="vertical-align:baseline;" align="left"> 
 Here we describe how to use Horovod for distributed data-parallel training using both `pytorch` and `tensorflow`.
 
 Additional information can be found on [Horovod documentation](https://horovod.readthedocs.io/en/stable/index.html) page.
