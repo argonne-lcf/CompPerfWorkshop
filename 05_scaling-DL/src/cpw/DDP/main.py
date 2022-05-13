@@ -26,6 +26,8 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from omegaconf import DictConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
+from utils.data_torch import DistributedDataObject, prepare_datasets
+
 
 
 log = logging.getLogger(__name__)
@@ -144,7 +146,6 @@ class Trainer:
         self.optimizer = self.build_optimizer(self.model)
         # if WITH_CUDA:
         #    self.loss_fn = self.loss_fn.cuda()
-
 
     def build_model(self) -> nn.Module:
         model = Net()
