@@ -1,6 +1,5 @@
 # Distributed Training with PyTorch DDP
-```toc
-```
+
 
 Author: [Sam Foreman](https://www.samforeman.me) ([foremans@anl.gov](mailto:///foremans@anl.gov)), Corey Adams ([corey.adams@anl.gov](mailto:///corey.adams@anl.gov))
 
@@ -146,7 +145,9 @@ Here I show the results I got measuring the time-per-epoch averaged over the las
 |  32  |          0.5           |  27.2   | 0.49                 | 23.878  |
 
 
-![scaling_results](assets/scaling_results.svg)
+<!--![scaling_results](./assets/scaling_results.svg)-->
+
+<img src="./assets/scaling_results.svg">
 
 ## Example
 Modified from: [Distributed Data Parallel — PyTorch 1.11.0 documentation](https://pytorch.org/docs/stable/notes/ddp.html) 
