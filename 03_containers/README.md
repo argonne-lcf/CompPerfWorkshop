@@ -7,6 +7,7 @@ We will not repeat the detailed instructions for building docker containers, but
 * General Docker documentation can be found here: https://docs.docker.com/
 * Specifics on building docker container recipes using `DockerFile` can be found here: https://docs.docker.com/engine/reference/builder/
 
+The trickiest parts of building containers for ALCF systems is ensuring proper MPI support and GPU driver compatibility.
 
 # System Specific Instructions
 
