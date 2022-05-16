@@ -58,8 +58,8 @@ From [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](h
 <blockquote>
     <b>For apps that gradually grow from simple to complex and from prototype to production, the common development trajectory may be:</b>
     <ol>
-        <li> ❌ <strike> Use single device training if the data and model can fit on one GPU, and training speed is not a concern</strike>  (not relevant for this section)</li>
-        <li> ❌ <strike> Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html"> `DataParallel` </a>  to make use of multiple GPUs on a single machine to speed up training with minimal code changes</strike> (not recommended, <tt>DDP</tt> preferred) </li>
+        <li> ❌ Use single device training if the data and model can fit on one GPU, and training speed is not a concern  (not relevant for this section)</li>
+        <li> ❌ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html"> `DataParallel` </a>  to make use of multiple GPUs on a single machine to speed up training with minimal code changes (not recommended, <tt>DDP</tt> preferred) </li>
         <li> ✅ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html"> <tt>DistributedDataParallel</tt>  </a>  if you would like to further speed up training and are willing to write a little more code to set it up </li>
         <li> ✅ Use multi-machine <a href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html"><tt>DistributedDataParallel</tt></a> and the <a href="https://github.com/pytorch/examples/blob/master/distributed/ddp/README.md"> launching script</a> if the application needs to scale across machine boundaries </li>
         <li> ❓ Use <a href="https://pytorch.org/docs/stable/distributed.elastic.html"> <tt>torch.distributed.elastic</tt></a> to launch distributed training if errors (e.g., out-of-memory) are expected or if resources can join and leave dynamically during training  (not covered in this tutorial) </li>
@@ -134,9 +134,9 @@ In the **model parallel** approach, each worker receives the **complete** data, 
 
 The [Switch Transformer](https://arxiv.org/abs/2101.03961) has a clear discussion of hybrid (data + model)-parallel training as well as general advice on scaling large models.
 
-<img src="assets/ParallelismSplits.svg" width="72%">
+<img src="assets/ParallelismSplits.svg" width="66%" style="padding-right:10%;" />
 
-<img src="assets/data-parallel.svg" width="32%"> <img src="assets/model-parallel.svg" width="40%">
+<img src="assets/data-parallel.svg" width="30%"> <img src="assets/model-parallel.svg" width="36%" style="margin-left:50px;" />
 
 [^ddp]: [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](https://pytorch.org/tutorials/beginner/dist_overview.html):
 [^1]: Sergeev, A., Del Balso, M. (2017) [Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow](https://eng.uber.com/horovod/)
