@@ -51,7 +51,7 @@ RUN chmod +x /usr/submit.sh
 RUN mpicc -o /usr/source/mpi_hello_world /usr/source/mpi_hello_world.c
 ```
 
-Next we copy the [source/](/03_containers_AT/03_containers/Local/source) code examples from our repo (paths are with respect to the location of the `DockerFile`) into our containers filesystem and build the C-file into a binary we can later execute on Theta.
+Next we copy the [source/](/03_containers/Local/source) code examples from our repo (paths are with respect to the location of the `DockerFile`) into our containers filesystem and build the C-file into a binary we can later execute on Theta.
 
 ```DockerFile
 ENTRYPOINT ["/usr/submit.sh"]
