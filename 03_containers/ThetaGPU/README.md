@@ -2,7 +2,7 @@
 
 ## Singularity on ThetaGPU
 
-To build a singularity container on ThetaGPU, you will need to launch an interactive job and build the container on ThetaGPU compute nodes. First you'll need a singularity definition file. See below for an example
+To build a singularity container on ThetaGPU, you will need to launch an interactive job and build the container on ThetaGPU compute nodes. But first you'll need a singularity definition file. See below for an example
 
 ## Example Singularity definition file
 
@@ -10,21 +10,21 @@ To build a singularity container on ThetaGPU, you will need to launch an interac
 Bootstrap: docker
 From: ubuntu:20.04
 ```
-Here we define the base image to build our singularity container, we are using the Dockerhub's ubuntu:20.04 base image
+Here we have defined the base image to build our singularity container. We are using the Dockerhub's ubuntu:20.04 base image
 
 ```singularity
 %files
 	../local/source/* /usr/source/
 	../local/submit.sh /usr/
 ```
-The %files section copies some files into the container from the host system at build time.
+The `%files` section copies some files into the container from the host system at build time
 
 ```singularity
 %environment
-export PATH=$PATH:/mpich/install/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mpich/install/lib
+	export PATH=$PATH:/mpich/install/bin
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mpich/install/lib
 ```
-The %environment section defines some environment variables that will be available to the container at runtime
+The `%environment` section defines some environment variables that will be available to the container at runtime
 
 ```singularity
 %post
@@ -49,9 +49,8 @@ The %environment section defines some environment variables that will be availab
 	&& tar xfz mpich-${MPICH_VERSION}.tar.gz  --strip-components=1 \
 	&& ./configure ${MPICH_CONFIGURE_OPTIONS} \
 	&& make install ${MPICH_MAKE_OPTIONS}
-	
 	export PATH=$PATH:/mpich/install/bin
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mpich/install/lib
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mpich/install/lib
 
 	pip install mpi4py
 
@@ -59,32 +58,30 @@ The %environment section defines some environment variables that will be availab
 	chmod +x /usr/submit.sh
 	mpicc -o /usr/source/mpi_hello_world /usr/source/mpi_hello_world.c
 ```
-The %post section executes within the container at build time after the base OS has been installed. The %post section is therefore the place to perform installations of custom apps.
+The `%post` section executes within the container at build time after the base OS has been installed. The %post section is therefore the place to perform installations of custom apps.
 
 
 ```singularity
 %runscript
 	exec /usr/submit.sh "$@"
 ```
-The %runscript section defines actions for the container to take when it is executed (in this case a simple message)
+The `%runscript` section defines actions for the container to take when it is executed
 
 ```singularity
 %labels
         MAINTAINER Aditya atanikanti@anl.gov
 ```
-The %labels section allows for custom metadata to be added to the container
+The `%labels` section allows for custom metadata to be added to the container
 
 ```singularity
 %help
-    	This is container is used to illustrate a mpi based def file to build a container running python and c programs.
-		To build the container use singularity build --fakeroot mpi.sif mpi.def
+    	This is container is used to illustrate a mpi based def file to build a container running python and c programs. To build the container use singularity build --fakeroot mpi.sif mpi.def
 ```
-The %help section can be used to define how to build and run the container.
+The `%help` section can be used to define how to build and run the container.
 
 ## Build Singularity container on ThetaGPU compute
 
-After logging on to Theta login, ssh to thetagpusn1 and launch an interactive job using the attrs `--fakeroot`, `--pubnet` and specifying the filesystems `--filesystems`
-
+After logging on to Theta login, ssh to thetagpusn1 and launch an interactive job using the attrs `--fakeroot`, `--pubnet` and specifying the filesystems `--filesystems` as shown
 ```bash
 username@local: ssh username@theta.alcf.anl.gov
 username@thetalogin6: ssh thetagpusn1
@@ -97,7 +94,7 @@ export http_proxy=http://proxy.tmi.alcf.anl.gov:3128
 export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
 ```
 
-Now we can build our container using `--fakeroot` where <def_filename>.def is the definition file we have written in our example above and <image_name>.sif is the user defined image file
+Now we can build our container using `--fakeroot` where <def_filename>.def is the definition file we have defined in our example above and <image_name>.sif is the user defined image file name
 ```bash
 username@thetagpu16: singularity build --fakeroot <image_name>.sif <def_filename>.def 
 ```
@@ -110,7 +107,7 @@ username@thetagpu16:mpirun -np 1 singularity exec <image_name>.sif /usr/source/m
 username@thetagpu16:mpirun -np 1 singularity exec <image_name>.sif python3 /usr/source/mpi_hello_world.py
 ```
 
-or from the service node using the example job_submission_thetagpu.sh bash script defined below
+or from the service node using the example [job_submission_thetagpu.sh](./job_submission_thetagpu.sh) bash script
 ```bash
 username@thetagpusn1:qsub /path/to/CompPerfWorkshop/03_containers/ThetaGPU/job_submission_thetagpu.sh </path/to/image_name>
 ```
@@ -152,18 +149,18 @@ There are several containers on ThetaGPU that will help you get started with dee
 
 To build on top of a pre-existing container you can simply build on top of the preexisting container by changing the the definition file as follows and installing your modules and dependencies. See [bootstap.def](./bootstrap.def)
 
-```
+```singularity
 Bootstrap: localimage
 From: /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.08-py3.simg
 ```
 The base image is a local singularity image
 
-```
+```singularity
 %post
 	#### INSTALL YOUR PACKAGES NEEDED FOR YOUR APPLICATION ####
 	pip install sklearn
 ```
-Install any package you wish to use in the container
+In the `%post` section install any package you wish to use in the container
 
 ```bash
 singularity build --fakeroot bootstrap.def bootstrap.sif
@@ -193,18 +190,3 @@ Accuracy at step 7: 0.098
 Accuracy at step 8: 0.098
 Accuracy at step 9: 0.098
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
