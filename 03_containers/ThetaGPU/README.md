@@ -107,9 +107,6 @@ mpirun -np 1 singularity exec <image_name>.sif python3 /usr/source/mpi_hello_wor
 ```
 
 or from the service node using the script [job_submission_thetagpu.sh](./job_submission_thetagpu.sh) which is explained below
-```bash
-username@thetagpusn1:qsub /path/to/CompPerfWorkshop/03_containers/ThetaGPU/job_submission_thetagpu.sh </path/to/image_name>.sif
-```
 
 ## Example `job_submission_thetagpu.sh`
 
@@ -138,6 +135,7 @@ Here we run the the singularity container with our example mpi codes using mpiru
 
 The output should look like this:
 ```bash
+qsub /path/to/CompPerfWorkshop/03_containers/ThetaGPU/job_submission_thetagpu.sh </path/to/image_name>.sif
 Hello world from processor thetagpu16, rank 0 out of 1 processors
 Hello world from processor thetagpu16, rank 0 out of 1 processors
 ```
