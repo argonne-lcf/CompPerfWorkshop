@@ -5,6 +5,7 @@ Conains simple implementation illustrating how to use PyTorch DDP for
 distributed data parallel training.
 """
 from __future__ import absolute_import, division, print_function, annotations
+import sys
 import os
 import socket
 import logging
@@ -16,6 +17,8 @@ import time
 import torch
 import torch.utils.data
 import torch.utils.data.distributed
+from torch.cuda.amp.grad_scaler import GradScaler
+
 
 import numpy as np
 import torch.distributed as dist
@@ -26,8 +29,12 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from omegaconf import DictConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
-from utils.data_torch import DistributedDataObject, prepare_datasets
+# from src.cpw.utils import DistributedDataObject, prepare_datasets
 
+here = os.path.abspath(os.path.dirname(__file__))
+modulepath = os.path.dirname(here)
+if modulepath not in sys.path:
+    sys.path.append(modulepath)
 
 
 log = logging.getLogger(__name__)
@@ -118,16 +125,19 @@ class Net(nn.Module):
 def metric_average(val: Tensor):
     if (WITH_DDP):
         # Sum everything and divide by the total size
-        dist.all_reduce(val, op=dist.reduce_op.SUM)
+        dist.all_reduce(val, op=dist.ReduceOp.SUM)
         return val / SIZE
 
     return val
 
 
 class Trainer:
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: DictConfig, scaler: Optional[GradScaler] = None):
         self.cfg = cfg
         self.rank = RANK
+        if scaler is None:
+            self.scaler = None
+
         self.device = 'gpu' if torch.cuda.is_available() else 'cpu'
         self.backend = self.cfg.backend
         if WITH_DDP:
@@ -179,9 +189,6 @@ class Trainer:
 
     def setup_data(self):
         kwargs = {}
-        # log.warning(f'os.getcwd(): {os.getcwd()}')
-        # log.warning(f'cfg.work_dir: {self.cfg.work_dir}')
-        # log.warning(f'cfg.data_dir: {self.cfg.data_dir}')
 
         if self.device == 'gpu':
             kwargs = {'num_workers': 1, 'pin_memory': True}
@@ -245,31 +252,21 @@ class Trainer:
     ) -> tuple[Tensor, Tensor]:
         if WITH_CUDA:
             data, target = data.cuda(), target.cuda()
+
+        self.optimizer.zero_grad()
         probs = self.model(data)
         loss = self.loss_fn(probs, target)
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+
+        if self.scaler is not None and isinstance(self.scaler, GradScaler):
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+        else:
+            loss.backward()
+            self.optimizer.step()
+
         _, pred = probs.data.max(1)
-        acc = (pred == target).sum() / pred.shape[0]
-        # acc = (pred == target.data.view_as(pred)).float().sum()
-        # acc = pred.eq(target.data.view_as(pred)).float().sum()
-
-        return loss, acc
-
-    def test_step(
-        self,
-        data: Tensor,
-        target: Tensor,
-    ) -> tuple[Tensor, Tensor]:
-        if WITH_CUDA:
-            data, target = data.cuda(), target.cuda()
-
-        with torch.no_grad():
-            probs = self.model(data)
-            loss = self.loss_fn(probs, target)
-            _, pred = probs.data.max(1)
-            acc = (pred == target).sum() / pred.shape[0]
+        acc = (pred == target).sum()
 
         return loss, acc
 
@@ -287,95 +284,73 @@ class Trainer:
 
         train_sampler = self.data['train']['sampler']
         train_loader = self.data['train']['loader']
-        # Horovod: set epoch to sampler for shuffling
+        # DDP: set epoch to sampler for shuffling
         train_sampler.set_epoch(epoch)
-        # ntrain = len(train_loader.dataset) // SIZE // self.cfg.batch_size
-        # size = len(train_loader.dataset)
         for bidx, (data, target) in enumerate(train_loader):
             loss, acc = self.train_step(data, target)
             running_acc += acc
-            running_loss += loss
-
+            running_loss += loss.item()
             if bidx % self.cfg.logfreq == 0 and RANK == 0:
-                # Horovod: use train_sampler to determine the number of
+                # DDP: use train_sampler to determine the number of
                 # examples in this workers partition
-                log.info(' '.join([
+                metrics = {
+                    'epoch': epoch,
+                    'dt': time.time() - start,
+                    'batch_acc': acc.item() / self.cfg.batch_size,
+                    'batch_loss': loss.item() / self.cfg.batch_size,
+                    'acc': running_acc / len(self.data['train']['sampler']),
+                    'running_loss': (
+                        running_loss / len(self.data['train']['sampler'])
+                    ),
+                }
+                pre = [
                     f'[{RANK}]',
-                    # f'({epoch}/{self.cfg.epochs})',
                     (   # looks like: [num_processed/total (% complete)]
                         f'[{epoch}/{self.cfg.epochs}:'
                         f' {bidx * len(data)}/{len(train_sampler)}'
                         f' ({100. * bidx / len(train_loader):.0f}%)]'
                     ),
-                    f'dt={time.time() - start:.4f}',
-                    f'loss={loss.item():.6f}',
-                    f'acc={acc.item():.2f}%',
+                ]
+                log.info(' '.join([
+                    *pre, *[f'{k}={v:.4f}' for k, v in metrics.items()]
                 ]))
 
-        running_loss /= len(train_sampler)
-        running_acc /= len(train_sampler)
+        running_loss = running_loss / len(train_sampler)
+        running_acc = running_acc / len(train_sampler)
         training_acc = metric_average(running_acc)
-        loss_avg = metric_average(running_loss / self.cfg.batch_size)
+        loss_avg = metric_average(running_loss)
 
-        if RANK == 0:
-            summary = '  '.join([
-                '[TRAIN]',
-                # f'dt={dt_train:.6f}',
-                f'loss={loss_avg:.4f}',
-                f'acc={training_acc * 100:.2f}%'
-                # '[TRAINING SET]',
-                # f'Average loss: {(loss_avg):.4f}',
-                # f'Accuracy: {(training_acc * 100):.2f}%'
-            ])
-            log.info((sep := '-' * len(summary)))
-            log.info(summary)
-            log.info(sep)
+        return {'loss': loss_avg, 'acc': training_acc}
 
-        return {'loss': loss_avg, 'acc': running_acc}
+    def test_step(
+        self,
+        data: Tensor,
+        target: Tensor,
+    ) -> tuple[Tensor, Tensor]:
+        if WITH_CUDA:
+            data, target = data.cuda(), target.cuda()
+
+        with torch.no_grad():
+            probs = self.model(data)
+            loss = self.loss_fn(probs, target)
+            _, pred = probs.data.max(1)
+            acc = (pred == target).sum().item()
+
+        return loss, acc
 
     def test(self) -> dict:
         self.model.eval()
-        running_loss = torch.tensor(0.0)
-        running_acc = torch.tensor(0.0)
-        if WITH_CUDA:
-            running_loss = running_loss.cuda()
-            running_acc = running_acc.cuda()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for idx, data in enumerate(self.data['test']['loader']):
+                images, labels = data[0].cuda(), data[1].cuda()
+                probs = self.model(images)
+                _, predicted = probs.data.max(1)
+                total = total + labels.shape[0]
+                correct = correct + (predicted == labels).sum().item()
 
-        n = 0
-        # ntest = (
-        #     len(self.data['test']['loader']) // SIZE // self.cfg.batch_size
-        # )
-        for data, target in self.data['test']['loader']:
-            loss, acc = self.test_step(data, target)
-            running_acc += acc
-            running_loss += loss
-            # test_loss += F.nll_loss(output, target).item()
-            # get the index of the max log-probability
-            # running_acc += pred.eq(target.data.view_as(pred)).float().sum()
-            # running_loss += self.loss_fn(output, target).item()
-            n = n + 1
-
-        # DDP: use test_sampler to determine
-        # the number of examples in this workers partition
-        running_loss /= len(self.data['test']['sampler'])
-        running_acc /= len(self.data['test']['sampler'])
-
-        # DDP: average metric values across workers
-        running_loss = metric_average(running_loss)
-        running_acc = metric_average(running_acc)
-
-        if RANK == 0:
-            summary = ' '.join([
-                '[TEST]',
-                f'loss={(running_loss):.4f}',
-                f'acc={(running_acc):.2f}%'
-            ])
-            log.info((sep := '-' * len(summary)))
-            log.info(summary)
-            log.info(sep)
-
-        return {'loss': running_loss, 'acc': running_acc}
-
+        return correct / total
 
 # def run_demo(demo_fn: Callable, world_size: int | str) -> None:
 #     mp.spawn(demo_fn,
@@ -391,9 +366,25 @@ def main(cfg: DictConfig) -> None:
     epoch_times = []
     for epoch in range(1, cfg.epochs + 1):
         t0 = time.time()
-        _ = trainer.train_epoch(epoch)
-        _ = trainer.test()
+        metrics = trainer.train_epoch(epoch)
         epoch_times.append(time.time() - t0)
+
+        if epoch % cfg.logfreq and RANK == 0:
+            acc = trainer.test()
+            astr = f'[TEST] Accuracy: {acc:.2f}%'
+            sepstr = '-' * len(astr)
+            log.info(sepstr)
+            log.info(astr)
+            log.info(sepstr)
+            summary = '  '.join([
+                '[TRAIN]',
+                f'loss={metrics["loss"]:.4f}',
+                f'acc={metrics["acc"] * 100:.2f}%'
+            ])
+            log.info((sep := '-' * len(summary)))
+            log.info(summary)
+            log.info(sep)
+
 
     log.info(f'Total training time: {time.time() - start} seconds')
     log.info(
