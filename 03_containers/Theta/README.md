@@ -77,7 +77,7 @@ docker build -t <username>/<repository_name>:<tag> </path/to/CompPerfWorkshop/03
 # push this image into your docker hub account so it is accessible remotely
 docker push <username>/<respository_name>:<tag>
 ```
-username & repository_name are created on [DockerHub](https://hub.docker.com/). 
+`username` & `repository_name` are created on [DockerHub](https://hub.docker.com/). 
 
 e.g.
 
@@ -89,19 +89,18 @@ docker push atanikan/alcftutorial:latest
 
 ## Build Singularity image from DockerHub
 
-Now that we have a docker image on DockerHub, we can build our singularity container using the docker image as a source using `sinularity build <image_name> docker://..` 
+Now that we have a docker image on DockerHub, we can build our singularity container using the docker image as a source using `sinularity build <image_name> docker://..`
 
-e.g.
-```console
-thetalogin6: singularity build <image_name>.sif docker://<username>/<repository_name>:<tag>
+```bash
+singularity build <image_name> docker://<username>/<repository_name>:<tag>
 ```
 
-Here image_name is user defined & usually ends with .sif or .img
+Here `image_name` is user defined & usually ends with `.sif` or `.simg`.
 
 ## Run Singularity container on Theta
 
-```console
-thetalogin6: qsub job_submission_theta.sh <image_name>
+```bash
+qsub /path/to/CompPerfWorkshop/03_containers/Theta/job_submission_theta.sh </path/to/image_name>
 ```
 
 ## Example `job_submission_theta.sh`
@@ -112,7 +111,7 @@ thetalogin6: qsub job_submission_theta.sh <image_name>
 #COBALT -q debug-flat-quad
 #COBALT -n 2
 #COBALT -A <project_name>
-#COBALT --attrs filesystem=theta-fs0,home
+#COBALT --attrs filesystems=theta-fs0,home
 RANKS_PER_NODE=4
 CONTAINER=$1
 ```
@@ -146,3 +145,25 @@ aprun -n $TOTAL_RANKS -N $RANKS_PER_NODE singularity exec $BINDINGS $CONTAINER p
 ```
 
 Here we run the the singularity container with our example mpi codes using aprun on Theta compute nodes
+
+The output should look like this:
+```
+Hello world from processor nid00020, rank 2 out of 8 processors
+Hello world from processor nid00020, rank 3 out of 8 processors
+Hello world from processor nid00020, rank 0 out of 8 processors
+Hello world from processor nid00020, rank 1 out of 8 processors
+Hello world from processor nid00021, rank 6 out of 8 processors
+Hello world from processor nid00021, rank 7 out of 8 processors
+Hello world from processor nid00021, rank 4 out of 8 processors
+Hello world from processor nid00021, rank 5 out of 8 processors
+Application 26449404 resources: utime ~14s, stime ~8s, Rss ~39912, inblocks ~64022, outblocks ~0
+Hello world from processor nid00021, rank 7 out of 8 processors
+Hello world from processor nid00021, rank 6 out of 8 processors
+Hello world from processor nid00021, rank 5 out of 8 processors
+Hello world from processor nid00021, rank 4 out of 8 processors
+Hello world from processor nid00020, rank 2 out of 8 processors
+Hello world from processor nid00020, rank 3 out of 8 processors
+Hello world from processor nid00020, rank 1 out of 8 processors
+Hello world from processor nid00020, rank 0 out of 8 processors
+Application 26449405 resources: utime ~14s, stime ~8s, Rss ~39392, inblocks ~83290, outblocks ~0
+```
