@@ -146,7 +146,7 @@ Hello world from processor thetagpu16, rank 0 out of 1 processors
 
 There are several containers on ThetaGPU that will help you get started with deep learning experiments that can efficiently use the A100 GPUs. We have different optimized container for DL here `ls /lus/theta-fs0/software/thetagpu/nvidia-containers/`
 
-To build on top of a pre-existing container you can simply build on top of the preexisting container by changing the the definition file as follows and installing your modules and dependencies. See [bootstap.def](./bootstrap.def)
+To build on top of a pre-existing container you can simply build on top of the preexisting container by changing the the definition file as follows and installing your modules and dependencies. See [bootstap.def](./bootstrap.def) and an explanation of that file below
 
 ```singularity
 Bootstrap: localimage
@@ -189,3 +189,5 @@ Accuracy at step 7: 0.098
 Accuracy at step 8: 0.098
 Accuracy at step 9: 0.098
 ```
+
+You can also obviously submit the same from the service node using the [job_submission_thetagpudl.sh](./job_submission_thetagpudl.sh) script
