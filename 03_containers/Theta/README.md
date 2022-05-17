@@ -3,7 +3,7 @@
 ## Singularity on Theta
 
 To build a singularity container we can either
-* Build a Singularity container from a Docker container on the login nodes. To build a Docker container from scratch you need to install Docker on our local machines, write a Dockerfile, build the Docker imag/container and finally publish it to DockerHub. We illustrate this below with examples. Or
+* Build a Singularity container from a Docker container on the login nodes. To build a Docker container from scratch you need to install Docker on your local machine, write a Dockerfile, build the Docker imag/container, and finally publish it to DockerHub. We illustrate this below with examples. Or
 * Build a Singularity container directly on ThetaGPU computes. We achieve this by writing a Singularity Definition file and build the singularity container on ThetaGPU compute nodes. See [here](../ThetaGPU) for examples.
 
 ## Example `DockerFile`
@@ -70,8 +70,11 @@ In Docker (and Singularity) you can simply "run" a container if an entry point i
 To build and publish your docker image to [DockerHub](https://hub.docker.com/) use docker build followed by docker push.
 
 ```console
+# in some cases need to login to docker (for Mac OS need to run Docker desktop)
 docker login
-docker build -t <username>/<repository_name>:<tag>
+# build image from DockerFile, include the path to the folder that contains the DockerFile
+docker build -t <username>/<repository_name>:<tag> </path/to/CompPerfWorkshop/03_containers/Local/>
+# push this image into your docker hub account so it is accessible remotely
 docker push <username>/<respository_name>:<tag>
 ```
 username & repository_name are created on [DockerHub](https://hub.docker.com/). 
