@@ -14,8 +14,8 @@ Here we have defined the base image to build our singularity container. We are u
 
 ```singularity
 %files
-	../local/source/* /usr/source/
-	../local/submit.sh /usr/
+	../Local/source/* /usr/source/
+	../Local/submit.sh /usr/
 ```
 The `%files` section copies some files into the container from the host system at build time
 

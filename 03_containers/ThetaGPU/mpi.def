@@ -2,8 +2,8 @@ Bootstrap: docker
 From: ubuntu:20.04
 
 %files
-	source/* /usr/source/
-	submit.sh /usr/
+	../Local/source/* /usr/source/
+	../Local/submit.sh /usr/
 
 %environment
 	export PATH=$PATH:/mpich/install/bin
