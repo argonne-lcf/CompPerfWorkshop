@@ -3,7 +3,7 @@
 #COBALT -q debug-flat-quad
 #COBALT -n 2
 #COBALT -A datascience
-#COBALT --attrs filesystem=theta-fs0,home
+#COBALT --attrs filesystems=theta-fs0,home
 
 RANKS_PER_NODE=4
 
