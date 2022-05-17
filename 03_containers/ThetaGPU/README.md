@@ -1,5 +1,7 @@
 # Containers on Theta(GPU)
 
+There are two methods to build containers on ThetaGPU. One can follow the [Docker instructions for Theta](/03_containers/Theta/README.md) to create a docker container, then use it to build a singularity container. Otherwise, one can follow the directions below to build singularity recipe files on ThetaGPU worker nodes via interactive sessions.
+
 ## Singularity on ThetaGPU
 
 To build a singularity container on ThetaGPU, you will need to launch an interactive job and build the container on ThetaGPU compute nodes. But first you'll need a [singularity definition](./mpi.def) file. See below for explanation of the file.
@@ -58,7 +60,7 @@ The `%environment` section defines some environment variables that will be avail
 	chmod +x /usr/submit.sh
 	mpicc -o /usr/source/mpi_hello_world /usr/source/mpi_hello_world.c
 ```
-The `%post` section executes within the container at build time after the base OS has been installed. The %post section is therefore the place to perform installations of custom apps.
+The `%post` section executes within the container at build time after the base OS has been installed. The `%post` section is therefore the place to perform installations of custom apps.
 
 
 ```singularity
@@ -87,15 +89,15 @@ ssh thetagpusn1
 qsub -I -n 1 -t 01:00:00 -q single-gpu -A <project_name> --attrs fakeroot=true:pubnet=true:filesystems=home,theta-fs0
 ```
 
-Before we build our container we need to make sure the thetagpu computes have access to external resources, this is achieved by defining the http_proxy and https_proxy variables
+Before we build our container we need to make sure the thetagpu computes have access to external resources, this is achieved by defining the `http_proxy` and `https_proxy` variables
 ```bash
 export http_proxy=http://proxy.tmi.alcf.anl.gov:3128
 export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
 ```
 
-Now we can build our container using `--fakeroot` where <def_filename>.def is the definition file we have defined in our example above and <image_name>.sif is the user defined image file name
+Now we can build our container using `--fakeroot` where `<def_filename>.def` is the definition file we have defined in our example above and `<image_name>.sif` is the user defined image file name
 ```bash
-username@thetagpu16: singularity build --fakeroot <image_name>.sif <def_filename>.def 
+singularity build --fakeroot <image_name>.sif <def_filename>.def 
 ```
 
 ## Run Singularity container on ThetaGPU compute
