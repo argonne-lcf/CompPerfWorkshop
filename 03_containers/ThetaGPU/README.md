@@ -2,7 +2,7 @@
 
 ## Singularity on ThetaGPU
 
-To build a singularity container on ThetaGPU, you will need to launch an interactive job and build the container on ThetaGPU compute nodes. But first you'll need a singularity definition file. See below for an example
+To build a singularity container on ThetaGPU, you will need to launch an interactive job and build the container on ThetaGPU compute nodes. But first you'll need a [singularity definition](./mpi.def) file. See below for explanation of the file.
 
 ## Example Singularity definition file
 
@@ -81,11 +81,10 @@ The `%help` section can be used to define how to build and run the container.
 
 ## Build Singularity container on ThetaGPU compute
 
-After logging on to Theta login, ssh to thetagpusn1 and launch an interactive job using the attrs `--fakeroot`, `--pubnet` and specifying the filesystems `--filesystems` as shown
+After logging on to Theta login nodes, ssh to thetagpusn1 and launch an interactive job using the attrs `--fakeroot`, `--pubnet` and specifying the filesystems `--filesystems` as shown
 ```bash
-username@local: ssh username@theta.alcf.anl.gov
-username@thetalogin6: ssh thetagpusn1
-username@thetagpusn1: qsub -I -n 1 -t 01:00:00 -q single-gpu -A <project_name> --attrs fakeroot=true:pubnet=true:filesystems=home,theta-fs0
+ssh thetagpusn1
+qsub -I -n 1 -t 01:00:00 -q single-gpu -A <project_name> --attrs fakeroot=true:pubnet=true:filesystems=home,theta-fs0
 ```
 
 Before we build our container we need to make sure the thetagpu computes have access to external resources, this is achieved by defining the http_proxy and https_proxy variables
@@ -101,15 +100,15 @@ username@thetagpu16: singularity build --fakeroot <image_name>.sif <def_filename
 
 ## Run Singularity container on ThetaGPU compute
 
-We can now either directly run the container on the compute node as shown below
+We can now either run the container on the compute node as shown below
 ```bash
-username@thetagpu16:mpirun -np 1 singularity exec <image_name>.sif /usr/source/mpi_hello_world
-username@thetagpu16:mpirun -np 1 singularity exec <image_name>.sif python3 /usr/source/mpi_hello_world.py
+mpirun -np 1 singularity exec <image_name>.sif /usr/source/mpi_hello_world
+mpirun -np 1 singularity exec <image_name>.sif python3 /usr/source/mpi_hello_world.py
 ```
 
-or from the service node using the example [job_submission_thetagpu.sh](./job_submission_thetagpu.sh) bash script
+or from the service node using the script [job_submission_thetagpu.sh](./job_submission_thetagpu.sh) which is explained below
 ```bash
-username@thetagpusn1:qsub /path/to/CompPerfWorkshop/03_containers/ThetaGPU/job_submission_thetagpu.sh </path/to/image_name>
+username@thetagpusn1:qsub /path/to/CompPerfWorkshop/03_containers/ThetaGPU/job_submission_thetagpu.sh </path/to/image_name>.sif
 ```
 
 ## Example `job_submission_thetagpu.sh`
@@ -138,7 +137,7 @@ mpirun -np 1 singularity exec $CONTAINER python3 /usr/source/mpi_hello_world.py
 Here we run the the singularity container with our example mpi codes using mpirun on ThetaGPU compute nodes
 
 The output should look like this:
-```
+```bash
 Hello world from processor thetagpu16, rank 0 out of 1 processors
 Hello world from processor thetagpu16, rank 0 out of 1 processors
 ```
