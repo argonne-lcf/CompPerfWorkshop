@@ -69,7 +69,7 @@ In Docker (and Singularity) you can simply "run" a container if an entry point i
 
 To build and publish your docker image to [DockerHub](https://hub.docker.com/) use docker build followed by docker push.
 
-```console
+```bash
 # in some cases need to login to docker (for Mac OS need to run Docker desktop)
 docker login
 # build image from DockerFile, include the path to the folder that contains the DockerFile
@@ -81,7 +81,7 @@ username & repository_name are created on [DockerHub](https://hub.docker.com/).
 
 e.g.
 
-```console
+```bash
 docker login
 docker build -t atanikan/alcftutorial:latest
 docker push atanikan/alcftutorial:latest
