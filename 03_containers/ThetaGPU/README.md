@@ -190,4 +190,4 @@ Accuracy at step 8: 0.098
 Accuracy at step 9: 0.098
 ```
 
-You can also obviously submit the same from the service node using the [job_submission_thetagpudl.sh](./job_submission_thetagpudl.sh) script
+You can also submit a job from the service node as we have done before using the [job_submission_thetagpudl.sh](./job_submission_thetagpudl.sh) script
