@@ -40,7 +40,7 @@ update from a separate object.
 We will use the 2022 release NVIDIA-optimiized NGC Singularity container for
 PyTorch 3.x in this walkthrough:
 ```
-singularity exec --nv -B /lus /lus/theta-fs0/projects/datascience/zhen/docker/pytorch_22.01-py3.sif bash
+singularity exec --nv -B /lus /lus/theta-fs0/software/thetagpu/nvidia-containers/pytorch/pytorch_22.01-py3.simg bash
 ```
 
 
