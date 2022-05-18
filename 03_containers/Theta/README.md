@@ -1,21 +1,20 @@
 # Containers on Theta (KNL)
 
-## Singularity on Theta
-
-To build a singularity container we can either
-* Build a Singularity container from a Docker container on the login nodes. To build a Docker container from scratch you need to install Docker on your local machine, write a Dockerfile, build the Docker imag/container, and finally publish it to DockerHub. We illustrate this below with examples. Or
-* Build a Singularity container directly on ThetaGPU computes. We achieve this by writing a Singularity Definition file and build the singularity container on ThetaGPU compute nodes. See [here](../ThetaGPU) for examples.
-
+On Theta(KNL), the best method for container creation is to follow the Docker instructions on the first [README](../README.md). We'll start assuming those steps have been followed.
 
 ## Build Singularity image from DockerHub
 
-Now that we have a docker image on DockerHub, we can build our singularity container using the docker image as a source using `sinularity build <image_name> docker://..`
+Now that we have a docker image on Docker Hub, we can build our singularity container using the docker image as a source using
 
 ```bash
 singularity build <image_name> docker://<username>/<repository_name>:<tag>
 ```
 
 Here `image_name` is user defined & usually ends with `.sif` or `.simg`.
+
+Example:
+
+![singularity_build](../README_media/singularity_build.gif)
 
 ## Run Singularity container on Theta
 
