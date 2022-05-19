@@ -12,9 +12,9 @@ This image aims to show the differences. VMs run a full software stack inside th
 
 At ALCF, users must run [Singularity](https://sylabs.io/guides/3.8/user-guide/index.html) containers. Singularity is a container technology built for supercomputers with securtiy in mind. Typically we recommend users build [Docker](https://docs.docker.com/) containers first, which can then be easily converted to Singularity containers. Below you'll find links to instructions for each of our systems.
 
-We will not repeat the detailed instructions for building docker containers, but do provide system specific examples of what a `DockerFile` should look like. 
+We will not repeat the detailed instructions for building docker containers, but do provide system specific examples of what a `Dockerfile` should look like. 
 * General Docker documentation can be found here: https://docs.docker.com/
-* Specifics on building docker container recipes using `DockerFile` can be found here: https://docs.docker.com/engine/reference/builder/
+* Specifics on building docker container recipes using `Dockerfile` can be found here: https://docs.docker.com/engine/reference/builder/
 
 The trickiest parts of building containers for ALCF systems is ensuring proper MPI support and GPU driver compatibility.
 
@@ -22,18 +22,18 @@ The trickiest parts of building containers for ALCF systems is ensuring proper M
 
 The easiest way to build a container is from your laptop. [First, install Docker.](https://docs.docker.com/get-docker/) Then follow these steps.
 
-We have an example installation in the [Local](/03_containers/Local) directory, which contains an `DockerFile`. This is a container recipe file that we will use to tell Docker how to install our software.
+We have an example installation in the [Local](/03_containers/Local) directory, which contains an `Dockerfile`. This is a container recipe file that we will use to tell Docker how to install our software.
 
-## Example `DockerFile`
+## Example `Dockerfile`
 
-We include example build source code here: [Local Example Source](../Local/source). This includes an example [DockerFile](../Local/Dockerfile) which we will describe line-by-line below.
+We include example build source code here: [Local Example Source](../Local/source). This includes an example [Dockerfile](../Local/Dockerfile) which we will describe line-by-line below.
 
-```DockerFile
+```Dockerfile
 FROM ubuntu:20.04
 ```
 The first line specifies a starting point for our contianer. In this instance, we start from a container that only has Ubuntu version 20.04 installed. However, we could start with any other container available on Docker Hub. We'll build everything else on top of this operating system.
 
-```DockerFile
+```Dockerfile
 RUN apt-get update -y \
 	&& DEBIAN_FRONTEND=noninteractive \
 	&& apt-get install -y build-essential libfabric-dev libibverbs-dev gfortran wget \
@@ -42,7 +42,7 @@ RUN apt-get update -y \
 
 Here we install system packages we need to build and run our code examples using the standard [Ubuntu package manager](https://ubuntu.com/server/docs/package-management#:~:text=The%20apt%20command%20is%20a,upgrading%20the%20entire%20Ubuntu%20system.) `apt`.
 
-```DockerFile
+```Dockerfile
 WORKDIR /mpich
 # Source is available at http://www.mpich.org/static/downloads/
 # See installation guide of target MPICH version
@@ -61,13 +61,13 @@ ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/mpich/install/lib
 
 Here we change our working directory to `/mpich` and then download and install MPI from scratch with some specific build options. You can find the installation documentation [HERE](https://www.mpich.org/static/downloads/4.0.2/mpich-4.0.2-installguide.pdf). The key compilation option is the `--disable-wrapper-rpath` which makes it possible to build applications inside the container using this MPI library, but then replace those libraries with the Theta-specific libraries during runtime simply using the `LD_LIBRARY_PATH` environment variable. This is important since Theta uses high-speed network interfaces that require custom drivers and interface libraries to use.
 
-```DockerFile
+```Dockerfile
 RUN pip install mpi4py
 ```
 
 Here we simply install `mpi4py` into our python environment and it will utilize the MPICH we installed.
 
-```DockerFile
+```Dockerfile
 WORKDIR /usr
 COPY source/* /usr/source/
 COPY submit.sh /usr/
@@ -75,9 +75,9 @@ RUN chmod +x /usr/submit.sh
 RUN mpicc -o /usr/source/mpi_hello_world /usr/source/mpi_hello_world.c
 ```
 
-Next we copy the [source/](/03_containers/Local/source) code examples from our repo (paths are with respect to the location of the `DockerFile`) into our containers filesystem and build the C-file into a binary we can later execute on Theta.
+Next we copy the [source/](/03_containers/Local/source) code examples from our repo (paths are with respect to the location of the `Dockerfile`) into our containers filesystem and build the C-file into a binary we can later execute on Theta.
 
-```DockerFile
+```Dockerfile
 ENTRYPOINT ["/usr/submit.sh"]
 ```
 
@@ -95,18 +95,26 @@ Create a Docker Hub Repository:
 ![docker_hub_repo](README_media/docker_hub_repo.gif)
 
 Then build your Image:
+
 ```bash
-# build image from DockerFile, include the path to the folder that contains the DockerFile
+# build image from Dockerfile, include the path to the folder that contains the Dockerfile
 cd /path/to/CompPerfWorkshop/03_containers
 docker build -t jtchilders/alcf_cwp_example:latest ./Local/
 ```
-Here you see my username and repository name `jtchilders/alcf_cwp_example` and then attached with a `:` is the "tag" for this image. Just like GitHub an image is tagged with a version. It's traditional in Docker to use `latest` for the most recent version, but otherwise, you can use any string you like.
+Here you see my username and repository name `jtchilders/alcf_cwp_example` and then attached with a `:` is the "tag" for this image. Just like GitHub, an image is tagged with a version. It's traditional in Docker to use `latest` for the most recent version, but otherwise, you can use any string you like.
 
-Then `./Local/` simply points to the folder which contains my `DockerFile`. The build recipe will be run in that folder and have access to all the source files inside.
+Then `./Local/` simply points to the folder which contains my `Dockerfile`. The build recipe will be run in that folder and have access to all the source files inside. As an example, the instructions to build images for Theta(KNL) and Theta(GPU) are different. In order to build the image for Theta(GPU) you need to use the `Dockerfile_thetagpu` and must change the build command so it knows to use this file instead of the default:
+
+```bash
+docker build -t jtchilders/alcf_cwp_example:thetagpu -f ./Local/Dockerfile_thetagpu ./Local/
+```
+
+In this case, I'm still naming the image with my `username/repo` but I've changed my tag name to `thetagpu` so I can distinguish it from the previous image we built. I've also instructed docker on which `Dockerfile` to use as the recipe.
 
 Last step is to make this image accessible on Theta, so we'll push the newly built image to Docker Hub using:
 ```bash
 docker push jtchilders/alcf_cwp_example:latest
+docker push jtchilders/alcf_cwp_example:thetagpu
 ```
 
 Quick demo:
