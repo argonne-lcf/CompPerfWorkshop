@@ -24,6 +24,8 @@ qsub /path/to/CompPerfWorkshop/03_containers/Theta/job_submission_theta.sh </pat
 
 ## Example `job_submission_theta.sh`
 
+First we define the job submission parameters (number of nodes `-n`, queue name `-q`, wall time `-t`, etc.) that are needed to submit a job on Theta(KNL), the number of ranks per node, and the container is passed as an argument to the submission script.
+
 ```bash
 #!/bin/bash
 #COBALT -t 30
@@ -34,27 +36,38 @@ qsub /path/to/CompPerfWorkshop/03_containers/Theta/job_submission_theta.sh </pat
 RANKS_PER_NODE=4
 CONTAINER=$1
 ```
-
-Here we have defined the job submission parameters that are needed to submit a job on Theta, the number of ranks per node and we also pass the container as an argument to the submission script
+Next we load the proper Cray MPICH module for MPI support on Theta. ABI (Application Binary Independent) simply means, we can build our application inside the image using the MPICH we installed there. Then, at run-time, we will use the `LD_LIBRARY_PATH` to point our application at Cray's MPICH libraries instead. ABI enforces the use of a common interface to enable this swapping in and out. Otherwise, this would fail.
 
 ```bash
 # Use Cray's Application Binary Independent MPI build
 module swap cray-mpich cray-mpich-abi
 # Only needed when interactive debugging
 #module swap PrgEnv-intel PrgEnv-cray; module swap PrgEnv-cray PrgEnv-intel
+```
 
+These `ADDITIONAL_PATHS` are the paths to dependencies from the Cray modules.
+
+```bash
 export ADDITIONAL_PATHS="/opt/cray/diag/lib:/opt/cray/ugni/default/lib64/:/opt/cray/udreg/default/lib64/:/opt/cray/xpmem/default/lib64/:/opt/cray/alps/default/lib64/:/opt/cray/wlm_detect/default/lib64/"
+```
 
-# in order to pass environment variables to a Singularity container create the
-# variable with the SINGULARITYENV_ prefix
+Now we add all these library paths to the `SINGULARITYENV_LD_LIBRARY_PATH` which will be used by Singularity to set the `LD_LIBRARY_PATH` environment variable inside the container at runtime.
+
+```bash
+# The LD_LIBRARY_PATH and/or PATH environment variables in a 
+# Singularity container can be altered only using the SINGULARITYENV_LD_LIBRARY_PATH 
+# or SINGULARITYENV_PATH environment variables prior to execution.
 export SINGULARITYENV_LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH:$ADDITIONAL_PATHS"
+```
 
-# show that the app is running agains the host machines Cray libmpi.so not the
-# one inside the container
+We need all the libraries to be accessible inside the container, therefore, we "bind-mount" the base path to all our dependencies using the `-B` option.
+
+```bash
+# need to mount these folders inside the container so that the Cray MPICH libraries will be found.
 BINDINGS="-B /opt -B /etc/alternatives"
 ```
 
-Here we define all the prerequisite settings needed to run singularity on Theta compute nodes
+Next the actual run commands that combine the `aprun` launcher call that handles the MPI, and the `singularity` call to handle the containerized environment.
 
 ```bash
 TOTAL_RANKS=$(( $COBALT_JOBSIZE * $RANKS_PER_NODE ))
@@ -62,8 +75,6 @@ TOTAL_RANKS=$(( $COBALT_JOBSIZE * $RANKS_PER_NODE ))
 aprun -n $TOTAL_RANKS -N $RANKS_PER_NODE singularity exec $BINDINGS $CONTAINER /usr/source/mpi_hello_world
 aprun -n $TOTAL_RANKS -N $RANKS_PER_NODE singularity exec $BINDINGS $CONTAINER python3 /usr/source/mpi_hello_world.py
 ```
-
-Here we run the the singularity container with our example mpi codes using aprun on Theta compute nodes
 
 The output should look like this:
 ```
