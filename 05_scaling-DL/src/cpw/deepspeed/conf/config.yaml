@@ -1,0 +1,82 @@
+# @package _global_
+
+epochs: 10
+use_ema: False
+batch_size: 64
+moe: False
+ep_world_size: 1
+top_k: 1
+min_capacity: 0
+noisy_gate_policy: null
+moe_param_group: False
+
+seed: 42
+backend: gloo
+lr_init: 0.001
+# momentum: 0.5
+num_threads: 0
+logfreq: 10
+test_batch_size: 64
+fp16_allreduce: False
+
+# path to original working directory
+# hydra hijacks working directory by changing it to the new log directory
+# so its useful to have this path as a special variable
+# https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
+work_dir: ${hydra:runtime.cwd}
+# path to folder with data
+data_dir: ${work_dir}/datasets/
+
+
+defaults:
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog
+
+deepspeed:
+  train_micro_batch_size_per_gpu: auto
+  optimizer:
+    type: Adam
+    params:
+      lr: 1e-4
+  # gradient_accumulation_steps: auto
+  # gradient_clipping: auto
+  # steps_per_print: 2000
+  # train_batch_size: auto
+  # # train_micro_batch_size_per_gpu: auto
+  # wall_clock_breakdown: false
+
+  # zero_optimization:
+  #   stage: 2
+  #   offload_optimizer:
+  #     device: cpu
+  #     pin_memory: true
+  #   allgather_partitions: true
+  #   allgather_bucket_size: 2e8
+  #   reduce_scatter: true
+  #   reduce_bucket_size: 2e8,
+  #   overlap_comm: true
+  #   contiguous_gradients: true
+
+  # fp16:
+  #   enabled: auto
+  #   loss_scale: 0
+  #   loss_scale_window: 1000
+  #   initial_scale_power: 16
+  #   hysteresis: 2
+  #   min_loss_scale: 1
+
+  # optimizer:
+  #   type: AdamW
+  #   params:
+  #     lr: auto
+  #     betas: auto
+  #     eps: auto
+  #     weight_decay: auto
+
+
+  # scheduler:
+  #   type: WarmupLR
+  #   params:
+  #     warmup_min_lr: auto
+  #     warmup_max_lr: auto
+  #     warmup_num_steps: auto

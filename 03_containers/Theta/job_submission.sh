@@ -19,14 +19,14 @@ module swap cray-mpich cray-mpich-abi
 
 export ADDITIONAL_PATHS="/opt/cray/diag/lib:/opt/cray/ugni/default/lib64/:/opt/cray/udreg/default/lib64/:/opt/cray/xpmem/default/lib64/:/opt/cray/alps/default/lib64/:/opt/cray/wlm_detect/default/lib64/"
 
-# in order to pass environment variables to a Singularity container create the
-# variable with the SINGULARITYENV_ prefix
+# The LD_LIBRARY_PATH and/or PATH environment variables in a 
+# Singularity container can be altered only using the SINGULARITYENV_LD_LIBRARY_PATH 
+# or SINGULARITYENV_PATH environment variables prior to execution.
 export SINGULARITYENV_LD_LIBRARY_PATH="$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH:$ADDITIONAL_PATHS"
 
 TOTAL_RANKS=$(( $COBALT_JOBSIZE * $RANKS_PER_NODE ))
 
-# show that the app is running agains the host machines Cray libmpi.so not the
-# one inside the container
+# need to mount these folders inside the container so that the Cray MPICH libraries will be found.
 BINDINGS="-B /opt -B /etc/alternatives"
 
 # run my containner like an application

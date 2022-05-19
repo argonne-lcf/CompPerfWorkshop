@@ -1,0 +1,16 @@
+Bootstrap: localimage
+From: /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.08-py3.simg
+
+%post
+	#### INSTALL YOUR PACKAGES NEEDED FOR YOUR APPLICATION ####
+	pip install sklearn
+
+%runscript
+	exec python /usr/local/lib/python3.8/dist-packages/tensorflow/python/debug/examples/debug_mnist.py
+
+%labels
+    MAINTAINER Aditya atanikanti@anl.gov
+
+%help
+    This is container is used to illustrate how existing images can be used to build on top of a container. 
+	To build the container use singularity build --fakeroot mpi.sif mpi.def
