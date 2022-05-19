@@ -1,5 +1,5 @@
-Balsam: ALCF Computational Performance Workshop 2021
-=======================================================
+Balsam: ALCF Computational Performance Workshop
+===============================================
 
 To get started on ThetaGPU:
 
@@ -271,5 +271,5 @@ balsam queue submit \
 balsam queue ls
 ```
 
-For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/blob/main/hyperopt/client_files/optimizer_test.py) in the Argonne github repository.
+For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/tree/main/hyperopt) in the Argonne github repository.
 
