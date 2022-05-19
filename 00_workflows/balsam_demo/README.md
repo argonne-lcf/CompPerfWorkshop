@@ -198,7 +198,8 @@ plt.savefig("utilization.png")
 
 Supplemental: Create a collection of jobs at multiple sites (7_create_jobs_at_multiple_sites.sh)
 By setting dependencies between jobs, we can build up simple linear workflows, and complex workflows with multiple dependencies
-Note: This example will only work for you if you replicate this site/app setup
+> **⚠ WARNING: Extra Setup Required **  
+> This example will only work for you if you replicate this site/app setup
 ```python
 #!/bin/bash
 
