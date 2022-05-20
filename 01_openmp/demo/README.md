@@ -1,10 +1,6 @@
 
  # OpenMP Offload 101
 
-NOTE: As of 5/4/2021, the Nvidia Fortran compiler
-is still beta and does not correctly compile/run
-everything in this demo set
-
  This covers the three basic offloading concepts:
  transferring execution control, expressing parallelism, and 
  mapping data.
@@ -17,9 +13,9 @@ everything in this demo set
 
  ```
   module load cobalt/cobalt-gpu
-  qsub -I -q training -t 60 -n 1 -A comp_perf_workshop 
+  qsub -I -q training-gpu -t 60 -n 1 -A Comp_Perf_Workshop --attrs filesystems=theta-fs0,home
 # for Fortran:
-  # module load nvhpc-nompi/21.3
+  # module load nvhpc-nompi/21.7
 # for C/C++:
   module load llvm
  ```
