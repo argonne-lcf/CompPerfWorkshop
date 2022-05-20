@@ -22,11 +22,15 @@ python -m pip install --upgrade pip
 # Install Balsam
 python -m pip install balsam
 
+# Login to the Balsam server. This will prompt you to visit an ALCF login page; this command will
+# block until you've logged in on the webpage.
+balsam login
+
 # Create a Balsam site
 balsam site init -n thetagpu_tutorial thetagpu_tutorial
-pushd thetagpu_tutorial
+cd thetagpu_tutorial
 balsam site start
-popd
+cd ..
 ```
 
 Create an application in Balsam (hello.py)
