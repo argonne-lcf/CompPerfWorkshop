@@ -149,7 +149,7 @@ The `%help` section can be used to define how to build and run the container.
 After logging on to Theta login nodes, launch an interactive job using the attrs `fakeroot=true`, `pubnet=true` and specifying the filesystems `filesystems=home,theta-fs0`.
 
 ```bash
-# from Theta login node
+# on Theta login node, must load cobalt-gpu module to submit jobs to ThetaGPU
 module load cobalt/cobalt-gpu
 qsub -I -n 1 -t 01:00:00 -q single-gpu -A <project_name> --attrs fakeroot=true:pubnet=true:filesystems=home,theta-fs0
 ```
@@ -168,44 +168,90 @@ singularity build --fakeroot <image_name>.sif <def_filename>.def
 
 ## Run Singularity container on ThetaGPU compute
 
-We can now either run the container on the compute node as shown below
-```bash
-mpirun -np 1 singularity exec <image_name>.sif /usr/source/mpi_hello_world
-mpirun -np 1 singularity exec <image_name>.sif python3 /usr/source/mpi_hello_world.py
-```
+An example job submission script is here: [job_submission_thetagpu.sh](./job_submission_thetagpu.sh).
 
-or from the service node using the script [job_submission_thetagpu.sh](./job_submission_thetagpu.sh) which is explained below
-
-## Example `job_submission_thetagpu.sh`
+First we define our job and our script takes the container name as an input parameter.
 
 ```bash
 #!/bin/bash -l
 #COBALT -n 1
 #COBALT -t 00:10:00
 #COBALT -q single-gpu
-#COBALT -A <project_name>
 #COBALT --attrs filesystems=home,theta-fs0:pubnet=true
 CONTAINER=$1
 ```
-Here we have defined the job submission parameters that are needed to submit a job on ThetaGPU, we also pass the container as an argument to the submission script
+
+Enable network access at run time by setting the proxy.
 
 ```bash
 export http_proxy=http://proxy.tmi.alcf.anl.gov:3128
 export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
 ```
-This allows for internet access on the computes and is a prerequisite to run the container
+
+Setup our MPI settings, figure out number of nodes `NODES` and fix number of process per node `PPN` and multiply to get total MPI ranks `PROCS`.
 
 ```bash
-mpirun -np 1 singularity exec $CONTAINER /usr/source/mpi_hello_world
-mpirun -np 1 singularity exec $CONTAINER python3 /usr/source/mpi_hello_world.py
+NODES=`cat $COBALT_NODEFILE | wc -l`
+PPN=8 # GPUs per NODE
+PROCS=$((NODES * PPN))
+echo NODES=$NODES  PPN=$PPN  PROCS=$PROCS
 ```
-Here we run the the singularity container with our example mpi codes using mpirun on ThetaGPU compute nodes
+
+The OpenMPI installed on ThetaGPU must be used for MPI to properly run across nodes. Here the library path is added to `SINGULARITYENV_LD_LIBRARY_PATH`, which will be used by Singularity to set the container's `LD_LIBRARY_PATH` and therefore tell our executables where to find the MPI libraries.
+
+```bash
+MPI_BASE=/lus/theta-fs0/software/thetagpu/openmpi-4.0.5/
+export LD_LIBRARY_PATH=$MPI_BASE/lib:$LD_LIBRARY_PATH
+export SINGULARITYENV_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+echo mpirun=$(which mpirun)
+```
+
+Finally the exectuable is launched.
+
+```bash
+mpirun -hostfile $COBALT_NODEFILE -n $PROCS -npernode $PPN singularity exec --nv -B $MPI_BASE $CONTAINER /usr/source/mpi_hello_world
+```
+
+The job can be submitted using:
+```bash
+qsub -A <project-name> job_submission_thetagpu.sh /path/to/my_image.sif
 
 The output should look like this:
 ```bash
-qsub /path/to/CompPerfWorkshop/03_containers/ThetaGPU/job_submission_thetagpu.sh </path/to/image_name>.sif
-Hello world from processor thetagpu16, rank 0 out of 1 processors
-Hello world from processor thetagpu16, rank 0 out of 1 processors
+C++ MPI
+Hello world from processor thetagpu02, rank 12 out of 16 processors
+Hello world from processor thetagpu02, rank 8 out of 16 processors
+Hello world from processor thetagpu02, rank 10 out of 16 processors
+Hello world from processor thetagpu02, rank 11 out of 16 processors
+Hello world from processor thetagpu02, rank 13 out of 16 processors
+Hello world from processor thetagpu02, rank 9 out of 16 processors
+Hello world from processor thetagpu02, rank 14 out of 16 processors
+Hello world from processor thetagpu02, rank 15 out of 16 processors
+Hello world from processor thetagpu01, rank 0 out of 16 processors
+Hello world from processor thetagpu01, rank 1 out of 16 processors
+Hello world from processor thetagpu01, rank 2 out of 16 processors
+Hello world from processor thetagpu01, rank 3 out of 16 processors
+Hello world from processor thetagpu01, rank 4 out of 16 processors
+Hello world from processor thetagpu01, rank 5 out of 16 processors
+Hello world from processor thetagpu01, rank 6 out of 16 processors
+Hello world from processor thetagpu01, rank 7 out of 16 processors
+Python MPI
+Hello world from processor thetagpu02, rank 9 out of 16 processors
+Hello world from processor thetagpu02, rank 10 out of 16 processors
+Hello world from processor thetagpu02, rank 11 out of 16 processors
+Hello world from processor thetagpu02, rank 15 out of 16 processors
+Hello world from processor thetagpu02, rank 13 out of 16 processors
+Hello world from processor thetagpu02, rank 8 out of 16 processors
+Hello world from processor thetagpu02, rank 12 out of 16 processors
+Hello world from processor thetagpu02, rank 14 out of 16 processors
+Hello world from processor thetagpu01, rank 7 out of 16 processors
+Hello world from processor thetagpu01, rank 3 out of 16 processors
+Hello world from processor thetagpu01, rank 1 out of 16 processors
+Hello world from processor thetagpu01, rank 4 out of 16 processors
+Hello world from processor thetagpu01, rank 5 out of 16 processors
+Hello world from processor thetagpu01, rank 6 out of 16 processors
+Hello world from processor thetagpu01, rank 0 out of 16 processors
+Hello world from processor thetagpu01, rank 2 out of 16 processors
 ```
 
 ## Pre-existing Images for Deep Learning
