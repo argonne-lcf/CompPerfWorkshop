@@ -1,32 +1,92 @@
 # Containers on Theta(GPU)
 
-There are two methods to build containers on ThetaGPU. One can follow the [Docker instructions for Theta](/03_containers/Theta/README.md) to create a docker container, then use it to build a singularity container. Otherwise, one can follow the directions below to build singularity recipe files on ThetaGPU worker nodes via interactive sessions.
+On Theta(GPU), container creation can be achieved by following the upstream [README](../README.md) using Docker, or using a Singularity recipe file and building on a Theta(GPU) worker node.
 
-## Singularity on ThetaGPU
+## Docker on ThetaGPU
 
-To build a singularity container on ThetaGPU, you will need to launch an interactive job and build the container on ThetaGPU compute nodes. But first you'll need a [singularity definition](./mpi.def) file. See below for explanation of the file.
+If you followed the `Dockerfile` instructions, using the Theta(GPU) specific `Dockerfile_thetagpu` you can build your container for theta using:
+```bash
+singularity build <image_name> docker://<username>/<repo_name>:<tag>
+# using tutorial example
+singularity build my_image.simg docker://jtchilders/alcf_cwp_example:thetagpu
+```
+
+Then you can submit a job to Theta(GPU) using
+```bash
+module load cobalt/cobalt-gpu
+qsub job_submission_thetagpu.sh ./my_image.simg
+```
+
+The output should look like this:
+```
+C++ MPI
+Hello world from processor thetagpu12, rank 4 out of 16 processors
+Hello world from processor thetagpu12, rank 7 out of 16 processors
+Hello world from processor thetagpu12, rank 1 out of 16 processors
+Hello world from processor thetagpu12, rank 5 out of 16 processors
+Hello world from processor thetagpu12, rank 6 out of 16 processors
+Hello world from processor thetagpu12, rank 0 out of 16 processors
+Hello world from processor thetagpu12, rank 2 out of 16 processors
+Hello world from processor thetagpu12, rank 3 out of 16 processors
+Hello world from processor thetagpu18, rank 14 out of 16 processors
+Hello world from processor thetagpu18, rank 15 out of 16 processors
+Hello world from processor thetagpu18, rank 13 out of 16 processors
+Hello world from processor thetagpu18, rank 8 out of 16 processors
+Hello world from processor thetagpu18, rank 9 out of 16 processors
+Hello world from processor thetagpu18, rank 11 out of 16 processors
+Hello world from processor thetagpu18, rank 12 out of 16 processors
+Hello world from processor thetagpu18, rank 10 out of 16 processors
+Python MPI
+Hello world from processor thetagpu18, rank 13 out of 16 processors
+Hello world from processor thetagpu18, rank 8 out of 16 processors
+Hello world from processor thetagpu18, rank 9 out of 16 processors
+Hello world from processor thetagpu18, rank 14 out of 16 processors
+Hello world from processor thetagpu18, rank 15 out of 16 processors
+Hello world from processor thetagpu18, rank 11 out of 16 processors
+Hello world from processor thetagpu18, rank 10 out of 16 processors
+Hello world from processor thetagpu18, rank 12 out of 16 processors
+Hello world from processor thetagpu12, rank 2 out of 16 processors
+Hello world from processor thetagpu12, rank 5 out of 16 processors
+Hello world from processor thetagpu12, rank 0 out of 16 processors
+Hello world from processor thetagpu12, rank 6 out of 16 processors
+Hello world from processor thetagpu12, rank 4 out of 16 processors
+Hello world from processor thetagpu12, rank 1 out of 16 processors
+Hello world from processor thetagpu12, rank 7 out of 16 processors
+Hello world from processor thetagpu12, rank 3 out of 16 processors
+```
+
+## Building using Singularity Recipes
+
+While building using Docker on your local machine tends to be the easier method. There are sometimes reasons to build in the environment of the supercomputer. In this case, one can build a singularity container on ThetaGPU in an interactive session on a compute (or worker) node. First a recipe file is needed, here is an example [singularity definition](./mpi.def) file. 
+
+Detailed directions for recipe construction are available on the [Singularity Recipe Page](https://sylabs.io/guides/2.6/user-guide/container_recipes.html).
 
 ## Example Singularity definition file
+
+Here we have defined the base image from which to `bootstrap` our container. We are using an image from Docker Hub, `ubuntu:20.04`.
 
 ```singularity
 Bootstrap: docker
 From: ubuntu:20.04
 ```
-Here we have defined the base image to build our singularity container. We are using the Dockerhub's ubuntu:20.04 base image
+
+The `%files` section lists files to copy from the host system (left path) to the container filesystem (right path)prior to build time.
 
 ```singularity
 %files
 	../Local/source/* /usr/source/
 	../Local/submit.sh /usr/
 ```
-The `%files` section copies some files into the container from the host system at build time
+
+The `%environment` section defines environment variables that will be available to the container at runtime.
 
 ```singularity
 %environment
 	export PATH=$PATH:/mpich/install/bin
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mpich/install/lib
 ```
-The `%environment` section defines some environment variables that will be available to the container at runtime
+
+The `%post` section executes within the container at build time on top of our `ubuntu:20.04` operating system. The `%post` section is therefore the place to perform installations of custom apps with syntax similar to BASH. We won't review these commands here as they are similar to what was covered in the upstream [README](../README.md).
 
 ```singularity
 %post
@@ -60,42 +120,46 @@ The `%environment` section defines some environment variables that will be avail
 	chmod +x /usr/submit.sh
 	mpicc -o /usr/source/mpi_hello_world /usr/source/mpi_hello_world.c
 ```
-The `%post` section executes within the container at build time after the base OS has been installed. The `%post` section is therefore the place to perform installations of custom apps.
 
+The `%runscript` section defines actions for the container to take when it is executed using `singularity run <container_name>`.
 
 ```singularity
 %runscript
 	exec /usr/submit.sh "$@"
 ```
-The `%runscript` section defines actions for the container to take when it is executed
+
+The `%labels` section allows for custom metadata to be added to the container.
 
 ```singularity
 %labels
         MAINTAINER Aditya atanikanti@anl.gov
 ```
-The `%labels` section allows for custom metadata to be added to the container
+
+The `%help` section can be used to define how to build and run the container.
 
 ```singularity
 %help
     	This is container is used to illustrate a mpi based def file to build a container running python and c programs. To build the container use singularity build --fakeroot mpi.sif mpi.def
 ```
-The `%help` section can be used to define how to build and run the container.
 
 ## Build Singularity container on ThetaGPU compute
 
-After logging on to Theta login nodes, ssh to thetagpusn1 and launch an interactive job using the attrs `--fakeroot`, `--pubnet` and specifying the filesystems `--filesystems` as shown
+After logging on to Theta login nodes, launch an interactive job using the attrs `fakeroot=true`, `pubnet=true` and specifying the filesystems `filesystems=home,theta-fs0`.
+
 ```bash
-ssh thetagpusn1
+# from Theta login node
+module load cobalt/cobalt-gpu
 qsub -I -n 1 -t 01:00:00 -q single-gpu -A <project_name> --attrs fakeroot=true:pubnet=true:filesystems=home,theta-fs0
 ```
 
-Before we build our container we need to make sure the thetagpu computes have access to external resources, this is achieved by defining the `http_proxy` and `https_proxy` variables
+Before building the container make sure the ThetaGPU compute nodes have access to external resources, this is achieved by setting the `http_proxy` and `https_proxy` variables
 ```bash
+# setup network proxy to reach outside world
 export http_proxy=http://proxy.tmi.alcf.anl.gov:3128
 export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
 ```
 
-Now we can build our container using `--fakeroot` where `<def_filename>.def` is the definition file we have defined in our example above and `<image_name>.sif` is the user defined image file name
+Now build the container using `--fakeroot` where `<def_filename>.def` is the definition file we have defined in the example above and `<image_name>.sif` is the user defined image file name
 ```bash
 singularity build --fakeroot <image_name>.sif <def_filename>.def 
 ```
