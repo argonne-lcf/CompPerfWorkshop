@@ -20,7 +20,7 @@ Before starting the tutorial we suggest creating a new conda environment that ca
 Open a new terminal in Jupyter and create the conda environment as follows.
 
 ```
-conda create -n parsl-tutorial
+conda create -n parsl-tutorial python=3.8 
 source activate parsl-tutorial
 conda install jupyter nb_conda ipykernel
 pip install parsl
