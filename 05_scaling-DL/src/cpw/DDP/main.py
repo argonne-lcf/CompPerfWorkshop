@@ -5,7 +5,6 @@ Conains simple implementation illustrating how to use PyTorch DDP for
 distributed data parallel training.
 """
 from __future__ import absolute_import, division, print_function, annotations
-import sys
 import os
 import socket
 import logging
@@ -29,12 +28,6 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from omegaconf import DictConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
-# from src.cpw.utils import DistributedDataObject, prepare_datasets
-
-here = os.path.abspath(os.path.dirname(__file__))
-modulepath = os.path.dirname(here)
-if modulepath not in sys.path:
-    sys.path.append(modulepath)
 
 
 log = logging.getLogger(__name__)
@@ -343,14 +336,16 @@ class Trainer:
         correct = 0
         total = 0
         with torch.no_grad():
-            for idx, data in enumerate(self.data['test']['loader']):
-                images, labels = data[0].cuda(), data[1].cuda()
+            for images, labels in self.data['test']['loader']:
+                if self.device == 'gpu':
+                    images, labels = images.cuda(), labels.cuda()
                 probs = self.model(images)
                 _, predicted = probs.data.max(1)
                 total = total + labels.shape[0]
                 correct = correct + (predicted == labels).sum().item()
 
         return correct / total
+
 
 # def run_demo(demo_fn: Callable, world_size: int | str) -> None:
 #     mp.spawn(demo_fn,
