@@ -102,17 +102,19 @@ The `%post` section executes within the container at build time on top of our `u
 	# See installation guide of target MPICH version
 	# Ex: https://www.mpich.org/static/downloads/4.0.2/mpich-4.0.2-installguide.pdf
 	# These options are passed to the steps below
-	MPICH_VERSION="3.3"
-	MPICH_CONFIGURE_OPTIONS="--prefix=/mpich/install --disable-wrapper-rpath"
-	MPICH_MAKE_OPTIONS="-j 4"
-	mkdir -p mpich \
-	&& cd /mpich \
-	&& wget http://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz \
-	&& tar xfz mpich-${MPICH_VERSION}.tar.gz  --strip-components=1 \
-	&& ./configure ${MPICH_CONFIGURE_OPTIONS} \
-	&& make install ${MPICH_MAKE_OPTIONS}
-	export PATH=$PATH:/mpich/install/bin
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/mpich/install/lib
+	OPENMPI_VERSION_A="4.0"
+	OPENMPI_VERSION_B="4.0.5"
+	OPENMPI_CONFIGURE_OPTIONS="--prefix=/openmpi/install --disable-wrapper-rpath --disable-wrapper-runpath"
+	OPENMPI_MAKE_OPTIONS="-j"
+	mkdir -p openmpi
+	cd /openmpi
+	wget https://download.open-mpi.org/release/open-mpi/v${OPENMPI_VERSION_A}/openmpi-${OPENMPI_VERSION_B}.tar.gz
+	tar xfz openmpi-${OPENMPI_VERSION_B}.tar.gz  --strip-components=1
+   ./configure ${OPENMPI_CONFIGURE_OPTIONS}
+   make install ${OPENMPI_MAKE_OPTIONS}
+	
+	export PATH=$PATH:/openmpi/install/bin
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/openmpi/install/lib
 
 	pip install mpi4py
 
