@@ -13,7 +13,11 @@ More information is available in the [Parsl documentation](https://parsl.readthe
 # Tutorial Setup
 Parsl is a Python library which can be deployed in user space via pip (i.e., `pip install parsl`). 
 
-Before starting the tutorial we suggest creating a new conda environment that can be used from the ALCF Jupyter system. 
+You can run the tutorial from the ALCF JupyterHub system: https://jupyter.alcf.anl.gov/ (select Theta)
+
+Before starting the tutorial we suggest creating a new conda environment that can be used from the ALCF JupyterHub system. 
+
+Open a new terminal in Jupyter and create the conda environment as follows.
 
 ```
 conda create -n parsl-tutorial
@@ -28,8 +32,5 @@ To make the environment accessible to Jupyter type the following
 python -m ipykernel install --user --name parsl-tutorial
 ```
 
-You can then open Jupyter in your browser and remember to change the Python kernel to parsl-tutorial
+You can then open the tutorial notebook and change the Python kernel to parsl-tutorial
 
-https://jupyter.alcf.anl.gov/
-
-You can clone this repository and follow along with the notebook.
