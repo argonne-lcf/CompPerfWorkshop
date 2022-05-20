@@ -277,7 +277,7 @@ class Trainer:
 
         train_sampler = self.data['train']['sampler']
         train_loader = self.data['train']['loader']
-        # DDP: set epoch to sampler for shuffling
+        # HOROVOD: set epoch to sampler for shuffling
         train_sampler.set_epoch(epoch)
         for bidx, (data, target) in enumerate(train_loader):
             loss, acc = self.train_step(data, target)
@@ -315,34 +315,19 @@ class Trainer:
 
         return {'loss': loss_avg, 'acc': training_acc}
 
-    def test_step(
-        self,
-        data: Tensor,
-        target: Tensor,
-    ) -> tuple[Tensor, Tensor]:
-        if WITH_CUDA:
-            data, target = data.cuda(), target.cuda()
-
-        with torch.no_grad():
-            probs = self.model(data)
-            loss = self.loss_fn(probs, target)
-            _, pred = probs.data.max(1)
-            acc = (pred == target).sum().item()
-
-        return loss, acc
-
     def test(self) -> dict:
-        self.model.eval()
-        correct = 0
         total = 0
+        correct = 0
+        self.model.eval()
         with torch.no_grad():
-            for images, labels in self.data['test']['loader']:
+            for data, target in self.data['test']['loader']:
                 if self.device == 'gpu':
-                    images, labels = images.cuda(), labels.cuda()
-                probs = self.model(images)
+                    data, target = data.cuda(), target.cuda()
+
+                probs = self.model(data)
                 _, predicted = probs.data.max(1)
-                total = total + labels.shape[0]
-                correct = correct + (predicted == labels).sum().item()
+                total += target.size(0)
+                correct += (predicted == target).sum().item()
 
         return correct / total
 
@@ -366,7 +351,7 @@ def main(cfg: DictConfig) -> None:
 
         if epoch % cfg.logfreq and RANK == 0:
             acc = trainer.test()
-            astr = f'[TEST] Accuracy: {acc:.2f}%'
+            astr = f'[TEST] Accuracy: {acc:.0f}%'
             sepstr = '-' * len(astr)
             log.info(sepstr)
             log.info(astr)
@@ -374,7 +359,7 @@ def main(cfg: DictConfig) -> None:
             summary = '  '.join([
                 '[TRAIN]',
                 f'loss={metrics["loss"]:.4f}',
-                f'acc={metrics["acc"] * 100:.2f}%'
+                f'acc={metrics["acc"] * 100.0:.0f}%'
             ])
             log.info((sep := '-' * len(summary)))
             log.info(summary)
