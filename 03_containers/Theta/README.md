@@ -1,6 +1,6 @@
 # Containers on Theta (KNL)
 
-On Theta(KNL), the best method for container creation is to follow the Docker instructions on the first [README](../README.md). We'll start assuming those steps have been followed.
+On Theta(KNL), the best method for container creation is to follow the Docker instructions on the first [README](../README.md). We'll start by assuming those steps have been followed.
 
 ## Build Singularity image from DockerHub
 
