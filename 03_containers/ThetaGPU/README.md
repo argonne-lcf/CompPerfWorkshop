@@ -11,6 +11,8 @@ singularity build <image_name> docker://<username>/<repo_name>:<tag>
 singularity build my_image.simg docker://jtchilders/alcf_cwp_example:thetagpu
 ```
 
+![singularity_build_thetagpu](../README_media/singularity_build_thetagpu.gif)
+
 Then you can submit a job to Theta(GPU) using
 ```bash
 module load cobalt/cobalt-gpu
