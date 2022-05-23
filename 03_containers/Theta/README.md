@@ -19,7 +19,7 @@ Example:
 ## Run Singularity container on Theta
 
 ```bash
-qsub /path/to/CompPerfWorkshop/03_containers/Theta/job_submission_theta.sh </path/to/image_name>
+qsub -A <project-name> /path/to/CompPerfWorkshop/03_containers/Theta/job_submission_theta.sh </path/to/image_name>
 ```
 
 ## Example `job_submission_theta.sh`
