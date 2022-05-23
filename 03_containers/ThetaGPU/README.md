@@ -211,7 +211,7 @@ export SINGULARITYENV_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 echo mpirun=$(which mpirun)
 ```
 
-Finally the exectuable is launched.
+Finally the exectuable is launched. Notice on NVidia systems that the `singularity exec` or `singularity run` commands must use the `--nv` flag to pass important libraries/drivers from the host to the container environment.
 
 ```bash
 mpirun -hostfile $COBALT_NODEFILE -n $PROCS -npernode $PPN singularity exec --nv -B $MPI_BASE $CONTAINER /usr/source/mpi_hello_world
@@ -280,7 +280,7 @@ In the `%post` section install any package you wish to use in the container
 
 ```bash
 singularity build --fakeroot bootstrap.def bootstrap.sif
-mpirun -np 1 singularity run bootstrap.sif 
+mpirun -np 1 singularity run --nv bootstrap.sif 
 ```
 Here we build and run our container directly on the ThetaGPU compute node and we should see an output like below
 
