@@ -263,25 +263,26 @@ Hello world from processor thetagpu01, rank 2 out of 16 processors
 
 There are several containers on ThetaGPU that will help you get started with deep learning experiments that can efficiently use the A100 GPUs. We have different optimized container for DL here `ls /lus/theta-fs0/software/thetagpu/nvidia-containers/`
 
-With a pre-existing container you can simply build on top of it by changing the the definition file as follows and installing your modules and dependencies. See [bootstap.def](./bootstrap.def) and an explanation of that file below
+The [bootstap.def](./bootstrap.def) gives an example of how these containers were created.
+
+The image is bootstrapped from an NVidia image, in this case from a [PyTorch](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch) build. One can also use the [Tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow) build. At the time of this writing, the latest tag for the PyTorch image was `22.04-py3`, but users should select the version that best suits their needs.
 
 ```singularity
-Bootstrap: localimage
-From: /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.08-py3.simg
+Bootstrap: docker
+From: nvcr.io/nvidia/pytorch:22.04-py3
 ```
-The base image is a local singularity image
+Next we need to install MPI support for cross-node parallel training.
 
 ```singularity
 %post
-	#### INSTALL YOUR PACKAGES NEEDED FOR YOUR APPLICATION ####
-	pip install sklearn
-```
-In the `%post` section install any package you wish to use in the container
 
-```bash
-singularity build --fakeroot bootstrap.def bootstrap.sif
-mpirun -np 1 singularity run --nv bootstrap.sif 
+    # Install mpi4py
+    CC=$(which mpicc) CXX=$(which mpicxx) pip install --no-cache-dir mpi4py
+
+    # Install horovod
+    CC=$(which mpicc) CXX=$(which mpicxx) HOROVOD_WITH_TORCH=1 pip install --no-cache-dir horovod
 ```
+
 Here we build and run our container directly on the ThetaGPU compute node and we should see an output like below
 
 ```bash
