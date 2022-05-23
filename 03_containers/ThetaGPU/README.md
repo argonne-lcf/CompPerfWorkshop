@@ -165,6 +165,9 @@ export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
 
 Now build the container using `--fakeroot` where `<def_filename>.def` is the definition file we have defined in the example above and `<image_name>.sif` is the user defined image file name
 ```bash
+# important you run this in the proper path because the file copies in
+# the `%files` section of the recipe uses relative paths on the host.
+cd /path/to/CompPerWorkshop/03_containers/ThetaGPU
 singularity build --fakeroot <image_name>.sif <def_filename>.def 
 ```
 
