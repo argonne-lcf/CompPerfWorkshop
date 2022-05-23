@@ -26,7 +26,7 @@ We have an example installation in the [Local](/03_containers/Local) directory, 
 
 ## Example `Dockerfile`
 
-We include example build source code here: [Local Example Source](Local/source). This includes an example [Dockerfile](../Local/Dockerfile) which we will describe line-by-line below.
+We include example build source code here: [Local Example Source](Local/source). This includes an example [Dockerfile](Local/Dockerfile) which we will describe line-by-line below.
 
 ```Dockerfile
 FROM ubuntu:20.04
