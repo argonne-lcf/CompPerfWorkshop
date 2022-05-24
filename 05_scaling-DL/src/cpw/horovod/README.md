@@ -2,15 +2,23 @@
 # Horovod <img src="assets/horovod-logo.png" width="50" style="vertical-align:baseline;" align="left"> 
 Here we describe how to use Horovod for distributed data-parallel training using both `pytorch` and `tensorflow`.
 
-Additional information can be found on [Horovod documentation](https://horovod.readthedocs.io/en/stable/index.html) page.
+- Additional information can be found on [Horovod documentation](https://horovod.readthedocs.io/en/stable/index.html) page.
+- [Examples](https://github.com/horovod/horovod/tree/master/examples) can be found in their [github repository](https://github.com/horovod/horovod)
+
+> ‼️ **Warning**
+> <br> The examples below use [hydra](https://hydra.cc/) to manage experiment configuration.
+> In order to use hydra with the provided `conda` environment, repeat the following steps:
+> 1. `module load conda/2021-11-30`
+> 2. `conda activate base`
+> 3. `python3 -m pip install hydra-core hydra_colorlog`
+
+
 
 ## Organization
 1. [Horovod with Tensorflow](./tensorflow/README.md)
     1. [`tensorflow/main.py`](./tensorflow/main.py)
-2. [Horovod with Tensorflow + Keras](./tensorflow/keras/README.md)
-    1. [`tensorflow/keras/main.py`](./tensorflow/keras/main.py)
-3. [Horovod with PyTorch](./pytorch/README.md)
-    1. [`pytorch/main.py`](./pytorch/main.py)
+2. [Horovod with PyTorch](./torch/README.md)
+    1. [`torch/main.py`](./torch/main.py)
 
 ## Overview
 The basic procedure of setting up and using Horovod for distributed training is almost identical in both frameworks and consists of the following main steps:
