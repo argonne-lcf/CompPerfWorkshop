@@ -236,7 +236,8 @@ plt.savefig("utilization.png")
 ```
 
 ## Supplemental: Create a collection of jobs at multiple sites (7_create_jobs_at_multiple_sites.sh)
-By setting dependencies between jobs, we can build up simple linear workflows, and complex workflows with multiple dependencies
+With Sites established on multiple machines, we can submit jobs to multiple sites from wherever Balsam is installed: here on Theta, or on your laptop. This example creates jobs at four different sites (including my laptop), and submits batch jobs to run them. As these jobs run, they can be monitored using `balsam job ls --tag workflow=hello_multisite --site all`. 
+
 > **⚠ WARNING: Extra Setup Required **  
 > This example will only work for you if you replicate this site/app setup
 ```python
