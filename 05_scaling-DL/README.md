@@ -9,7 +9,7 @@ This section of the workshop will introduce you to some of the tools that we use
 
 **Note:** This topic was also covered at the [ALCF: Simulation, Data, and Learning Workshop for AI](https://github.com/argonne-lcf/sdl_ai_workshop), which has additional resources ( + examples) for those interested.
 
-> ‼️ **Warning**
+> ⚠️ **Warning**
 > <br> The examples below use [hydra](https://hydra.cc/) to manage experiment configuration.
 > In order to use hydra with the provided `conda` environment, repeat the following steps:
 > 1. `qsub -I -A Comp_Perf_Workshop -q single-gpu -t 01:00 -n 1`
@@ -17,8 +17,9 @@ This section of the workshop will introduce you to some of the tools that we use
 > 3. `conda activate base`
 > 4. `python3 -m pip install hydra-core hydra_colorlog --upgrade`
 
+
 ## Organization
-1. [Distributed Training](#distributed-training) 📍
+1. 📍 [Distributed Training](#distributed-training)
     1. [Why train on multiple GPUs](#why-train-on-multiple-gpus)
     2. [Model vs Data Parallelism](#model-vs-data-parallelism)
         1. [Model Parallelism](#model-parallelism)
@@ -27,7 +28,7 @@ This section of the workshop will introduce you to some of the tools that we use
     1. [Horovod with TensorFlow](./src/cpw/horovod/tensorflow/README.md)
         1. [`horovod/tensorflow/main.py`](.src/cpw/horovod/tensorflow/main.py)
     3. [Horovod with PyTorch](./src/cpw/horovod/torch/README.md)
-        1. [`horovod/pytorch/main.py`](./src/cpw/horovod/torch/main.py)
+        1. [`horovod/torch/main.py`](./src/cpw/horovod/torch/main.py)
 5. [PyTorch DistributedDataParallel](./src/cpw/DDP/README.md)
     1. [`DDP/main.py`](./src/cpw/ddp/main.py)
 6. [DeepSpeed](./src/cpw/deepspeed/README.md)
@@ -64,9 +65,10 @@ From [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](h
 
 <blockquote>
     <b>For apps that gradually grow from simple to complex and from prototype to production, the common development trajectory may be:</b>
+    <br>
     <ol>
         <li> ❌ Use single device training if the data and model can fit on one GPU, and training speed is not a concern  (not relevant for this section)</li>
-        <li> ❌ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html"> `DataParallel` </a>  to make use of multiple GPUs on a single machine to speed up training with minimal code changes (not recommended, <tt>DDP</tt> preferred) </li>
+        <li> ❌ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html"> <tt>DataParallel</tt> </a>  to make use of multiple GPUs on a single machine to speed up training with minimal code changes (not recommended, <tt>DDP</tt> preferred) </li>
         <li> ✅ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html"> <tt>DistributedDataParallel</tt>  </a>  if you would like to further speed up training and are willing to write a little more code to set it up </li>
         <li> ✅ Use multi-machine <a href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html"><tt>DistributedDataParallel</tt></a> and the <a href="https://github.com/pytorch/examples/blob/master/distributed/ddp/README.md"> launching script</a> if the application needs to scale across machine boundaries </li>
         <li> ❓ Use <a href="https://pytorch.org/docs/stable/distributed.elastic.html"> <tt>torch.distributed.elastic</tt></a> to launch distributed training if errors (e.g., out-of-memory) are expected or if resources can join and leave dynamically during training  (not covered in this tutorial) </li>
