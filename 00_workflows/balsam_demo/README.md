@@ -1,7 +1,9 @@
 Balsam: ALCF Computational Performance Workshop
 ===============================================
 
-[Balsam](https://github.com/argonne-lcf/balsam) is a toolkit for describing and managing large-scale computational campaigns on supercomputers. The command line interface and Python API make it easy for users to adopt: with a small Python wrapper, ...
+[Balsam](https://github.com/argonne-lcf/balsam) is a toolkit for describing and managing large-scale computational campaigns on supercomputers. The command line interface and Python API make it easy for users to adopt: after wrapping the command line in a few lines of Python code, users describe jobs with accompanying command-line options, which are stored persistently in the Balsam database. A Balsam site runs on a login node or service node of a cluster, 
+
+The full [Balsam documentation](https://balsam.readthedocs.io/en/latest) covers all functionality for users, including additional examples, and describes the Balsam architecture for potential developers; contributions welcome! 
 
 
 To get started on ThetaGPU:
@@ -37,7 +39,7 @@ cd ..
 ```
 
 ## Create a Hello application in Balsam (hello.py)
-We define an application by wrapping the command line in a small amount of Python code. Note that the command line is directly represented, and the say_hello_to parameter will be supplied when a job uses this application.
+We define an application by wrapping the command line in a small amount of Python code. Note that the command line is directly represented, and the say_hello_to parameter will be supplied when a job uses this application. Note that we print the available GPUs; this is just to highlight GPU scheduling.
 
 ```python
 from balsam.api import ApplicationDefinition
@@ -74,11 +76,14 @@ balsam job ls --tag workflow=hello
 # Submit a batch job to run this job on ThetaGPU
 # Note: the command-line parameters are similar to scheduler command lines
 # Note: this job will run only jobs with a matching tag
-#balsam queue submit --site thetagpu_tutorial -n 1 -t 10 -q full-node -A Comp_Perf_Workshop --tag workflow=hello -j mpi
-balsam queue submit --site thetagpu_tutorial -n 1 -t 10 -q single-gpu -A datascience --tag workflow=hello -j mpi
+balsam queue submit \
+    -n 1 -t 10 -q full-node -A Comp_Perf_Workshop \
+    --site thetagpu_tutorial \
+    --tag workflow=hello \
+    --job-mode mpi
 
 # List the Balsam BatchJob
-# Note: Balsam will submit this job to Cobalt, so it will appear in qstat output shortly
+# Note: Balsam will submit this job to Cobalt, so it will appear in qstat output after a short delay
 balsam queue ls 
 
 # List status of the Hello job
@@ -100,7 +105,7 @@ balsam queue submit \
 #!/usr/bin/env python
 from balsam.api import Job
 jobs = [
-    Job( site_name='thetagpu_tutorial', 
+    Job( site_name="thetagpu_tutorial", 
          app_id="Hello", 
          workdir=f"demo/hello_multi{n}", 
          parameters={"say_hello_to": f"world {n}!"},
@@ -122,7 +127,7 @@ from balsam.api import Job,BatchJob,Site
 
 # Create a collection of jobs, each one depending on the job before it
 n=0
-job = Job( site_name='thetagpu_tutorial',
+job = Job( site_name="thetagpu_tutorial",
            app_id="Hello", 
            workdir=f"demo/hello_deps{n}", 
            parameters={"say_hello_to": f"world {n}!"},
@@ -131,7 +136,7 @@ job = Job( site_name='thetagpu_tutorial',
            gpus_per_rank=1)
 job.save()
 for n in range(7):
-    job = Job( site_name='thetagpu_tutorial', 
+    job = Job( site_name="thetagpu_tutorial", 
                app_id="Hello", 
                workdir=f"demo/hello_deps{n}", 
                parameters={"say_hello_to": f"world {n}!"},
@@ -146,14 +151,13 @@ site = Site.objects.get("thetagpu_tutorial")
 
 # Create a BatchJob to run jobs with the workflow=hello_deps tag
 BatchJob.objects.create(
-    site_id=site.id,
     num_nodes=1,
     wall_time_min=10,
-    queue="single-gpu",
+    queue="full-node",
     project="datascience",
-    job_mode="mpi",
+    site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
-    #queue="full-node",
+    job_mode="mpi",
 )
 ```
 
@@ -203,7 +207,7 @@ fig = plt.Figure()
 plt.step(elapsed_minutes, done_counts, where="post")
 plt.xlabel("Elapsed time (minutes)")
 plt.ylabel("Jobs completed")
-plt.savefig('throughput.png')
+plt.savefig("throughput.png")
 
 # Generate a utilization report
 times, util = utilization_report(events, node_weighting=True)
@@ -246,9 +250,9 @@ Create a collection of jobs across Sites...
 #!/bin/bash
 
 # create jobs at four sites
-balsam job create --site theta_tutorial --app Hello --workdir multisite/thetaknl --param say_hello_to=thetaknl --tag workflow=hello_multisite --yes
+balsam job create --site thetagpu_tutorial --app Hello --workdir multisite/thetaknl --param say_hello_to=thetaknl --tag workflow=hello_multisite --yes
+balsam job create --site thetaknl_tutorial --app Hello --workdir multisite/thetagpu --param say_hello_to=thetagpu --tag workflow=hello_multisite --yes
 balsam job create --site cooley_tutorial --app Hello --workdir multisite/cooleylogin2 --param say_hello_to=cooleylogin2 --tag workflow=hello_multisite --yes
-balsam job create --site 281 --app Hello --workdir multisite/thetagpu --param say_hello_to=thetagpu --tag workflow=hello_multisite --yes
 balsam job create --site tom_laptop --app Hello --workdir multisite/tom_laptop --param say_hello_to=tom_laptop --tag workflow=hello_multisite --yes
 
 # list the jobs
@@ -292,5 +296,5 @@ balsam queue ls
 ```
 
 ## Next Steps 
-The examples above demonstrated the basic functionality of Balsam: defining applications, describing jobs, submitting batch jobs to run those jobs, and monitoring throughput, on one site or across multiple sites. With these capabilities, we can define more complex workflows that dynamically adapt as jobs run. For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/tree/main/hyperopt) in the Argonne github repository.
+The examples above demonstrate the basic functionality of Balsam: defining applications, describing jobs, submitting batch jobs to run those jobs, and monitoring throughput, on one site or across multiple sites. With these capabilities, we can define more complex workflows that dynamically adapt as jobs run. For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/tree/main/hyperopt) in the Argonne github repository.
 
