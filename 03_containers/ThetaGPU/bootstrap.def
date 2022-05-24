@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: nvcr.io/nvidia/pytorch:22.04-py3
+
+%help
+
+To start your container simply try
+singularity exec THIS_CONTAINER.simg bash
+
+To use GPUs, try
+singularity exec --nv THIS_CONTAINER.simg bash
+
+%labels
+Maintainer coreyjadams
+
+%environment
+
+%post
+
+    # Install mpi4py
+    CC=$(which mpicc) CXX=$(which mpicxx) pip install --no-cache-dir mpi4py
+
+    # Install horovod
+    CC=$(which mpicc) CXX=$(which mpicxx) HOROVOD_WITH_TORCH=1 pip install --no-cache-dir horovod
