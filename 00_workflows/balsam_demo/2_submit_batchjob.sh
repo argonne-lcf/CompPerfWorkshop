@@ -4,7 +4,7 @@
 # Note: the command-line parameters are similar to scheduler command lines
 # Note: this job will run only jobs with a matching tag
 balsam queue submit \
-    -n 1 -t 10 -q full-node -A Comp_Perf_Workshop \
+    -n 1 -t 10 -q training-gpu -A Comp_Perf_Workshop \
     --site thetagpu_tutorial \
     --tag workflow=hello \
     --job-mode mpi
