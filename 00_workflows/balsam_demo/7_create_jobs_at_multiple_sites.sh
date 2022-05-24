@@ -1,9 +1,5 @@
 #!/bin/bash
 
-import sys
-print("This example will only work for you if you replicate this site/app setup; exiting")
-sys.exit()
-
 # Create jobs at four sites
 echo ThetaKNL
 balsam job create --site thetaknl_tutorial --app Hello --workdir multisite/thetaknl --param say_hello_to=thetaknl --tag workflow=hello_multisite --yes
