@@ -274,7 +274,7 @@ balsam job create --site tom_laptop --app Hello --workdir multisite/tom_laptop -
 # list the jobs
 balsam job ls --tag workflow=hello_multisite
 ```
-...and submit a BatchJob to run them
+...and submit BatchJobs to run them
 ```bash
 #!/bin/bash
 
