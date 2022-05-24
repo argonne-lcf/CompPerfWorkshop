@@ -1,13 +1,13 @@
 # PyTorch Profiler
 
-Profiling is an efficient way of measuring the performance and doing optimization of your PyTorch scripts. It allows you to examine your script and understand if it has severe performance issues. One can measure and analyze execution time and memory consumption as well as finding bottlenecks and trace source code. In this tutorial we will discuss several ways to profile PyTorch scripts such as [`torch.autograd.profiler`](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile), [`torch.profiler`](https://pytorch.org/docs/stable/profiler.html#torch-profiler), [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) and [Python cProfiler](https://docs.python.org/3/library/profile.html#module-cProfile).
+Profiling is an efficient way of measuring the performance and making optimization of your PyTorch scripts. It allows one to examine a PyTorch script and understand if it has some performance issues. One can measure and analyze execution time and memory consumption as well as finding bottlenecks and trace source code. In this tutorial we discuss several ways to profile PyTorch scripts such as [`torch.autograd.profiler`](https://pytorch.org/docs/stable/autograd.html#torch.autograd.profiler.profile), [`torch.profiler`](https://pytorch.org/docs/stable/profiler.html#torch-profiler), [`torch.utils.bottleneck`](https://pytorch.org/docs/stable/bottleneck.html#torch-utils-bottleneck) and [Python cProfiler](https://docs.python.org/3/library/profile.html#module-cProfile).
 
-In this tutorial we will:
+In this tutorial we:
 * demonstrate PyTorch autograd profiler interface, measure CPU execution time and memory allocation
 * profile simple performance issue on CPU
 * profile simple performance issue on GPU
 * compare PyTorch profiler with Python cProfiler and PyTorch bottleneck
-* demonstrate new PyTorch profiler (introduced in PyTorch 1.8)
+* demonstrate visual PyTorch profiler with tensorboard plugin (introduced in PyTorch 1.8)
 
 Table of Contents
 * [Dependencies](#dependencies)
