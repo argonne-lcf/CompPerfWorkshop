@@ -32,7 +32,7 @@ git clone https://github.com/argonne-lcf/CompPerfWorkshop.git
 cd CompPerfWorkshop/00_workflows/balsam_demo
 ```
 
-## Set up Balsam and supporting codes (0_setup.sh)
+## Set up Balsam and supporting codes
 ```
 # Create a virtual environment
 /lus/theta-fs0/software/datascience/conda/2021-09-22/mconda3/bin/python -m venv env
@@ -99,7 +99,7 @@ We submit a batch job via the command line, and then list BatchJobs and the stat
 # Note: the command-line parameters are similar to scheduler command lines
 # Note: this job will run only jobs with a matching tag
 balsam queue submit \
-    -n 1 -t 10 -q single-gpu -A Comp_Perf_Workshop \
+    -n 1 -t 10 -q full-node -A training-gpu \
     --site thetagpu_tutorial \
     --tag workflow=hello \
     --job-mode mpi
@@ -170,8 +170,8 @@ site = Site.objects.get("thetagpu_tutorial")
 BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
-    queue="single-gpu",
-    project="Comp_Perf_Workshop",
+    queue="full-node",
+    project="training-gpu",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
     job_mode="mpi",
@@ -281,21 +281,21 @@ balsam job ls --tag workflow=hello_multisite
 # Submit BatchJobs at multiple sites
 # theta gpu
 balsam queue submit \
-  -n 1 -t 10 -q single-gpu -A Comp_Perf_Workshop \
+  -n 1 -t 10 -q single-gpu -A training-gpu \
   --site thetagpu_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
 
 # theta knl
 balsam queue submit \
-  -n 1 -t 10 -q debug-flat-quad -A Comp_Perf_Workshop \
+  -n 1 -t 10 -q debug-flat-quad -A training-gpu \
   --site thetaknl_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
 
 # cooley
 balsam queue submit \
-  -n 1 -t 10 -q debug -A Comp_Perf_Workshop \
+  -n 1 -t 10 -q debug -A training-gpu \
   --site cooley_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
