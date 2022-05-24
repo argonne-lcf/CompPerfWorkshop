@@ -123,21 +123,12 @@ We provide an example illustrating a simple use case of DDP for distributed trai
 This example can be found in [`./DDP/main.py`](05_scaling-DL/DDP/main.py)
 
 
-## Running in a container
-Unfortunately, running in a container to use DDP requires two scripts, not one, to successfully launch the program.  The reason for this is that our container does not have `mpi4py` and so we launch singularity with MPI from the main cobalt script, and each singularity instance launches a shell script that itself launches python.  To be more clear:
-
-- Cobalt script which runs on one node, and uses `mpirun` to launch `n` singularity instances, typically 8 per node.  
-    - Each singularity instance launches the same shell script
-    - Each shell script sets up a virtual environment, and then executes the main python script.
-
-Take a look in the [`submissions`](05_scaling-DL/DDP/submissions) folder for more details about this.
-
 # Example Performance
 Here I show the results I got measuring the time-per-epoch averaged over the last 5 epochs of a training run.  I scaled out over a single node, and out onto 4 nodes x 8 GPUs
 
 
 | GPUs | Cifar10 Time/epoch [s] | Speedup | MNIST Time/epoch [s] | Speedup |
-|:----:|:----------------------:|:-------:| -------------------- | ------- |
+|:----:|:----------------------:|:-------:|:--------------------:|:-------:|
 |  1   |          13.6          |   1.0   | 11.7                 | 1.0     |
 |  4   |          2.66          |  5.113  | 2.64                 | 4.4318  |
 |  8   |          1.43          |  9.510  | 1.37                 | 8.5401  |
@@ -147,7 +138,7 @@ Here I show the results I got measuring the time-per-epoch averaged over the las
 
 <!--![scaling_results](./assets/scaling_results.svg)-->
 
-<img src="05_scaling-DL/src/cpw/DDP/assets/scaling_results.svg">
+<!--<img src="05_scaling-DL/src/cpw/DDP/assets/scaling_results.svg">-->
 
 ## Example
 Modified from: [Distributed Data Parallel — PyTorch 1.11.0 documentation](https://pytorch.org/docs/stable/notes/ddp.html) 
