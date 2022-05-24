@@ -16,6 +16,7 @@ This section of the workshop will introduce you to some of the tools that we use
 > 2. `module load conda/2021-11-30`
 > 3. `conda activate base`
 > 4. `python3 -m pip install hydra-core hydra_colorlog --upgrade`
+> 5. `mpirun -np 8 -hostfile "${COBALT_NODEFILE}" python3 main.py`
 
 
 ## Organization
