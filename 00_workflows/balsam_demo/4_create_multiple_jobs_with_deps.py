@@ -21,10 +21,13 @@ for n in range(7):
                gpus_per_rank=1, 
                parent_ids=[job.id])  # Sets a dependency on the prior job
     job.save()
+           
+# Get the id for your site
+site = Site.objects.get("thetagpu_tutorial")
 
 # Create a BatchJob to run jobs with the workflow=hello_deps tag
 BatchJob.objects.create(
-    site_id=287,
+    site_id=site.id,
     num_nodes=1,
     wall_time_min=10,
     queue="single-gpu",
