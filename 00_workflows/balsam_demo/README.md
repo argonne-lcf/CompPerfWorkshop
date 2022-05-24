@@ -32,7 +32,7 @@ git clone https://github.com/argonne-lcf/CompPerfWorkshop.git
 cd CompPerfWorkshop/00_workflows/balsam_demo
 ```
 
-## Set up Balsam and supporting codes
+## Set up Balsam and supporting codes (0_setup.sh)
 ```
 # Create a virtual environment
 /lus/theta-fs0/software/datascience/conda/2021-09-22/mconda3/bin/python -m venv env
