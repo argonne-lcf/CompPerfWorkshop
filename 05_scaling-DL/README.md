@@ -9,6 +9,14 @@ This section of the workshop will introduce you to some of the tools that we use
 
 **Note:** This topic was also covered at the [ALCF: Simulation, Data, and Learning Workshop for AI](https://github.com/argonne-lcf/sdl_ai_workshop), which has additional resources ( + examples) for those interested.
 
+> ‼️ **Warning**
+> <br> The examples below use [hydra](https://hydra.cc/) to manage experiment configuration.
+> In order to use hydra with the provided `conda` environment, repeat the following steps:
+> 1. `qsub -I -A Comp_Perf_Workshop -q single-gpu -t 01:00 -n 1`
+> 2. `module load conda/2021-11-30`
+> 3. `conda activate base`
+> 4. `python3 -m pip install hydra-core hydra_colorlog --upgrade`
+
 ## Organization
 1. [Distributed Training](#distributed-training) 📍
     1. [Why train on multiple GPUs](#why-train-on-multiple-gpus)
@@ -19,12 +27,11 @@ This section of the workshop will introduce you to some of the tools that we use
     1. [Horovod with TensorFlow](./src/cpw/horovod/tensorflow/README.md)
         1. [`horovod/tensorflow/main.py`](.src/cpw/horovod/tensorflow/main.py)
     3. [Horovod with PyTorch](./src/cpw/horovod/torch/README.md)
-        1. [`horovod/pytorch/main.py`](./src/cpw/horovod/pytorch/main.py)
+        1. [`horovod/pytorch/main.py`](./src/cpw/horovod/torch/main.py)
 5. [PyTorch DistributedDataParallel](./src/cpw/DDP/README.md)
     1. [`DDP/main.py`](./src/cpw/ddp/main.py)
 6. [DeepSpeed](./src/cpw/deepspeed/README.md)
     1. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
-7. [ZeRO Data Parallel](./src/cpw/zero/README.md)
 
 # Distributed Training
 

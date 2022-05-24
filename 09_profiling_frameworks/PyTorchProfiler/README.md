@@ -205,29 +205,30 @@ print(prof.key_averages(group_by_stack_n=1).table(sort_by='self_cpu_time_total',
 ```
 This time we execute models on GPU. At the first call, CUDA does some benchmarking and chose the best algorithm for convolutions, therefore we need to warm up CUDA to ensure accurate performance benchmarking. Also, we used the flag `with_stack=True` which makes it possible to track the place in sources where the function was called. 
 ```bash
------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
-                         Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  Source Location                                                              
------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
-              LABEL2: masking        84.66%        1.790s        99.94%        2.113s        2.113s             1  ...3/lib/python3.8/site-packages/torch/autograd/profiler.py(616): __enter__  
-                                                                                                                                                                                                
-                  aten::copy_         7.86%     166.179ms         7.86%     166.179ms     166.179ms             1  v0.py(30): forward                                                           
-                                                                                                                                                                                                
-                  aten::copy_         7.40%     156.435ms         7.40%     156.435ms     156.435ms             1  v0.py(31): forward                                                           
-                                                                                                                                                                                                
-                  aten::addmm         0.01%     276.443us         0.02%     463.267us     115.817us             4  ...mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1755): linear  
-                                                                                                                                                                                                
-              aten::clamp_min         0.01%     133.522us         0.02%     349.911us      43.739us             8  ...2/mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1206): relu  
-                                                                                                                                                                                                
-          LABEL1: linear pass         0.01%     119.615us         0.05%       1.113ms       1.113ms             1  ...3/lib/python3.8/site-packages/torch/autograd/profiler.py(616): __enter__  
-                                                                                                                                                                                                
-    aten::_local_scalar_dense         0.01%     116.550us         0.01%     116.550us     116.550us             1  v0.py(29): forward                                                           
-                                                                                                                                                                                                
-             aten::as_strided         0.00%      85.131us         0.00%      85.131us      10.641us             8  ...mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1755): linear  
-                                                                                                                                                                                                
------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
-Self CPU time total: 2.114s
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  Source Location                                                              
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
+                                        LABEL2: masking        83.65%        1.980s        99.93%        2.365s        2.365s             1  ...3/lib/python3.8/site-packages/torch/autograd/profiler.py(435): __enter__  
+                                                                                                                                                                                                                          
+                                        cudaMemcpyAsync        16.26%     384.874ms        16.26%     384.874ms     128.291ms             3                                                                               
+                                                                                                                                                                                                                          
+                                            aten::empty         0.02%     522.000us         0.02%     522.000us     261.000us             2  ...a3/lib/python3.8/site-packages/torch/autograd/profiler.py(432): __init__  
+                                                                                                                                                                                                                          
+                                            aten::addmm         0.01%     238.000us         0.02%     364.000us      91.000us             4  ...mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1848): linear  
+                                                                                                                                                                                                                          
+                                    LABEL1: linear pass         0.01%     218.000us         0.04%       1.061ms       1.061ms             1  ...3/lib/python3.8/site-packages/torch/autograd/profiler.py(435): __enter__  
+                                                                                                                                                                                                                          
+                                        aten::clamp_min         0.01%     154.000us         0.01%     326.000us      40.750us             8  ...0/mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1299): relu  
+                                                                                                                                                                                                                          
+                                       cudaLaunchKernel         0.01%     145.000us         0.01%     145.000us       9.062us            16                                                                               
+                                                                                                                                                                                                                          
+                                           aten::linear         0.00%      77.000us         0.02%     562.000us     140.500us             4  ...mconda3/lib/python3.8/site-packages/torch/nn/functional.py(1848): linear  
+                                                                                                                                                                                                                          
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ---------------------------------------------------------------------------  
+Self CPU time total: 2.367s
+
 ```
-The profile shows that the execution time of section `LABEL2: masking` takes 99.95% of total CPU time while in section `LABEL1: linear pass` code spends only 0.04%. Operations of copying tensors to the device at `v0.py(30): forward` and copying back at `v0.py(31): forward` take about 20% of execution time. We can optimize it if instead of `np.argwhere` do indexing on GPU with `torch.nonzero` - [example2/v1.py](example2/v1.py):
+The profile shows that the execution time of section `LABEL2: masking` takes 99.93% of total CPU time while in section `LABEL1: linear pass` code spends only 0.04%. Operations of copying tensors `cudaMemcpyAsync` take about 16% of execution time. We can optimize it if instead of `np.argwhere` do indexing on GPU with `torch.nonzero` - [example2/v1.py](example2/v1.py):
 ```python
     def forward(self, input, mask):
         with profiler.record_function("LABEL1: linear pass"):
@@ -239,46 +240,46 @@ The profile shows that the execution time of section `LABEL2: masking` takes 99.
         return out, hi_idx
 ```
 ```bash
------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-          aten::nonzero        93.21%       6.463ms        93.34%       6.473ms       6.473ms             1  
-            aten::addmm         1.82%     126.070us         2.08%     144.334us      36.084us             4  
-    LABEL1: linear pass         1.06%      73.669us         4.77%     330.876us     330.876us             1  
-        aten::clamp_min         0.61%      41.977us         1.32%      91.672us      11.459us             8  
-        LABEL2: masking         0.37%      25.869us        94.71%       6.567ms       6.567ms             1  
------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
-Self CPU time total: 6.934ms
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                        cudaMemcpyAsync        45.20%       1.176ms        45.20%       1.176ms       1.176ms             1  
+                                            aten::empty        18.33%     477.000us        18.33%     477.000us      59.625us             8  
+                                            aten::addmm         7.34%     191.000us        10.11%     263.000us      65.750us             4  
+                                       cudaLaunchKernel         5.88%     153.000us         5.88%     153.000us       6.955us            22  
+                                    LABEL1: linear pass         5.03%     131.000us        22.41%     583.000us     583.000us             1  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 2.602ms
 ```
-After this optimization total execution time was improved more than 100 times which is much better than just elimination of copy operation. The reason for that is that we computed `np.argwhere` on CPU while now we do this operation on GPU. PyTorch profile does not analyze NumPy operations so we missed them in the profile. 
+After this optimization total execution time was improved by O(100) times which is much better than just elimination of copy operation. The reason for that is that we computed `np.argwhere` on CPU while now we do this operation on GPU. PyTorch profile does not analyze NumPy operations so we missed them in the profile. 
 
 ### Python cProfile
 PyTorch profile analyses only PyTorch operations which makes understanding of hotspots confusing. To profile all operations, one may use python profiler - [example2/v2.py](example2/v2.py):
 ```bash
-         101 function calls (89 primitive calls) in 2.032 seconds
+         101 function calls (89 primitive calls) in 2.422 seconds
 
    Ordered by: cumulative time
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-     10/1    0.000    0.000    2.032    2.032 module.py:1009(_call_impl)
-        1    0.084    0.084    2.032    2.032 v2.py:24(forward)
-        1    0.000    0.000    1.658    1.658 <__array_function__ internals>:2(argwhere)
-      4/1    0.000    0.000    1.658    1.658 {built-in method numpy.core._multiarray_umath.implement_array_function}
-        1    0.002    0.002    1.658    1.658 numeric.py:537(argwhere)
-        2    0.000    0.000    1.656    0.828 fromnumeric.py:52(_wrapfunc)
-        1    0.000    0.000    1.298    1.298 <__array_function__ internals>:2(nonzero)
-        1    0.000    0.000    1.298    1.298 fromnumeric.py:1816(nonzero)
-        1    1.298    1.298    1.298    1.298 {method 'nonzero' of 'numpy.ndarray' objects}
-        1    0.000    0.000    0.358    0.358 <__array_function__ internals>:2(transpose)
-        1    0.000    0.000    0.358    0.358 fromnumeric.py:601(transpose)
-        1    0.000    0.000    0.358    0.358 fromnumeric.py:39(_wrapit)
-        1    0.000    0.000    0.358    0.358 _asarray.py:14(asarray)
-        1    0.357    0.357    0.357    0.357 {built-in method numpy.array}
-        1    0.166    0.166    0.166    0.166 {method 'cpu' of 'torch._C._TensorBase' objects}
-        1    0.123    0.123    0.123    0.123 {method 'cuda' of 'torch._C._TensorBase' objects}
+     10/1    0.000    0.000    2.422    2.422 module.py:1096(_call_impl)
+        1    0.077    0.077    2.422    2.422 v2.py:24(forward)
+        1    0.000    0.000    1.937    1.937 <__array_function__ internals>:2(argwhere)
+      4/1    0.000    0.000    1.937    1.937 {built-in method numpy.core._multiarray_umath.implement_array_function}
+        1    0.004    0.004    1.937    1.937 numeric.py:570(argwhere)
+        2    0.000    0.000    1.933    0.967 fromnumeric.py:52(_wrapfunc)
+        1    0.000    0.000    1.325    1.325 <__array_function__ internals>:2(nonzero)
+        1    0.000    0.000    1.325    1.325 fromnumeric.py:1827(nonzero)
+        1    1.325    1.325    1.325    1.325 {method 'nonzero' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.608    0.608 <__array_function__ internals>:2(transpose)
+        1    0.000    0.000    0.608    0.608 fromnumeric.py:602(transpose)
+        1    0.000    0.000    0.608    0.608 fromnumeric.py:39(_wrapit)
+        1    0.000    0.000    0.608    0.608 _asarray.py:23(asarray)
+        1    0.608    0.608    0.608    0.608 {built-in method numpy.array}
+        1    0.211    0.211    0.211    0.211 {method 'cuda' of 'torch._C._TensorBase' objects}
+        1    0.195    0.195    0.195    0.195 {method 'cpu' of 'torch._C._TensorBase' objects}
         1    0.001    0.001    0.001    0.001 {method 'item' of 'torch._C._TensorBase' objects}
 ```
-Most of the time `2.817s` was spent in `argwhere` function which we compute on CPU. Moreover, this function called `{method 'nonzero' of 'numpy.ndarray' objects}` so our optimization was natural.
+Most of the time `1.937s` was spent in `argwhere` function which we compute on CPU. Also, from this profile it is clear that `argwhere` called `{method 'nonzero' of 'numpy.ndarray' objects}` so our optimization was natural.
 
 
 ### PyTorch bottleneck
