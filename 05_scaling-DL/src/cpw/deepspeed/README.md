@@ -8,13 +8,15 @@ Modified from: [argonne-lcf/sdl_ai_workshop/01_distributedDeepLearning/README.md
 Additional information can be found either in their github repository available at  [`microsoft/DeepSpeed`](https://github.com/microsoft/DeepSpeed) , or in their paper[^1], [^2], [^3]
 
 > 💡 [DeepSpeed](http://www.deepspeed.ai) is a deep learning optimization library that makes distributed training easy, efficient, and effective. 
->  <br>_**10x Larger Models**_ | _**10x Faster Training**_ | _**Minimal Code Change**_ 
->  DeepSpeed can train DL models with over a hundred billion parameters on current generation of GPU clusters, while achieving over 10x in system performance compared to the state-of-art. Early adopters of DeepSpeed have already produced a language model (LM) with over 17B parameters called [Turing-NLG](https://www.microsoft.com/en-us/research/blog/turing-nlg-a-17-billion-parameter-language-model-by-microsoft), establishing a new SOTA in the LM category. 
+> <br>_**10x Larger Models**_ | _**10x Faster Training**_ | _**Minimal Code Change**_ 
+> <br>DeepSpeed can train DL models with over a hundred billion parameters on current generation of GPU clusters, while achieving over 10x in system performance compared to the state-of-art.
+> Early adopters of DeepSpeed have already produced a language model (LM) with over 17B parameters called [Turing-NLG](https://www.microsoft.com/en-us/research/blog/turing-nlg-a-17-billion-parameter-language-model-by-microsoft), establishing a new SOTA in the LM category. 
 > <br>DeepSpeed is an important part of Microsoft’s new [AI at Scale](https://www.microsoft.com/en-us/research/project/ai-at-scale/) initiative to enable next-generation AI capabilities at scale. Take a deep dive into [large scale AI across Microsoft](https://innovation.microsoft.com/en-us/exploring-ai-at-scale) 
 
 - [🤗 Transformers](https://www.github.com/huggingface/transformers) also have an excellent writeup in their documentation on integrating DeepSpeed.
   - [📃 documentation](https://huggingface.co/docs/transformers/main_classes/deepspeed)
   - [💻 github](https://github.com/huggingface/transformers/blob/3f936df66287f557c6528912a9a68d7850913b9b/src/transformers/deepspeed.py)
+- [PyTorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed) also has a good reference + examples on DeepSpeed integration.
 
 
 ## Getting Started
