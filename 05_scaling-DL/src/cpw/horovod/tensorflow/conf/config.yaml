@@ -10,6 +10,9 @@ buffer_size: 10000
 # test_batch_size: 64
 # fp16_allreduce: ???
 # num_threads: 0
+hydra:
+  job:
+    chdir: true
 
 defaults:
   - override hydra/hydra_logging: colorlog
