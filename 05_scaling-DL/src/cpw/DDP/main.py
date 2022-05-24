@@ -315,7 +315,7 @@ class Trainer:
 
         return {'loss': loss_avg, 'acc': training_acc}
 
-    def test(self) -> dict:
+    def test(self) -> float:
         total = 0
         correct = 0
         self.model.eval()
