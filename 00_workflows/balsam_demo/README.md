@@ -1,12 +1,27 @@
 Balsam: ALCF Computational Performance Workshop
 ===============================================
 
-[Balsam](https://github.com/argonne-lcf/balsam) is a toolkit for describing and managing large-scale computational campaigns on supercomputers. The command line interface and Python API make it easy for users to adopt: after wrapping the command line in a few lines of Python code, users describe jobs with accompanying command-line options, which are stored persistently in the Balsam database. A Balsam site runs on a login node or service node of a cluster, 
+[Balsam](https://github.com/argonne-lcf/balsam) is a toolkit for describing and managing large-scale computational campaigns on supercomputers. The command line interface and Python API make it easy for users to adopt: after wrapping the command line in a few lines of Python code, users describe jobs with accompanying command-line options, which are stored persistently in the Balsam database. A Balsam site runs on a login node or service node of a cluster. When the user submits a batch job through Balsam, the Site pulls jobs from the database and executes them within the batch job, achieving high throughput while incurring only a single wait-time in the queue.
 
 The full [Balsam documentation](https://balsam.readthedocs.io/en/latest) covers all functionality for users, including additional examples, and describes the Balsam architecture for potential developers; contributions welcome! 
 
+Let's put some useful Balsam command lines here at the top for reference. Note that some of these commands have additional options; you can always see these by appending `--help`.
+```
+# List your sites
+balsam site ls
 
-To get started on ThetaGPU:
+# List your apps
+balsam app ls
+
+# List your jobs (specify tag for expedience)
+balsam job ls --tag workflow=hello
+
+# List your batch jobs
+balsam queue ls
+```
+
+
+## Getting started on ThetaGPU
 
 ```bash
 # Log in to Theta
@@ -17,12 +32,14 @@ git clone https://github.com/argonne-lcf/CompPerfWorkshop.git
 cd CompPerfWorkshop/00_workflows/balsam_demo
 ```
 
-
+## Set up Balsam and supporting codes (0_setup.sh)
 ```
 # Create a virtual environment
 /lus/theta-fs0/software/datascience/conda/2021-09-22/mconda3/bin/python -m venv env
 source env/bin/activate
 pip install --upgrade pip
+# We need matplotlib for one of the examples
+pip install matplotlib
 
 # Install Balsam
 pip install balsam
@@ -61,14 +78,9 @@ python hello.py
 
 
 ## Create a Hello job using the Balsam CLI interface (1_create_job.sh)
+We create a job using the command line interface, providing the say_hello_to parameter, and then list Balsam jobs with the related tag.
 ```python
 #!/bin/bash -x 
-
-# Create the Hello app
-python hello.py
-
-# List apps
-balsam app ls --site thetagpu_tutorial
 
 # Create a Hello job
 # Note: tag it with the key-value pair workflow=hello for easy querying later
@@ -79,6 +91,7 @@ balsam job ls --tag workflow=hello
 ```
 
 ## Submit a BatchJob to run the Hello job (2_submit_batchjob.sh)
+We submit a batch job via the command line, and then list BatchJobs and the status of the job. Following a short delay, Balsam will submit the job to Cobalt, and the job will appear in the usual `qstat` output. The job status command can be run periodically to monitor the job.
 ```bash
 #!/bin/bash
 
@@ -86,7 +99,7 @@ balsam job ls --tag workflow=hello
 # Note: the command-line parameters are similar to scheduler command lines
 # Note: this job will run only jobs with a matching tag
 balsam queue submit \
-    -n 1 -t 10 -q full-node -A Comp_Perf_Workshop \
+    -n 1 -t 10 -q single-gpu -A Comp_Perf_Workshop \
     --site thetagpu_tutorial \
     --tag workflow=hello \
     --job-mode mpi
@@ -100,6 +113,8 @@ balsam job ls --tag workflow=hello
 ```
 
 ## Create a collection of Hello jobs using the Balsam Python API (3_create_multiple_jobs.py)
+We create a collection of jobs, one per GPU on a ThetaGPU node. Though this code doesn't use the GPU, your code will; in the face of a larger collection of Balsam jobs and imbalance in runtimes, Balsam will target GPUs as they become available by setting CUDA_VISIBLE_DEVICES appropriately; the Hello app echoes this variable to illustrate GPU assignment.
+
 ```python
 #!/usr/bin/env python
 from balsam.api import Job
@@ -121,6 +136,8 @@ jobs = Job.objects.bulk_create(jobs)
 ```
 
 ## Create a collection of Hello jobs with dependencies (4_create_multiple_jobs_with_deps.py)
+Similar to the example above, we create a collection of jobs but this time with inter-job dependencies: a simple linear workflow. The jobs will run in order, honoring the job dependency setting (even though the jobs could all run simultaneously). In this case, we use the Python API to define jobs and batch jobs. 
+
 ```python
 #!/usr/bin/env python
 from balsam.api import Job,BatchJob,Site
@@ -153,7 +170,7 @@ site = Site.objects.get("thetagpu_tutorial")
 BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
-    queue="full-node",
+    queue="single-gpu",
     project="Comp_Perf_Workshop",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
@@ -162,6 +179,8 @@ BatchJob.objects.create(
 ```
 
 ## Use the Python API to monitor jobs (5_monitor_jobs.py)
+As Balsam runs jobs, they advance through states that include transferring input files, job submission, execution, and transferring output files. Users can monitor these events programmatically, to build dynamic workflows or to monitor throughput of their jobs.
+
 ```python
 #!/usr/bin/env python
 from datetime import datetime,timedelta
@@ -179,12 +198,7 @@ for evt in EventLog.objects.filter(timestamp_after=yesterday):
 
 
 ## The Python API includes analytics support for utilization and throughput (6_analytics.py)
-This example will query the Hello jobs run to this point, and produce plots of utilization and throughput.
-
-> **⚠ WARNING: Extra Setup Required **  
-> This example requires matplotlib. Execute `pip install matplotlib` to install it.
-
-
+This example will query the Hello jobs run to this point, to produce plots of utilization and throughput.
 
 ```python
 #!/usr/bin/env python
@@ -222,7 +236,8 @@ plt.savefig("utilization.png")
 ```
 
 ## Supplemental: Create a collection of jobs at multiple sites (7_create_jobs_at_multiple_sites.sh)
-By setting dependencies between jobs, we can build up simple linear workflows, and complex workflows with multiple dependencies
+With Sites established on multiple machines, we can submit jobs to multiple sites from wherever Balsam is installed: here on Theta, or on your laptop. This example creates jobs at four different sites (including my laptop), and submits batch jobs to run them. As these jobs run, they can be monitored using `balsam job ls --tag workflow=hello_multisite --site all`. 
+
 > **⚠ WARNING: Extra Setup Required **  
 > This example will only work for you if you replicate this site/app setup
 ```python
@@ -259,7 +274,7 @@ balsam job create --site tom_laptop --app Hello --workdir multisite/tom_laptop -
 # list the jobs
 balsam job ls --tag workflow=hello_multisite
 ```
-...and submit a BatchJob to run them
+...and submit BatchJobs to run them
 ```bash
 #!/bin/bash
 
