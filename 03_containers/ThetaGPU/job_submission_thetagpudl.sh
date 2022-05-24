@@ -1,11 +1,21 @@
 #!/bin/bash -l
-#COBALT -n 1
-#COBALT -t 00:10:00
-#COBALT -q single-gpu
+#COBALT -n 2
+#COBALT -t 10
+#COBALT -q full-node
 #COBALT --attrs filesystems=home,theta-fs0:pubnet=true
+CONTAINER=$1
 
 export http_proxy=http://proxy.tmi.alcf.anl.gov:3128
 export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
-#CONTAINER=/lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.08-py3.simg
-#singularity exec --nv $CONTAINER python /usr/local/lib/python3.8/dist-packages/tensorflow/python/debug/examples/debug_mnist.py
-mpirun -np 1 singularity run bootstrap.sif
+
+wget https://github.com/horovod/horovod/raw/master/examples/pytorch/pytorch_synthetic_benchmark.py
+
+NODES=`cat $COBALT_NODEFILE | wc -l`
+PPN=8 # GPUs per NODE
+PROCS=$((NODES * PPN))
+echo NODES=$NODES  PPN=$PPN  PROCS=$PROCS
+
+echo test mpi
+mpirun -hostfile $COBALT_NODEFILE -n $PROCS -npernode $PPN \
+   singularity exec --nv -B $PWD $CONTAINER \
+      python $PWD/pytorch_synthetic_benchmark.py

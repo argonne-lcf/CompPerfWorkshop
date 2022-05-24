@@ -11,10 +11,12 @@ singularity build <image_name> docker://<username>/<repo_name>:<tag>
 singularity build my_image.simg docker://jtchilders/alcf_cwp_example:thetagpu
 ```
 
+![singularity_build_thetagpu](../README_media/singularity_build_thetagpu.gif)
+
 Then you can submit a job to Theta(GPU) using
 ```bash
 module load cobalt/cobalt-gpu
-qsub job_submission_thetagpu.sh ./my_image.simg
+qsub -A <project-name> job_submission_thetagpu.sh ./my_image.simg
 ```
 
 The output should look like this:
@@ -163,6 +165,9 @@ export https_proxy=http://proxy.tmi.alcf.anl.gov:3128
 
 Now build the container using `--fakeroot` where `<def_filename>.def` is the definition file we have defined in the example above and `<image_name>.sif` is the user defined image file name
 ```bash
+# important you run this in the proper path because the file copies in
+# the `%files` section of the recipe uses relative paths on the host.
+cd /path/to/CompPerWorkshop/03_containers/ThetaGPU
 singularity build --fakeroot <image_name>.sif <def_filename>.def 
 ```
 
@@ -206,7 +211,7 @@ export SINGULARITYENV_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 echo mpirun=$(which mpirun)
 ```
 
-Finally the exectuable is launched.
+Finally the exectuable is launched. Notice on NVidia systems that the `singularity exec` or `singularity run` commands must use the `--nv` flag to pass important libraries/drivers from the host to the container environment.
 
 ```bash
 mpirun -hostfile $COBALT_NODEFILE -n $PROCS -npernode $PPN singularity exec --nv -B $MPI_BASE $CONTAINER /usr/source/mpi_hello_world
@@ -258,48 +263,23 @@ Hello world from processor thetagpu01, rank 2 out of 16 processors
 
 There are several containers on ThetaGPU that will help you get started with deep learning experiments that can efficiently use the A100 GPUs. We have different optimized container for DL here `ls /lus/theta-fs0/software/thetagpu/nvidia-containers/`
 
-To build on top of a pre-existing container you can simply build on top of the preexisting container by changing the the definition file as follows and installing your modules and dependencies. See [bootstap.def](./bootstrap.def) and an explanation of that file below
+The [bootstap.def](./bootstrap.def) gives an example of how these containers were created.
+
+The image is bootstrapped from an NVidia image, in this case from a [PyTorch](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch) build. One can also use the [Tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow) build. At the time of this writing, the latest tag for the PyTorch image was `22.04-py3`, but users should select the version that best suits their needs.
 
 ```singularity
-Bootstrap: localimage
-From: /lus/theta-fs0/software/thetagpu/nvidia-containers/tensorflow2/tf2_21.08-py3.simg
+Bootstrap: docker
+From: nvcr.io/nvidia/pytorch:22.04-py3
 ```
-The base image is a local singularity image
+Next we need to install MPI support for cross-node parallel training.
 
 ```singularity
 %post
-	#### INSTALL YOUR PACKAGES NEEDED FOR YOUR APPLICATION ####
-	pip install sklearn
-```
-In the `%post` section install any package you wish to use in the container
 
-```bash
-singularity build --fakeroot bootstrap.def bootstrap.sif
-mpirun -np 1 singularity run bootstrap.sif 
-```
-Here we build and run our container directly on the ThetaGPU compute node and we should see an output like below
+    # Install mpi4py
+    CC=$(which mpicc) CXX=$(which mpicxx) pip install --no-cache-dir mpi4py
 
-```bash
-2022-05-17 12:11:15.755958: I tensorflow/stream_executor/platform/default/dso_loader.cc:54] Successfully opened dynamic library libcudart.so.11.0
-2022-05-17 12:11:19.144265: W tensorflow/stream_executor/platform/default/dso_loader.cc:65] Could not load dynamic library 'libcuda.so.1'; dlerror: libcuda.so.1: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/compat/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/.singularity.d/libs
-2022-05-17 12:11:19.144303: W tensorflow/stream_executor/cuda/cuda_driver.cc:269] failed call to cuInit: UNKNOWN ERROR (303)
-2022-05-17 12:11:19.144333: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:169] retrieving CUDA diagnostic information for host: thetagpu16
-2022-05-17 12:11:19.144340: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:176] hostname: thetagpu16
-2022-05-17 12:11:19.144381: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:200] libcuda reported version is: Not found: was unable to find libcuda.so DSO loaded into this program
-2022-05-17 12:11:19.144422: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:204] kernel reported version is: 470.82.1
-2022-05-17 12:11:19.147914: I tensorflow/core/common_runtime/process_util.cc:146] Creating new thread pool with default inter op setting: 2. Tune using inter_op_parallelism_threads for best performance.
-2022-05-17 12:11:19.333080: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:176] None of the MLIR Optimization Passes are enabled (registered 2)
-2022-05-17 12:11:19.352126: I tensorflow/core/platform/profile_utils/cpu_utils.cc:114] CPU Frequency: 2245815000 Hz
-Accuracy at step 0: 0.216
-Accuracy at step 1: 0.098
-Accuracy at step 2: 0.098
-Accuracy at step 3: 0.098
-Accuracy at step 4: 0.098
-Accuracy at step 5: 0.098
-Accuracy at step 6: 0.098
-Accuracy at step 7: 0.098
-Accuracy at step 8: 0.098
-Accuracy at step 9: 0.098
+    # Install horovod
+    CC=$(which mpicc) CXX=$(which mpicxx) HOROVOD_WITH_TORCH=1 pip install --no-cache-dir horovod
 ```
-
-You can also submit a job from the service node as we have done before using the [job_submission_thetagpudl.sh](./job_submission_thetagpudl.sh) script
+Next build the container on a ThetaGPU compute node, following the instructions in the previous section. Then an example job submission script is here: [job_submission_thetagpudl.sh](./job_submission_thetagpudl.sh).
