@@ -99,7 +99,7 @@ We submit a batch job via the command line, and then list BatchJobs and the stat
 # Note: the command-line parameters are similar to scheduler command lines
 # Note: this job will run only jobs with a matching tag
 balsam queue submit \
-    -n 1 -t 10 -q full-node -A Comp_Perf_Workshop \
+    -n 1 -t 10 -q single-gpu -A Comp_Perf_Workshop \
     --site thetagpu_tutorial \
     --tag workflow=hello \
     --job-mode mpi
@@ -170,7 +170,7 @@ site = Site.objects.get("thetagpu_tutorial")
 BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
-    queue="full-node",
+    queue="single-gpu",
     project="Comp_Perf_Workshop",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
