@@ -22,6 +22,7 @@ plt.ylabel("Jobs completed")
 plt.savefig('throughput.png')
 
 # Generate a utilization report
+plt.figure()
 times, util = utilization_report(events, node_weighting=True)
 
 t0 = min(times)

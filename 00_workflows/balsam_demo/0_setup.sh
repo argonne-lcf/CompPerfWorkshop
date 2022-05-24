@@ -2,6 +2,8 @@
 /lus/theta-fs0/software/datascience/conda/2021-09-22/mconda3/bin/python -m venv env
 source env/bin/activate
 pip install --upgrade pip
+# We need matplotlib for one of the examples
+pip install matplotlib
 
 # Install Balsam
 pip install balsam
