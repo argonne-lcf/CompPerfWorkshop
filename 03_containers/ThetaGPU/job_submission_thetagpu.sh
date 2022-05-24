@@ -1,8 +1,7 @@
 #!/bin/bash -l
 #COBALT -n 2
-#COBALT -t 00:10:00
+#COBALT -t 10
 #COBALT -q full-node
-#COBALT -A datascience
 #COBALT --attrs filesystems=home,theta-fs0:pubnet=true
 CONTAINER=$1
 

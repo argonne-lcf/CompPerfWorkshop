@@ -21,7 +21,7 @@ for n in range(1,8):
                gpus_per_rank=1, 
                parent_ids=[job.id])  # Sets a dependency on the prior job
     job.save()
-    
+
 # Get the id for your site
 site = Site.objects.get("thetagpu_tutorial")
 
@@ -30,8 +30,8 @@ BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
     queue="full-node",
-    project="datascience",
+    project="Comp_Perf_Workshop",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
-    job_mode="mpi",
+    job_mode="mpi"
 )

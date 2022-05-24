@@ -39,7 +39,7 @@ qsub -I -n 1 -t 30 -A YoueProject -q single-gpu
 ```
 Finally, you can activate conda environment
 ```bash
-module load conda/pytorch
+module load conda/2021-11-30
 conda activate
 ```
 and run all examples.

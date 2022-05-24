@@ -1,8 +1,7 @@
 #!/bin/bash
-#COBALT -t 30
+#COBALT -t 10
 #COBALT -q debug-flat-quad
 #COBALT -n 2
-#COBALT -A datascience
 #COBALT --attrs filesystems=theta-fs0,home
 
 RANKS_PER_NODE=4
