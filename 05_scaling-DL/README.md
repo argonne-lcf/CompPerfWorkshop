@@ -94,17 +94,18 @@ From [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](h
 - Existing frameworks ([Horovod](https://horovod.readthedocs.io/en/stable/index.html), [DeepSpeed](https://github.com/microsoft/DeepSpeed), [DDP](https://pytorch.org/docs/stable/notes/ddp.html), etc.)
     - Typically relatively simple to get up and running (minor modifications to existing code)
 - All of the workers own a replica of the model
-- The global batch of data is split into multiple mini-batches and processed by different workers
+- The global batch of data is split into multiple mini-batches and processed by different workers (as shown in figure below)
 - Each worker computes the corresponding loss and gradients with respect to the data it processes
 - Before updating of the parameters at each epoch, the loss and gradients are averaged across all workers through a collective operation
-    - Relatively simple to implement, `MPI_Allreduce` is the only communication operation required
     - [Concepts — Horovod documentation](https://horovod.readthedocs.io/en/stable/concepts_include.html)
-- Our recent presentation on data-parallel training is available on [youtube](https://youtu.be/930yrXjNkgM) 
-- In the data-parallel approach, all workers own a replica of the model. The global batch of data is split into multiple minibatches, as shown in the figure below, and processed by different workers.
-- Each worker computes the corresponding loss and gradients with respect to the local data it possesses. Before updating the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective `allreduce` operation.
-    - `MPI` defines the function `MPI_Allreduce` to reduce values from all ranks and broadcast the result of the reduction such that all processes have a copy of it at the end of the operation.
+    - Relatively simple to implement, `MPI_Allreduce` is the only communication operation required
+    - `MPI` defines the function `MPI_Allreduce` to reduce values from all ranks and then broadcast the result back to all processes
     - There are multiple different ways to implement the allreduce, and it may vary from problem to problem[^4], [^5]
     
+
+- Our recent presentation on data-parallel training is available on [youtube](https://youtu.be/930yrXjNkgM) 
+
+
 
 <img src="assets/avgGrads.svg" width="66%">
 
