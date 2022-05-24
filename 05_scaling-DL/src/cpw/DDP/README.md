@@ -7,6 +7,7 @@ Pytorch has an additional built-in distributed data parallel package, DDP, short
 DDP implements data parallelism at the module level which can run across multiple machines.
 
 - [PyTorch Documentation](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html)
+- [Example / Reference](https://github.com/pytorch/examples/blob/main/distributed/ddp/README.md)
 - [Original paper](http://www.vldb.org/pvldb/vol13/p3005-li.pdf)
 
 A thorough description of the design and implementation can be found in the original [paper](http://www.vldb.org/pvldb/vol13/p3005-li.pdf), and there are many great resources available from [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](https://pytorch.org/tutorials/beginner/dist_overview.html)
