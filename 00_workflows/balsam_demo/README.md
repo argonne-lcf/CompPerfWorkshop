@@ -61,14 +61,9 @@ python hello.py
 
 
 ## Create a Hello job using the Balsam CLI interface (1_create_job.sh)
+We create a job using the command line interface, providing the say_hello_to parameter, and then list Balsam jobs with the related tag.
 ```python
 #!/bin/bash -x 
-
-# Create the Hello app
-python hello.py
-
-# List apps
-balsam app ls --site thetagpu_tutorial
 
 # Create a Hello job
 # Note: tag it with the key-value pair workflow=hello for easy querying later
@@ -79,6 +74,7 @@ balsam job ls --tag workflow=hello
 ```
 
 ## Submit a BatchJob to run the Hello job (2_submit_batchjob.sh)
+We submit a batch job via the command line, and then list BatchJobs and the status of the job. Following a short delay, Balsam will submit the job to Cobalt, and the job will appear in the usual `qstat` output. The job status command can be run periodically to monitor the job.
 ```bash
 #!/bin/bash
 
@@ -100,6 +96,8 @@ balsam job ls --tag workflow=hello
 ```
 
 ## Create a collection of Hello jobs using the Balsam Python API (3_create_multiple_jobs.py)
+We create a collection of jobs, one per GPU on a ThetaGPU node. Though this code doesn't use the GPU, your code will; in the face of a larger collection of Balsam jobs and imbalance in runtimes, Balsam will target GPUs as they become available by setting CUDA_VISIBLE_DEVICES appropriately; the Hello app echoes this variable to illustrate GPU assignment.
+
 ```python
 #!/usr/bin/env python
 from balsam.api import Job
@@ -121,6 +119,8 @@ jobs = Job.objects.bulk_create(jobs)
 ```
 
 ## Create a collection of Hello jobs with dependencies (4_create_multiple_jobs_with_deps.py)
+Similar to the example above, we create a collection of jobs but this time with inter-job dependencies: a simple linear workflow. The jobs will run in order, honoring the job dependency setting (even though the jobs could all run simultaneously).
+
 ```python
 #!/usr/bin/env python
 from balsam.api import Job,BatchJob,Site
