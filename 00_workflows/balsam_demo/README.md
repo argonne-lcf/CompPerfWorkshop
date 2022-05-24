@@ -1,7 +1,7 @@
 Balsam: ALCF Computational Performance Workshop
 ===============================================
 
-[Balsam](https://github.com/argonne-lcf/balsam) is a toolkit for describing and managing large-scale computational campaigns on supercomputers. The command line interface and Python API make it easy for users to adopt: after wrapping the command line in a few lines of Python code, users describe jobs with accompanying command-line options, which are stored persistently in the Balsam database. A Balsam site runs on a login node or service node of a cluster, 
+[Balsam](https://github.com/argonne-lcf/balsam) is a toolkit for describing and managing large-scale computational campaigns on supercomputers. The command line interface and Python API make it easy for users to adopt: after wrapping the command line in a few lines of Python code, users describe jobs with accompanying command-line options, which are stored persistently in the Balsam database. A Balsam site runs on a login node or service node of a cluster. When the user submits a batch job through Balsam, the Site pulls jobs from the database and executes them within the batch job, achieving high throughput while incurring only a single wait-time in the queue.
 
 The full [Balsam documentation](https://balsam.readthedocs.io/en/latest) covers all functionality for users, including additional examples, and describes the Balsam architecture for potential developers; contributions welcome! 
 
