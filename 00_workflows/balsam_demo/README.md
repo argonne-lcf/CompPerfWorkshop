@@ -22,10 +22,10 @@ cd CompPerfWorkshop/00_workflows/balsam_demo
 # Create a virtual environment
 /lus/theta-fs0/software/datascience/conda/2021-09-22/mconda3/bin/python -m venv env
 source env/bin/activate
-python -m pip install --upgrade pip
+pip install --upgrade pip
 
 # Install Balsam
-python -m pip install balsam
+pip install balsam
 
 # Login to the Balsam server. This will prompt you to visit an ALCF login page; this command will
 # block until you've logged in on the webpage.
@@ -182,7 +182,7 @@ for evt in EventLog.objects.filter(timestamp_after=yesterday):
 This example will query the Hello jobs run to this point, and produce plots of utilization and throughput.
 
 > **⚠ WARNING: Extra Setup Required **  
-> This example requires matplotlib. Execute `python -m pip install matplotlib` to install it.
+> This example requires matplotlib. Execute `pip install matplotlib` to install it.
 
 
 
