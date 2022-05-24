@@ -9,6 +9,14 @@ This section of the workshop will introduce you to some of the tools that we use
 
 **Note:** This topic was also covered at the [ALCF: Simulation, Data, and Learning Workshop for AI](https://github.com/argonne-lcf/sdl_ai_workshop), which has additional resources ( + examples) for those interested.
 
+> ‼️ **Warning**
+> <br> The examples below use [hydra](https://hydra.cc/) to manage experiment configuration.
+> In order to use hydra with the provided `conda` environment, repeat the following steps:
+> 1. `qsub -I -t 01:00 -A Comp_Perf_Workshop -q training-gpu`
+> 2. `module load conda/2021-11-30`
+> 3. `conda activate base`
+> 4. `python3 -m pip install hydra-core hydra_colorlog`
+
 ## Organization
 1. [Distributed Training](#distributed-training) 📍
     1. [Why train on multiple GPUs](#why-train-on-multiple-gpus)
