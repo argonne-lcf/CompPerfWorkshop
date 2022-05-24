@@ -6,8 +6,16 @@ python -m pip install --upgrade pip
 # Install Balsam
 python -m pip install balsam
 
+# Login to the Balsam server. This will prompt you to visit an ALCF login page; this command will
+# block until you've logged in on the webpage.
+balsam login
+
+# Load the cobalt-gpu module, so Balsam submits to the ThetaGPU queues
+module load cobalt/cobalt-gpu
+
 # Create a Balsam site
+# Note: The "-n" option specifies the site name; the last argument specifies the directory name
 balsam site init -n thetagpu_tutorial thetagpu_tutorial
-pushd thetagpu_tutorial
+cd thetagpu_tutorial
 balsam site start
-popd
+cd ..
