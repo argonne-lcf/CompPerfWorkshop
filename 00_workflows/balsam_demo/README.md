@@ -72,6 +72,11 @@ balsam job create --site thetagpu_tutorial --app Hello --workdir=demo/hello --pa
 
 # The job resides in the Balsam server now; list the job
 balsam job ls --tag workflow=hello
+```
+
+## Submit a BatchJob to run the Hello job (2_submit_batchjob.sh)
+```bash
+#!/bin/bash
 
 # Submit a batch job to run this job on ThetaGPU
 # Note: the command-line parameters are similar to scheduler command lines
@@ -81,7 +86,7 @@ balsam queue submit \
     --site thetagpu_tutorial \
     --tag workflow=hello \
     --job-mode mpi
-
+  
 # List the Balsam BatchJob
 # Note: Balsam will submit this job to Cobalt, so it will appear in qstat output after a short delay
 balsam queue ls 
@@ -90,20 +95,11 @@ balsam queue ls
 balsam job ls --tag workflow=hello
 ```
 
-## Submit a BatchJob to run the Hello job (2_submit_batchjob.sh)
-```bash
-#!/bin/bash
-balsam queue submit \
-  -n 1 -t 10 -q full-node -A datascience \
-  --site thetagpu_tutorial \
-  --tag workflow=hello \
-  --job-mode mpi 
-```
-
 ## Create a collection of Hello jobs using the Balsam Python API (3_create_multiple_jobs.py)
 ```python
 #!/usr/bin/env python
 from balsam.api import Job
+
 jobs = [
     Job( site_name="thetagpu_tutorial", 
          app_id="Hello", 
@@ -135,7 +131,7 @@ job = Job( site_name="thetagpu_tutorial",
            node_packing_count=8, 
            gpus_per_rank=1)
 job.save()
-for n in range(7):
+for n in range(1,8):
     job = Job( site_name="thetagpu_tutorial", 
                app_id="Hello", 
                workdir=f"demo/hello_deps{n}", 
@@ -179,6 +175,7 @@ for evt in EventLog.objects.filter(timestamp_after=yesterday):
 
 
 ## The Python API includes analytics support for utilization and throughput (6_analytics.py)
+This example will query the Hello jobs run to this point, and produce plots of utilization and throughput.
 
 > **⚠ WARNING: Extra Setup Required **  
 > This example requires matplotlib. Execute `python -m pip install matplotlib` to install it.
