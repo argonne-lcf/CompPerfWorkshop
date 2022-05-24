@@ -26,6 +26,9 @@ python -m pip install balsam
 # block until you've logged in on the webpage.
 balsam login
 
+# Load the cobalt-gpu module, so Balsam submits to the ThetaGPU
+module load cobalt/cobalt-gpu
+
 # Create a Balsam site
 balsam site init -n thetagpu_tutorial thetagpu_tutorial
 cd thetagpu_tutorial
@@ -33,7 +36,7 @@ balsam site start
 cd ..
 ```
 
-## Create an application in Balsam (hello.py)
+## Create a Hello application in Balsam (hello.py)
 We define an application by wrapping the command line in a small amount of Python code. Note that the command line is directly represented, and the say_hello_to parameter will be supplied when a job uses this application.
 
 ```python
@@ -92,7 +95,7 @@ balsam queue submit \
   --job-mode mpi 
 ```
 
-## Create a collection of jobs using the Balsam Python API (3_create_multiple_jobs.py)
+## Create a collection of Hello jobs using the Balsam Python API (3_create_multiple_jobs.py)
 ```python
 #!/usr/bin/env python
 from balsam.api import Job
@@ -102,8 +105,8 @@ jobs = [
          workdir=f"demo/hello_multi{n}", 
          parameters={"say_hello_to": f"world {n}!"},
          tags={"workflow":"hello_multi"}, 
-         node_packing_count=8, 
-         gpus_per_rank=1)
+         node_packing_count=8,  # run 8 jobs per node
+         gpus_per_rank=1)       # one GPU per rank    
     for n in range(8)
 ]
 
@@ -112,7 +115,7 @@ jobs = Job.objects.bulk_create(jobs)
 
 ```
 
-## Create a collection of jobs with dependencies (4_create_multiple_jobs_with_deps.py)
+## Create a collection of Hello jobs with dependencies (4_create_multiple_jobs_with_deps.py)
 ```python
 #!/usr/bin/env python
 from balsam.api import Job,BatchJob
