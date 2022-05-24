@@ -2,9 +2,10 @@
 
 seed: 42
 epochs: 10
-lr_init: 0.01
-batch_size: 64
 logfreq: 10
+lr_init: 0.001
+batch_size: 64
+buffer_size: 10000
 # momentum: 0.5
 # test_batch_size: 64
 # fp16_allreduce: ???
