@@ -29,7 +29,7 @@ site = Site.objects.get("thetagpu_tutorial")
 BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
-    queue="single-gpu",
+    queue="full-node",
     project="Comp_Perf_Workshop",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
