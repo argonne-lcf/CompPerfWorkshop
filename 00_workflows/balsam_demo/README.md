@@ -33,7 +33,7 @@ balsam site start
 cd ..
 ```
 
-Create an application in Balsam (hello.py)
+## Create an application in Balsam (hello.py)
 We define an application by wrapping the command line in a small amount of Python code. Note that the command line is directly represented, and the say_hello_to parameter will be supplied when a job uses this application.
 
 ```python
@@ -51,7 +51,7 @@ python hello.py
 ```
 
 
-Create a Hello job using the Balsam CLI interface (1_create_job.sh)
+## Create a Hello job using the Balsam CLI interface (1_create_job.sh)
 ```python
 #!/bin/bash -x 
 
@@ -82,7 +82,7 @@ balsam queue ls
 balsam job ls --tag workflow=hello
 ```
 
-Submit a BatchJob to run the Hello job (2_submit_batchjob.sh)
+## Submit a BatchJob to run the Hello job (2_submit_batchjob.sh)
 ```bash
 #!/bin/bash
 balsam queue submit \
@@ -92,7 +92,7 @@ balsam queue submit \
   --job-mode mpi 
 ```
 
-Create a collection of jobs using the Balsam Python API (3_create_multiple_jobs.py)
+## Create a collection of jobs using the Balsam Python API (3_create_multiple_jobs.py)
 ```python
 #!/usr/bin/env python
 from balsam.api import Job
@@ -112,7 +112,7 @@ jobs = Job.objects.bulk_create(jobs)
 
 ```
 
-Create a collection of jobs with dependencies (4_create_multiple_jobs_with_deps.py)
+## Create a collection of jobs with dependencies (4_create_multiple_jobs_with_deps.py)
 ```python
 #!/usr/bin/env python
 from balsam.api import Job,BatchJob
@@ -167,7 +167,13 @@ for evt in EventLog.objects.filter(timestamp_after=yesterday):
 ```
 
 
-The Python API includes analytics support for utilization and throughput (6_analytics.py)
+## The Python API includes analytics support for utilization and throughput (6_analytics.py)
+
+> **⚠ WARNING: Extra Setup Required **  
+> This example requires matplotlib. Execute `python -m pip install matplotlib` to install it.
+
+
+
 ```python
 #!/usr/bin/env python
 from balsam.api import models
@@ -203,7 +209,7 @@ plt.ylabel("Utilization")
 plt.savefig("utilization.png")
 ```
 
-Supplemental: Create a collection of jobs at multiple sites (7_create_jobs_at_multiple_sites.sh)
+## Supplemental: Create a collection of jobs at multiple sites (7_create_jobs_at_multiple_sites.sh)
 By setting dependencies between jobs, we can build up simple linear workflows, and complex workflows with multiple dependencies
 > **⚠ WARNING: Extra Setup Required **  
 > This example will only work for you if you replicate this site/app setup
@@ -279,5 +285,6 @@ balsam queue submit \
 balsam queue ls
 ```
 
+## Next Steps 
 For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/tree/main/hyperopt) in the Argonne github repository.
 
