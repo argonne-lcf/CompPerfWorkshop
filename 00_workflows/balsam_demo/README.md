@@ -21,7 +21,7 @@ balsam queue ls
 ```
 
 
-To get started on ThetaGPU:
+## Getting started on ThetaGPU
 
 ```bash
 # Log in to Theta
