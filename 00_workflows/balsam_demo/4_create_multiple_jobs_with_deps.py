@@ -30,7 +30,7 @@ BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
     queue="full-node",
-    project="Comp_Perf_Workshop",
+    project="training-gpu",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
     job_mode="mpi"

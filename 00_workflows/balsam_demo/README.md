@@ -99,7 +99,7 @@ We submit a batch job via the command line, and then list BatchJobs and the stat
 # Note: the command-line parameters are similar to scheduler command lines
 # Note: this job will run only jobs with a matching tag
 balsam queue submit \
-    -n 1 -t 10 -q full-node -A Comp_Perf_Workshop \
+    -n 1 -t 10 -q full-node -A training-gpu \
     --site thetagpu_tutorial \
     --tag workflow=hello \
     --job-mode mpi
@@ -171,7 +171,7 @@ BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
     queue="full-node",
-    project="Comp_Perf_Workshop",
+    project="training-gpu",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
     job_mode="mpi",
@@ -281,21 +281,21 @@ balsam job ls --tag workflow=hello_multisite
 # Submit BatchJobs at multiple sites
 # theta gpu
 balsam queue submit \
-  -n 1 -t 10 -q single-gpu -A Comp_Perf_Workshop \
+  -n 1 -t 10 -q single-gpu -A training-gpu \
   --site thetagpu_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
 
 # theta knl
 balsam queue submit \
-  -n 1 -t 10 -q debug-flat-quad -A Comp_Perf_Workshop \
+  -n 1 -t 10 -q debug-flat-quad -A training-gpu \
   --site thetaknl_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
 
 # cooley
 balsam queue submit \
-  -n 1 -t 10 -q debug -A Comp_Perf_Workshop \
+  -n 1 -t 10 -q debug -A training-gpu \
   --site cooley_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
