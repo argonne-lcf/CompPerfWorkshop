@@ -6,6 +6,10 @@ lr_init: 0.01
 batch_size: 64
 logfreq: 10
 
+hydra:
+  job:
+    chdir: true
+
 defaults:
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
