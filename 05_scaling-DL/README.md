@@ -19,12 +19,11 @@ This section of the workshop will introduce you to some of the tools that we use
     1. [Horovod with TensorFlow](./src/cpw/horovod/tensorflow/README.md)
         1. [`horovod/tensorflow/main.py`](.src/cpw/horovod/tensorflow/main.py)
     3. [Horovod with PyTorch](./src/cpw/horovod/torch/README.md)
-        1. [`horovod/pytorch/main.py`](./src/cpw/horovod/pytorch/main.py)
+        1. [`horovod/pytorch/main.py`](./src/cpw/horovod/torch/main.py)
 5. [PyTorch DistributedDataParallel](./src/cpw/DDP/README.md)
     1. [`DDP/main.py`](./src/cpw/ddp/main.py)
 6. [DeepSpeed](./src/cpw/deepspeed/README.md)
     1. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
-7. [ZeRO Data Parallel](./src/cpw/zero/README.md)
 
 # Distributed Training
 
