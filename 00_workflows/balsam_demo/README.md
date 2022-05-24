@@ -167,8 +167,8 @@ BatchJob.objects.create(
 from datetime import datetime,timedelta
 from balsam.api import EventLog
 
+# Fetch events that occurred in the past 24 hours
 yesterday = datetime.utcnow() - timedelta(days=1)
-#for evt in EventLog.objects.filter(tags={"workflow": "hello_multi"}):
 for evt in EventLog.objects.filter(timestamp_after=yesterday):
     print("Job:",evt.job_id)  # Job ID
     print(evt.timestamp)      # Time of state change (UTC)
