@@ -35,6 +35,7 @@ balsam login
 module load cobalt/cobalt-gpu
 
 # Create a Balsam site
+# Note: The "-n" option specifies the site name; the last argument specifies the directory name                              
 balsam site init -n thetagpu_tutorial thetagpu_tutorial
 cd thetagpu_tutorial
 balsam site start
