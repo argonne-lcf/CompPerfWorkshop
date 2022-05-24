@@ -154,21 +154,21 @@ BatchJob.objects.create(
     num_nodes=1,
     wall_time_min=10,
     queue="full-node",
-    project="datascience",
+    project="Comp_Perf_Workshop",
     site_id=site.id,
     filter_tags={"workflow":"hello_deps"},
     job_mode="mpi",
 )
 ```
 
-Use the Python API to monitor jobs (5_monitor_jobs.py)
+## Use the Python API to monitor jobs (5_monitor_jobs.py)
 ```python
 #!/usr/bin/env python
 from datetime import datetime,timedelta
 from balsam.api import EventLog
 
+# Fetch events that occurred in the past 24 hours
 yesterday = datetime.utcnow() - timedelta(days=1)
-#for evt in EventLog.objects.filter(tags={"workflow": "hello_multi"}):
 for evt in EventLog.objects.filter(timestamp_after=yesterday):
     print("Job:",evt.job_id)  # Job ID
     print(evt.timestamp)      # Time of state change (UTC)
@@ -266,21 +266,21 @@ balsam job ls --tag workflow=hello_multisite
 # Submit BatchJobs at multiple sites
 # theta gpu
 balsam queue submit \
-  -n 1 -t 10 -q single-gpu -A datascience \
+  -n 1 -t 10 -q single-gpu -A Comp_Perf_Workshop \
   --site thetagpu_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
 
 # theta knl
 balsam queue submit \
-  -n 1 -t 10 -q debug-flat-quad -A datascience \
+  -n 1 -t 10 -q debug-flat-quad -A Comp_Perf_Workshop \
   --site thetaknl_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
 
 # cooley
 balsam queue submit \
-  -n 1 -t 10 -q debug -A datascience \
+  -n 1 -t 10 -q debug -A Comp_Perf_Workshop \
   --site cooley_tutorial \
   --tag workflow=hello_multi \
   --job-mode mpi
