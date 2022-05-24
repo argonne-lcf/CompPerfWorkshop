@@ -351,7 +351,7 @@ def main(cfg: DictConfig) -> None:
 
         if epoch % cfg.logfreq and RANK == 0:
             acc = trainer.test()
-            astr = f'[TEST] Accuracy: {acc:.0f}%'
+            astr = f'[TEST] Accuracy: {100.0 * acc:.0f}%'
             sepstr = '-' * len(astr)
             log.info(sepstr)
             log.info(astr)
