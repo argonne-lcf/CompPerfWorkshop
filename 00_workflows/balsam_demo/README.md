@@ -119,7 +119,7 @@ jobs = Job.objects.bulk_create(jobs)
 ```
 
 ## Create a collection of Hello jobs with dependencies (4_create_multiple_jobs_with_deps.py)
-Similar to the example above, we create a collection of jobs but this time with inter-job dependencies: a simple linear workflow. The jobs will run in order, honoring the job dependency setting (even though the jobs could all run simultaneously).
+Similar to the example above, we create a collection of jobs but this time with inter-job dependencies: a simple linear workflow. The jobs will run in order, honoring the job dependency setting (even though the jobs could all run simultaneously). In this case, we use the Python API to define jobs and batch jobs. 
 
 ```python
 #!/usr/bin/env python
@@ -162,6 +162,8 @@ BatchJob.objects.create(
 ```
 
 ## Use the Python API to monitor jobs (5_monitor_jobs.py)
+As Balsam runs jobs, they advance through states that include transferring input files, job submission, execution, and transferring output files. Users can monitor these events programmatically, to build dynamic workflows or to monitor throughput of their jobs.
+
 ```python
 #!/usr/bin/env python
 from datetime import datetime,timedelta
@@ -179,7 +181,7 @@ for evt in EventLog.objects.filter(timestamp_after=yesterday):
 
 
 ## The Python API includes analytics support for utilization and throughput (6_analytics.py)
-This example will query the Hello jobs run to this point, and produce plots of utilization and throughput.
+This example will query the Hello jobs run to this point, to produce plots of utilization and throughput.
 
 > **⚠ WARNING: Extra Setup Required **  
 > This example requires matplotlib. Execute `pip install matplotlib` to install it.
