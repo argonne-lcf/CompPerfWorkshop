@@ -32,7 +32,8 @@ This section of the workshop will introduce you to some of the tools that we use
 5. [PyTorch DistributedDataParallel](./src/cpw/DDP/README.md)
     1. [`DDP/main.py`](./src/cpw/ddp/main.py)
 6. [DeepSpeed](./src/cpw/deepspeed/README.md)
-    1. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
+    1. [`sdl_ai_workshop/DeepSpeed`](https://github.com/argonne-lcf/sdl_ai_workshop/tree/master/01_distributedDeepLearning/DeepSpeed)
+    2. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
 
 # Distributed Training
 
