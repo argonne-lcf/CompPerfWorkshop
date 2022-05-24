@@ -294,8 +294,8 @@ The output of the bottleneck is too big to show it here. Basically, it combines 
 * While profile collects events and analyses them it has a huge overhead. Profiler is helpful in searching for performance issues but slows down training/evaluation. Be sure that you removed it when you finish your code investigation.
 
 
-## New PyTorch profiler
-With PyTorch 1.8 release [the new PyTorch profiler was introduced](https://pytorch.org/docs/stable/profiler.html#torch-profiler). It is the next version of `torch.autorgrad.profile` and will replace it in future releases. The new `torch.profile` has a different [API](https://pytorch.org/docs/stable/profiler.html#torch-profiler) but it can be used instead of  `torch.autorgrad.profile`: collect and print profile. But, more interestingly, it provides a convenient dashboard with a summary of all events and recommendations for optimization - [example3/v0.py](example3/v0.py)
+## (new) PyTorch profiler
+With PyTorch 1.8 release [the new PyTorch profiler was introduced](https://pytorch.org/blog/introducing-pytorch-profiler-the-new-and-improved-performance-tool/). It is the next version of `torch.autorgrad.profile` and will replace it in future releases. The new `torch.profile` has a different [API](https://pytorch.org/docs/stable/profiler.html#torch-profiler) but it can be used instead of  `torch.autorgrad.profile`: collect and print profile. But, more interestingly, it provides a convenient dashboard with a summary of all events and recommendations for optimization - [example3/v0.py](example3/v0.py)
 ```python
 import torch
 import torchvision.models as models
@@ -319,7 +319,13 @@ with torch.profiler.profile(
 ```
 In this example, we collect activities on both CPU and GPU. Due to `schedule` argument, we can use `torch.profiler.schedule` which with `wait=0` skips no iterations, `warmup=1` starts warming up on first, `active=3` records second - fourth iterations, and when the trace becomes available `torch.profiler.tensorboard_trace_handler` is called to save a trace. This cycle repeats with the fifth iteration so in our example two traces will be saved. After execution, we will have `some_name.pt.trace.json` and `some_name_2.pt.trace.json` traces saved.
 
-To see traces one has to install [PyTorch profiler TensorBoard Plugin](https://github.com/pytorch/kineto/blob/master/tb_plugin/README.md). To do it on ThetaGPU you need to copy conda environment first (on ThetaGPU login node `thetagpusn1`):
+To see traces one has to install [PyTorch profiler TensorBoard Plugin](https://github.com/pytorch/kineto/blob/master/tb_plugin/README.md). This can be done either by installing this package locally
+```bash
+module load conda/pytorch
+conda activate
+pip install --user torch-tb-profiler
+```
+or by copying conda environment
 ```bash
 module load conda/pytorch
 conda activate
@@ -327,11 +333,12 @@ conda create --clone $CONDA_PREFIX --name yourEvnName
 conda activate yourEvnName
 pip install torch-tb-profiler
 ```
-and run tensorboard with specifying `logdir` where your traces are stored. You can run tensorboard on `thetagpusn1` node:
+
+This plugin allows exemining PyTorch profiler result in TensorBoard. To do so one have to run tensorboard with specifying `logdir` where your traces are stored. If you run tensorboard on `thetagpusn1` node:
 ```bash
 tensorboard --port <PORT> --bind_all --logdir </path/to/log/output/>
 ```
-Also, in this case, you will need to do some ssh port forwarding to access the server. On your local machine run
+you will need to do ssh port forwarding to access the server. On your local machine run
 ```bash
 ssh -L PORT:localhost:PORT username@theta.alcf.anl.gov ssh -L PORT:localhost:PORT thetagpusn1
 ```
