@@ -312,5 +312,5 @@ balsam queue ls
 ```
 
 ## Next Steps 
-The examples above demonstrate the basic functionality of Balsam: defining applications, describing jobs, submitting batch jobs to run those jobs, and monitoring throughput, on one site or across multiple sites. With these capabilities, we can define more complex workflows that dynamically adapt as jobs run. For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/tree/main/hyperopt) in the Argonne github repository.
+The examples above demonstrate the basic functionality of Balsam: defining applications, describing jobs, submitting batch jobs to run those jobs, and monitoring throughput, on one site or across multiple sites. With these capabilities, we can define more complex workflows that dynamically adapt as jobs run. For a more detailed application, see the [hyperparameter optimization example](https://github.com/argonne-lcf/balsam_tutorial/tree/main/hyperopt) in the ALCF github repository.
 
