@@ -26,8 +26,6 @@ Additionally, DDP performs tensor fusion to create larger buffers for tensors.  
 
 ## DDP support
 
-DDP is only available in newer versions of python, and on ThetaGPU works most reliably using Nvidia's docker or singularity containers.  The examples here will use these containers.
-
 For collective communication, DDP can use `NCCL` on GPUs, and `gloo` on CPUs.
 
 ## Setting up DDP
@@ -53,22 +51,15 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from mpi4py import MPI
 
 def setup(backend: Optional[str] = 'nccl') -> None:
-    os.environ['MASTER_ADDR'] = master_addr
-    os.environ['MASTER_PORT'] = master_port
-    # initialize the process group
-    # Use openmpi environment variables to read the local rank:
     local_rank = os.environ['OMPI_COMM_WORLD_LOCAL_RANK']
-    # Use MPI to get the world size and the global rank:
     size = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
-
 
     # Pytorch will look for these:
     os.environ["RANK"] = str(rank)
     os.environ["WORLD_SIZE"] = str(size)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(local_rank)
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(local_rank)
 
-    # Get the hostname of the master node, and broadcast it to all other nodes
     # It will want the master address too, which we'll broadcast:
     if rank == 0:
         master_addr = socket.gethostname()
@@ -76,9 +67,7 @@ def setup(backend: Optional[str] = 'nccl') -> None:
         master_addr = None
 
     master_addr = MPI.COMM_WORLD.bcast(master_addr, root=0)
-    # Set the master address on all nodes:
     os.environ["MASTER_ADDR"] = master_addr
-    # Port can be any open port
     os.environ["MASTER_PORT"] = str(2345)
     dist.init_process_group(
         backend,
