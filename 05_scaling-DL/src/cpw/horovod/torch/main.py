@@ -7,10 +7,9 @@ training.
 from __future__ import absolute_import, annotations, division, print_function
 import logging
 import time
-from typing import Union
+from typing import Optional, Union
 
 import hydra
-import numpy as np
 from omegaconf import DictConfig
 import torch
 try:
@@ -73,17 +72,17 @@ class Net(nn.Module):
         return F.log_softmax(x, 1)
 
 
-def metric_average(x: Tensor):
-    avg_tensor = hvd.allreduce(x)
+def metric_average(x: Tensor | float, name: Optional[str] = None):
+    tensor = torch.tensor(x).detach()
+    avg_tensor = hvd.allreduce(tensor, name=name)
     return avg_tensor.item()
 
 
 class Trainer:
     def __init__(self, cfg: DictConfig):
         self.cfg = cfg
-        self.rank = RANK
+        self.rank = hvd.local_rank()
         self.fp16 = cfg.get('fp16', False)
-        compression = hvd.Compression.fp16 if self.fp16 else hvd.Compression.none
         self.device = 'gpu' if torch.cuda.is_available() else 'cpu'
 
         self.backend = self.cfg.get('backend', None)
@@ -98,7 +97,6 @@ class Trainer:
             self.optimizer = hvd.DistributedOptimizer(
                 optimizer,
                 named_parameters=self.model.named_parameters(),
-                compression=compression,  # type: ignore
             )
             hvd.broadcast_parameters(self.model.state_dict(), root_rank=0)
             hvd.broadcast_optimizer_state(self.optimizer, root_rank=0)
@@ -126,7 +124,7 @@ class Trainer:
         ):
             torch.set_num_threads(self.cfg.num_threads)
 
-        if RANK == 0:
+        if self.rank == 0:
             log.info('\n'.join([
                 'Torch Thread Setup:',
                 f' Number of threads: {torch.get_num_threads()}',
@@ -136,7 +134,6 @@ class Trainer:
         kwargs = {}
 
         if self.device == 'gpu':
-            kwargs = {''}
             kwargs = {'num_workers': 1, 'pin_memory': True}
 
         transform = transforms.Compose([
@@ -213,7 +210,32 @@ class Trainer:
 
         return loss, acc
 
-    def train_epoch(
+    def train_epoch(self, epoch: int):
+        self.model.train()
+        # Horovod: set epoch to sampler for shuffling.
+        train_sampler = self.data['train']['sampler']
+        train_loader = self.data['train']['loader']
+        train_sampler.set_epoch(epoch)
+        loss = 0.0
+        for batch_idx, (data, target) in enumerate(train_loader):
+            if WITH_CUDA:
+                data, target = data.cuda(), target.cuda()
+            self.optimizer.zero_grad()
+            output = self.model(data)
+            loss = F.nll_loss(output, target)
+            loss.backward()
+            self.optimizer.step()
+            if batch_idx % self.cfg.logfreq == 0:
+                # Horovod: use train_sampler to determine the number of examples in
+                # this worker's partition.
+                log.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, batch_idx * len(data), len(train_sampler),
+                           100. * batch_idx / len(train_loader), loss.item()))
+
+        return loss
+
+
+    def train_epoch1(
             self,
             epoch: int,
     ) -> dict:
@@ -240,10 +262,10 @@ class Trainer:
                 metrics = {
                     'epoch': epoch,
                     'dt': time.time() - start,
-                    'running_loss': running_loss / (sampler_len // SIZE),
-                    'batch_loss': loss.item() / self.cfg.batch_size,
-                    'acc': training_acc / (sampler_len // SIZE),
                     'batch_acc': acc.item() / self.cfg.batch_size,
+                    'batch_loss': loss.item() / self.cfg.batch_size,
+                    'running_loss': running_loss.item() / sampler_len,
+                    'acc': training_acc.item() / sampler_len,
                 }
                 pre = [
                     f'[{RANK}]',
@@ -257,12 +279,45 @@ class Trainer:
                     *pre, *[f'{k}={v:.4f}' for k, v in metrics.items()]
                 ]))
 
-        training_acc = metric_average(training_acc / sampler_len)
-        loss_avg = metric_average(running_loss / sampler_len)
+        running_loss = running_loss / len(train_sampler)
+        training_acc = training_acc / len(train_sampler)
+        training_acc = metric_average(training_acc)
+        loss_avg = metric_average(running_loss)
 
-        return {'loss': loss_avg.item(), 'acc': training_acc.item()}
+        return {'loss': loss_avg, 'acc': training_acc}
 
-    def test(self) -> float:
+    def test(self):
+        self.model.eval()
+        test_loss = 0.
+        test_accuracy = 0.
+        for data, target in self.data['test']['loader']:
+            if WITH_CUDA:
+                data, target = data.cuda(), target.cuda()
+            output = self.model(data)
+            # sum up batch loss
+            test_loss += F.nll_loss(output, target, size_average=False).item()
+            # get the index of the max log-probability
+            pred = output.data.max(1, keepdim=True)[1]
+            test_accuracy += pred.eq(target.data.view_as(pred)).cpu().float().sum()
+
+        # Horovod: use test_sampler to determine the number of examples in
+        # this worker's partition.
+        test_loss /= len(self.data['test']['sampler'])
+        test_accuracy /= len(self.data['test']['sampler'])
+
+        # Horovod: average metric values across workers.
+        test_loss = metric_average(test_loss, 'avg_loss')
+        test_accuracy = metric_average(test_accuracy, 'avg_accuracy')
+
+        # Horovod: print output only on first rank.
+        if hvd.rank() == 0:
+            log.info('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
+                test_loss, 100. * test_accuracy))
+
+        return test_accuracy
+
+
+    def test1(self) -> float:
         total = 0
         correct = 0
         self.model.eval()
@@ -284,36 +339,27 @@ def main(cfg: DictConfig) -> None:
     if RANK == 0:
         log.info(f'RANK: {RANK} of {SIZE}')
 
-    start = time.time()
     trainer = Trainer(cfg)
     epoch_times = []
-    for epoch in range(cfg.epochs):
+    for epoch in range(1, cfg.epochs + 1):
         t0 = time.time()
-        metrics = trainer.train_epoch(epoch)
+        metrics = trainer.train_epoch1(epoch)
         epoch_times.append(time.time() - t0)
-
-        # if epoch % cfg.logfreq and RANK == 0:
-        #     acc = trainer.test()
-        #     astr = f'[TEST] Accuracy: {acc:.0f}%'
-        #     sepstr = '-' * len(astr)
-        #     log.info(sepstr)
-        #     log.info(astr)
-        #     log.info(sepstr)
-        #     summary = '  '.join([
-        #         '[TRAIN]',
-        #         f'loss={metrics["loss"]:.4f}',
-        #         f'acc={metrics["acc"] * 100.0:.0f}%'
-        #     ])
-        #     log.info((sep := '-' * len(summary)))
-        #     log.info(summary)
-        #     log.info(sep)
-
-
-    rstr = f'[{RANK}]'
-    log.info(f'{rstr} :: Total training time: {time.time() - start} seconds')
-    log.info(
-        f'{rstr} :: Average time per epoch in the last 5: {np.mean(epoch_times[-5])}'
-    )
+        if epoch % cfg.logfreq and RANK == 0:
+            acc = trainer.test1()
+            astr = f'[TEST] Accuracy: {100.0 * acc:.0f}%'
+            sepstr = '-' * len(astr)
+            log.info(sepstr)
+            log.info(astr)
+            log.info(sepstr)
+            summary = '  '.join([
+                '[TRAIN]',
+                f'loss={metrics["loss"]:.4f}',
+                f'acc={metrics["acc"] * 100.0:.0f}%'
+            ])
+            log.info((sep := '-' * len(summary)))
+            log.info(summary)
+            log.info(sep)
 
 
 if __name__ == '__main__':
