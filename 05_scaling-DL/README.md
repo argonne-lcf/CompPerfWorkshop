@@ -147,6 +147,9 @@ The [Switch Transformer](https://arxiv.org/abs/2101.03961) has a clear discussio
 
 <img src="assets/data-parallel.svg" width="30%"> <img src="assets/model-parallel.svg" width="36%" style="margin-left:50px;" />
 
+<!--<img src="assets/scale_results_small.svg" width="100%">-->
+
+
 [^ddp]: [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](https://pytorch.org/tutorials/beginner/dist_overview.html):
 [^1]: Sergeev, A., Del Balso, M. (2017) [Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow](https://eng.uber.com/horovod/)
 [^2]: Sergeev, A. (2017) [Horovod - Distributed TensorFlow Made Easy](https://www.slideshare.net/AlexanderSergeev4/horovod-distributed-tensorflow-made-easy).
