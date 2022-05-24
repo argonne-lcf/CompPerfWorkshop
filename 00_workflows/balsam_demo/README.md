@@ -5,6 +5,21 @@ Balsam: ALCF Computational Performance Workshop
 
 The full [Balsam documentation](https://balsam.readthedocs.io/en/latest) covers all functionality for users, including additional examples, and describes the Balsam architecture for potential developers; contributions welcome! 
 
+Let's put some useful Balsam command lines here at the top for reference. Note that some of these commands have additional options; you can always see these by appending `--help`.
+```
+# List your sites
+balsam site ls
+
+# List your apps
+balsam app ls
+
+# List your jobs (specify tag for expedience)
+balsam job ls --tag workflow=hello
+
+# List your batch jobs
+balsam queue ls
+```
+
 
 To get started on ThetaGPU:
 
