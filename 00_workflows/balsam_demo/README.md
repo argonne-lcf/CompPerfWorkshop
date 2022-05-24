@@ -23,6 +23,8 @@ cd CompPerfWorkshop/00_workflows/balsam_demo
 /lus/theta-fs0/software/datascience/conda/2021-09-22/mconda3/bin/python -m venv env
 source env/bin/activate
 pip install --upgrade pip
+# We need matplotlib for one of the examples
+pip install matplotlib
 
 # Install Balsam
 pip install balsam
@@ -182,11 +184,6 @@ for evt in EventLog.objects.filter(timestamp_after=yesterday):
 
 ## The Python API includes analytics support for utilization and throughput (6_analytics.py)
 This example will query the Hello jobs run to this point, to produce plots of utilization and throughput.
-
-> **⚠ WARNING: Extra Setup Required **  
-> This example requires matplotlib. Execute `pip install matplotlib` to install it.
-
-
 
 ```python
 #!/usr/bin/env python
