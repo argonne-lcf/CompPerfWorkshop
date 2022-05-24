@@ -118,7 +118,7 @@ jobs = Job.objects.bulk_create(jobs)
 ## Create a collection of Hello jobs with dependencies (4_create_multiple_jobs_with_deps.py)
 ```python
 #!/usr/bin/env python
-from balsam.api import Job,BatchJob
+from balsam.api import Job,BatchJob,Site
 
 # Create a collection of jobs, each one depending on the job before it
 n=0
@@ -140,10 +140,13 @@ for n in range(7):
                gpus_per_rank=1, 
                parent_ids=[job.id])  # Sets a dependency on the prior job
     job.save()
+    
+# Get the id for your site
+site = Site.objects.get("thetagpu_tutorial")
 
 # Create a BatchJob to run jobs with the workflow=hello_deps tag
 BatchJob.objects.create(
-    site_id=287,
+    site_id=site.id,
     num_nodes=1,
     wall_time_min=10,
     queue="single-gpu",
@@ -256,8 +259,7 @@ balsam job ls --tag workflow=hello_multisite
 #!/bin/bash
 
 # Submit BatchJobs at multiple sites
-# thetagpu
-# note: should use full-node queue
+# theta gpu
 balsam queue submit \
   -n 1 -t 10 -q single-gpu -A datascience \
   --site thetagpu_tutorial \
