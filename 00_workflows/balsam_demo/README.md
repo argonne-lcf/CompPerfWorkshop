@@ -9,6 +9,9 @@ The full [Balsam documentation](https://balsam.readthedocs.io/en/latest) covers 
 To get started on ThetaGPU:
 
 ```bash
+# Log in to Theta
+ssh theta.alcf.anl.gov
+
 # clone this repo
 git clone https://github.com/argonne-lcf/CompPerfWorkshop.git
 cd CompPerfWorkshop/00_workflows/balsam_demo
