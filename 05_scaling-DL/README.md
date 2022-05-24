@@ -12,10 +12,10 @@ This section of the workshop will introduce you to some of the tools that we use
 > ‼️ **Warning**
 > <br> The examples below use [hydra](https://hydra.cc/) to manage experiment configuration.
 > In order to use hydra with the provided `conda` environment, repeat the following steps:
-> 1. `qsub -I -t 01:00 -A Comp_Perf_Workshop -q training-gpu`
+> 1. `qsub -I -A Comp_Perf_Workshop -q single-gpu -t 01:00 -n 1`
 > 2. `module load conda/2021-11-30`
 > 3. `conda activate base`
-> 4. `python3 -m pip install hydra-core hydra_colorlog`
+> 4. `python3 -m pip install hydra-core hydra_colorlog --upgrade`
 
 ## Organization
 1. [Distributed Training](#distributed-training) 📍
