@@ -7,6 +7,7 @@ Pytorch has an additional built-in distributed data parallel package, DDP, short
 DDP implements data parallelism at the module level which can run across multiple machines.
 
 - [PyTorch Documentation](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html)
+- [Example / Reference](https://github.com/pytorch/examples/blob/main/distributed/ddp/README.md)
 - [Original paper](http://www.vldb.org/pvldb/vol13/p3005-li.pdf)
 
 A thorough description of the design and implementation can be found in the original [paper](http://www.vldb.org/pvldb/vol13/p3005-li.pdf), and there are many great resources available from [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](https://pytorch.org/tutorials/beginner/dist_overview.html)
@@ -24,8 +25,6 @@ and when.  It leverages the situations where, during a sequential backward pass,
 Additionally, DDP performs tensor fusion to create larger buffers for tensors.  Horovod also has the option, though DDP uses it by default.
 
 ## DDP support
-
-DDP is only available in newer versions of python, and on ThetaGPU works most reliably using Nvidia's docker or singularity containers.  The examples here will use these containers.
 
 For collective communication, DDP can use `NCCL` on GPUs, and `gloo` on CPUs.
 
@@ -52,22 +51,15 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from mpi4py import MPI
 
 def setup(backend: Optional[str] = 'nccl') -> None:
-    os.environ['MASTER_ADDR'] = master_addr
-    os.environ['MASTER_PORT'] = master_port
-    # initialize the process group
-    # Use openmpi environment variables to read the local rank:
     local_rank = os.environ['OMPI_COMM_WORLD_LOCAL_RANK']
-    # Use MPI to get the world size and the global rank:
     size = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
-
 
     # Pytorch will look for these:
     os.environ["RANK"] = str(rank)
     os.environ["WORLD_SIZE"] = str(size)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(local_rank)
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(local_rank)
 
-    # Get the hostname of the master node, and broadcast it to all other nodes
     # It will want the master address too, which we'll broadcast:
     if rank == 0:
         master_addr = socket.gethostname()
@@ -75,9 +67,7 @@ def setup(backend: Optional[str] = 'nccl') -> None:
         master_addr = None
 
     master_addr = MPI.COMM_WORLD.bcast(master_addr, root=0)
-    # Set the master address on all nodes:
     os.environ["MASTER_ADDR"] = master_addr
-    # Port can be any open port
     os.environ["MASTER_PORT"] = str(2345)
     dist.init_process_group(
         backend,
@@ -123,21 +113,12 @@ We provide an example illustrating a simple use case of DDP for distributed trai
 This example can be found in [`./DDP/main.py`](05_scaling-DL/DDP/main.py)
 
 
-## Running in a container
-Unfortunately, running in a container to use DDP requires two scripts, not one, to successfully launch the program.  The reason for this is that our container does not have `mpi4py` and so we launch singularity with MPI from the main cobalt script, and each singularity instance launches a shell script that itself launches python.  To be more clear:
-
-- Cobalt script which runs on one node, and uses `mpirun` to launch `n` singularity instances, typically 8 per node.  
-    - Each singularity instance launches the same shell script
-    - Each shell script sets up a virtual environment, and then executes the main python script.
-
-Take a look in the [`submissions`](05_scaling-DL/DDP/submissions) folder for more details about this.
-
 # Example Performance
 Here I show the results I got measuring the time-per-epoch averaged over the last 5 epochs of a training run.  I scaled out over a single node, and out onto 4 nodes x 8 GPUs
 
 
 | GPUs | Cifar10 Time/epoch [s] | Speedup | MNIST Time/epoch [s] | Speedup |
-|:----:|:----------------------:|:-------:| -------------------- | ------- |
+|:----:|:----------------------:|:-------:|:--------------------:|:-------:|
 |  1   |          13.6          |   1.0   | 11.7                 | 1.0     |
 |  4   |          2.66          |  5.113  | 2.64                 | 4.4318  |
 |  8   |          1.43          |  9.510  | 1.37                 | 8.5401  |
@@ -147,7 +128,7 @@ Here I show the results I got measuring the time-per-epoch averaged over the las
 
 <!--![scaling_results](./assets/scaling_results.svg)-->
 
-<img src="05_scaling-DL/src/cpw/DDP/assets/scaling_results.svg">
+<!--<img src="05_scaling-DL/src/cpw/DDP/assets/scaling_results.svg">-->
 
 ## Example
 Modified from: [Distributed Data Parallel — PyTorch 1.11.0 documentation](https://pytorch.org/docs/stable/notes/ddp.html) 

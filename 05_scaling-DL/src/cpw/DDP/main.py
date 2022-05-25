@@ -9,7 +9,7 @@ import os
 import socket
 import logging
 
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 
 import hydra
 import time
@@ -17,6 +17,7 @@ import torch
 import torch.utils.data
 import torch.utils.data.distributed
 from torch.cuda.amp.grad_scaler import GradScaler
+import torch.multiprocessing as mp
 
 
 import numpy as np
@@ -136,7 +137,7 @@ class Trainer:
         if WITH_DDP:
             init_process_group(RANK, SIZE, backend=self.backend)
 
-        self.setup_torch()
+        # self.setup_torch()
         self.data = self.setup_data()
         self.model = self.build_model()
         if self.device == 'gpu':
@@ -155,7 +156,7 @@ class Trainer:
         return model
 
     def build_optimizer(self, model: nn.Module) -> torch.optim.Optimizer:
-        # Horovod: scale learning rate by the number of GPUs
+        # DDP: scale learning rate by the number of GPUs
         optimizer = optim.Adam(model.parameters(),
                                lr=SIZE * self.cfg.lr_init)
         return optimizer
@@ -198,7 +199,7 @@ class Trainer:
             )
         )
 
-        # Horovod: use DistributedSampler to partition training data
+        # DDP: use DistributedSampler to partition training data
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             train_dataset, num_replicas=SIZE, rank=RANK,
         )
@@ -219,7 +220,7 @@ class Trainer:
                 ])
             )
         )
-        # Horovod: use DistributedSampler to partition the test data
+        # DDP: use DistributedSampler to partition the test data
         test_sampler = torch.utils.data.distributed.DistributedSampler(
             test_dataset, num_replicas=SIZE, rank=RANK
         )
@@ -277,7 +278,7 @@ class Trainer:
 
         train_sampler = self.data['train']['sampler']
         train_loader = self.data['train']['loader']
-        # HOROVOD: set epoch to sampler for shuffling
+        # DDP: set epoch to sampler for shuffling
         train_sampler.set_epoch(epoch)
         for bidx, (data, target) in enumerate(train_loader):
             loss, acc = self.train_step(data, target)
@@ -332,15 +333,14 @@ class Trainer:
         return correct / total
 
 
-# def run_demo(demo_fn: Callable, world_size: int | str) -> None:
-#     mp.spawn(demo_fn,
-#              args=(world_size,),
-#              nprocs=int(world_size),
-#              join=True)
+def run_demo(demo_fn: Callable, world_size: int | str) -> None:
+    mp.spawn(demo_fn,  # type: ignore
+             args=(world_size,),
+             nprocs=int(world_size),
+             join=True)
 
 
-@hydra.main(config_path='./conf', config_name='config')
-def main(cfg: DictConfig) -> None:
+def train_mnist(cfg: DictConfig):
     start = time.time()
     trainer = Trainer(cfg)
     epoch_times = []
@@ -366,11 +366,21 @@ def main(cfg: DictConfig) -> None:
             log.info(sep)
 
 
-    log.info(f'Total training time: {time.time() - start} seconds')
-    log.info(
+    rstr = f'[{RANK}] ::'
+    log.info(' '.join([
+        rstr,
+        f'Total training time: {time.time() - start} seconds'
+    ]))
+    log.info(' '.join([
+        rstr,
         f'Average time per epoch in the last 5: {np.mean(epoch_times[-5])}'
-    )
 
+    ]))
+
+
+@hydra.main(version_base=None, config_path='./conf', config_name='config')
+def main(cfg: DictConfig) -> None:
+    train_mnist(cfg)
     cleanup()
 
 

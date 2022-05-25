@@ -140,7 +140,7 @@ if hvd.rank() == 0:
     checkpoint.save(checkpoint_dir)
 ```
 
-The steps for using Horovod with PyTorch is similar, and are explained in the next section, [Horovod with PyTorch](work/datascience/CompPerfWorkshop/horovod/pytorch/README.md))
+The steps for using Horovod with PyTorch is similar, and are explained in the next section, [Horovod with PyTorch](https://github.com/argonne-lcf/CompPerfWorkshop/blob/main/05_scaling-DL/src/cpw/horovod/torch/README.md)
 
 
 [^1]: `fas:Github` [`horovod/horovod` Distributed training framework for TensorFlow, Keras, PyTorch, and Apache MXNet.](https://github.com/horovod/horovod)

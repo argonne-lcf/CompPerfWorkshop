@@ -9,16 +9,18 @@ This section of the workshop will introduce you to some of the tools that we use
 
 **Note:** This topic was also covered at the [ALCF: Simulation, Data, and Learning Workshop for AI](https://github.com/argonne-lcf/sdl_ai_workshop), which has additional resources ( + examples) for those interested.
 
-> ‼️ **Warning**
+> ⚠️ **Warning**
 > <br> The examples below use [hydra](https://hydra.cc/) to manage experiment configuration.
 > In order to use hydra with the provided `conda` environment, repeat the following steps:
 > 1. `qsub -I -A Comp_Perf_Workshop -q single-gpu -t 01:00 -n 1`
 > 2. `module load conda/2021-11-30`
 > 3. `conda activate base`
 > 4. `python3 -m pip install hydra-core hydra_colorlog --upgrade`
+> 5. `mpirun -np 8 -hostfile "${COBALT_NODEFILE}" python3 main.py`
+
 
 ## Organization
-1. [Distributed Training](#distributed-training) 📍
+1. 📍 [Distributed Training](#distributed-training)
     1. [Why train on multiple GPUs](#why-train-on-multiple-gpus)
     2. [Model vs Data Parallelism](#model-vs-data-parallelism)
         1. [Model Parallelism](#model-parallelism)
@@ -27,11 +29,12 @@ This section of the workshop will introduce you to some of the tools that we use
     1. [Horovod with TensorFlow](./src/cpw/horovod/tensorflow/README.md)
         1. [`horovod/tensorflow/main.py`](.src/cpw/horovod/tensorflow/main.py)
     3. [Horovod with PyTorch](./src/cpw/horovod/torch/README.md)
-        1. [`horovod/pytorch/main.py`](./src/cpw/horovod/torch/main.py)
+        1. [`horovod/torch/main.py`](./src/cpw/horovod/torch/main.py)
 5. [PyTorch DistributedDataParallel](./src/cpw/DDP/README.md)
     1. [`DDP/main.py`](./src/cpw/ddp/main.py)
 6. [DeepSpeed](./src/cpw/deepspeed/README.md)
-    1. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
+    1. [`sdl_ai_workshop/DeepSpeed`](https://github.com/argonne-lcf/sdl_ai_workshop/tree/master/01_distributedDeepLearning/DeepSpeed)
+    2. [`deepspeed/main.py`](./src/cpw/deepspeed/main.py)
 
 # Distributed Training
 
@@ -64,9 +67,10 @@ From [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](h
 
 <blockquote>
     <b>For apps that gradually grow from simple to complex and from prototype to production, the common development trajectory may be:</b>
+    <br>
     <ol>
         <li> ❌ Use single device training if the data and model can fit on one GPU, and training speed is not a concern  (not relevant for this section)</li>
-        <li> ❌ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html"> `DataParallel` </a>  to make use of multiple GPUs on a single machine to speed up training with minimal code changes (not recommended, <tt>DDP</tt> preferred) </li>
+        <li> ❌ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html"> <tt>DataParallel</tt> </a>  to make use of multiple GPUs on a single machine to speed up training with minimal code changes (not recommended, <tt>DDP</tt> preferred) </li>
         <li> ✅ Use single-machine multi-GPU <a href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html"> <tt>DistributedDataParallel</tt>  </a>  if you would like to further speed up training and are willing to write a little more code to set it up </li>
         <li> ✅ Use multi-machine <a href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html"><tt>DistributedDataParallel</tt></a> and the <a href="https://github.com/pytorch/examples/blob/master/distributed/ddp/README.md"> launching script</a> if the application needs to scale across machine boundaries </li>
         <li> ❓ Use <a href="https://pytorch.org/docs/stable/distributed.elastic.html"> <tt>torch.distributed.elastic</tt></a> to launch distributed training if errors (e.g., out-of-memory) are expected or if resources can join and leave dynamically during training  (not covered in this tutorial) </li>
@@ -92,17 +96,18 @@ From [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](h
 - Existing frameworks ([Horovod](https://horovod.readthedocs.io/en/stable/index.html), [DeepSpeed](https://github.com/microsoft/DeepSpeed), [DDP](https://pytorch.org/docs/stable/notes/ddp.html), etc.)
     - Typically relatively simple to get up and running (minor modifications to existing code)
 - All of the workers own a replica of the model
-- The global batch of data is split into multiple mini-batches and processed by different workers
+- The global batch of data is split into multiple mini-batches and processed by different workers (as shown in figure below)
 - Each worker computes the corresponding loss and gradients with respect to the data it processes
 - Before updating of the parameters at each epoch, the loss and gradients are averaged across all workers through a collective operation
-    - Relatively simple to implement, `MPI_Allreduce` is the only communication operation required
     - [Concepts — Horovod documentation](https://horovod.readthedocs.io/en/stable/concepts_include.html)
-- Our recent presentation on data-parallel training is available on [youtube](https://youtu.be/930yrXjNkgM) 
-- In the data-parallel approach, all workers own a replica of the model. The global batch of data is split into multiple minibatches, as shown in the figure below, and processed by different workers.
-- Each worker computes the corresponding loss and gradients with respect to the local data it possesses. Before updating the parameters at each epoch, the loss and gradients are averaged among all the workers through a collective `allreduce` operation.
-    - `MPI` defines the function `MPI_Allreduce` to reduce values from all ranks and broadcast the result of the reduction such that all processes have a copy of it at the end of the operation.
+    - Relatively simple to implement, `MPI_Allreduce` is the only communication operation required
+    - `MPI` defines the function `MPI_Allreduce` to reduce values from all ranks and then broadcast the result back to all processes
     - There are multiple different ways to implement the allreduce, and it may vary from problem to problem[^4], [^5]
     
+
+- Our recent presentation on data-parallel training is available on [youtube](https://youtu.be/930yrXjNkgM) 
+
+
 
 <img src="assets/avgGrads.svg" width="66%">
 
@@ -144,6 +149,9 @@ The [Switch Transformer](https://arxiv.org/abs/2101.03961) has a clear discussio
 <img src="assets/ParallelismSplits.svg" width="66%" style="padding-right:10%;" />
 
 <img src="assets/data-parallel.svg" width="30%"> <img src="assets/model-parallel.svg" width="36%" style="margin-left:50px;" />
+
+<!--<img src="assets/scale_results_small.svg" width="100%">-->
+
 
 [^ddp]: [PyTorch Distributed Overview — PyTorch Tutorials 1.11.0 documentation](https://pytorch.org/tutorials/beginner/dist_overview.html):
 [^1]: Sergeev, A., Del Balso, M. (2017) [Meet Horovod: Uber’s Open Source Distributed Deep Learning Framework for TensorFlow](https://eng.uber.com/horovod/)

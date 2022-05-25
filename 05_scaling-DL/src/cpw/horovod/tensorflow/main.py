@@ -13,6 +13,7 @@ from typing import Optional
 
 
 import tensorflow as tf
+import horovod.tensorflow as hvd
 import numpy as np
 import hydra
 
@@ -23,22 +24,18 @@ log = logging.getLogger(__name__)
 tf.autograph.set_verbosity(0)
 
 
-import horovod.tensorflow as hvd
 hvd.init()
 RANK = hvd.rank()
 SIZE = hvd.size()
 LOCAL_RANK = hvd.local_rank()
 gpus = tf.config.experimental.list_physical_devices('GPU')
-# tf.config.experimental.enable_mlir_graph_optimization()
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        log.info(e)
-
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[LOCAL_RANK], 'GPU')
+    tf.config.experimental.set_visible_devices(
+        gpus[hvd.local_rank()],
+        'GPU'
+    )
 
 
 Tensor = tf.Tensor
@@ -129,7 +126,7 @@ class Trainer:
             acc = tf.math.reduce_sum(
                 tf.cast(tf.math.equal(pred, target), TF_FLOAT)
             )
-            
+
         # Horovod: add Horovod DistributedGradientTape
         tape = hvd.DistributedGradientTape(tape)
         grads = tape.gradient(loss, self.model.trainable_variables)
@@ -209,7 +206,7 @@ class Trainer:
         return correct / tf.constant(total, dtype=TF_FLOAT)
 
 
-@hydra.main(config_path='./conf', config_name='config')
+@hydra.main(version_base=None, config_path='./conf', config_name='config')
 def main(cfg: DictConfig) -> None:
     epoch_times = []
     start = time.time()
