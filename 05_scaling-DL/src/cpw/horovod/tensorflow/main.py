@@ -13,12 +13,12 @@ from typing import Optional
 
 
 import tensorflow as tf
+import horovod.tensorflow as hvd
 import numpy as np
 import hydra
 
 from omegaconf import DictConfig
 from pathlib import Path
-import horovod.tensorflow as hvd
 
 log = logging.getLogger(__name__)
 tf.autograph.set_verbosity(0)
@@ -29,16 +29,13 @@ RANK = hvd.rank()
 SIZE = hvd.size()
 LOCAL_RANK = hvd.local_rank()
 gpus = tf.config.experimental.list_physical_devices('GPU')
-# tf.config.experimental.enable_mlir_graph_optimization()
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        log.info(e)
-
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[LOCAL_RANK], 'GPU')
+    tf.config.experimental.set_visible_devices(
+        gpus[hvd.local_rank()],
+        'GPU'
+    )
 
 
 Tensor = tf.Tensor
