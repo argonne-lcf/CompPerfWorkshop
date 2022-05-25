@@ -137,7 +137,7 @@ class Trainer:
         if WITH_DDP:
             init_process_group(RANK, SIZE, backend=self.backend)
 
-        self.setup_torch()
+        # self.setup_torch()
         self.data = self.setup_data()
         self.model = self.build_model()
         if self.device == 'gpu':
@@ -366,13 +366,19 @@ def train_mnist(cfg: DictConfig):
             log.info(sep)
 
 
-    log.info(f'Total training time: {time.time() - start} seconds')
-    log.info(
+    rstr = f'[{RANK}] ::'
+    log.info(' '.join([
+        rstr,
+        f'Total training time: {time.time() - start} seconds'
+    ]))
+    log.info(' '.join([
+        rstr,
         f'Average time per epoch in the last 5: {np.mean(epoch_times[-5])}'
-    )
+
+    ]))
 
 
-@hydra.main(config_path='./conf', config_name='config')
+@hydra.main(version_base=None, config_path='./conf', config_name='config')
 def main(cfg: DictConfig) -> None:
     train_mnist(cfg)
     cleanup()
