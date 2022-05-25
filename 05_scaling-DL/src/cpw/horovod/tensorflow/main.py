@@ -18,12 +18,12 @@ import hydra
 
 from omegaconf import DictConfig
 from pathlib import Path
+import horovod.tensorflow as hvd
 
 log = logging.getLogger(__name__)
 tf.autograph.set_verbosity(0)
 
 
-import horovod.tensorflow as hvd
 hvd.init()
 RANK = hvd.rank()
 SIZE = hvd.size()
@@ -129,7 +129,7 @@ class Trainer:
             acc = tf.math.reduce_sum(
                 tf.cast(tf.math.equal(pred, target), TF_FLOAT)
             )
-            
+
         # Horovod: add Horovod DistributedGradientTape
         tape = hvd.DistributedGradientTape(tape)
         grads = tape.gradient(loss, self.model.trainable_variables)
@@ -209,7 +209,7 @@ class Trainer:
         return correct / tf.constant(total, dtype=TF_FLOAT)
 
 
-@hydra.main(config_path='./conf', config_name='config')
+@hydra.main(version_base=None, config_path='./conf', config_name='config')
 def main(cfg: DictConfig) -> None:
     epoch_times = []
     start = time.time()
