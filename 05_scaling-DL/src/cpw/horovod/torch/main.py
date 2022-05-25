@@ -226,14 +226,16 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
             if batch_idx % self.cfg.logfreq == 0:
-                # Horovod: use train_sampler to determine the number of examples in
-                # this worker's partition.
-                log.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(data), len(train_sampler),
-                           100. * batch_idx / len(train_loader), loss.item()))
+                # Horovod: use train_sampler to determine the number of
+                # examples in this worker's partition.
+                log.info(' '.join([
+                    f'Train Epoch: {epoch}',
+                    f'[{batch_idx*len(data)}/{len(train_sampler)}',
+                    f'({100.*batch_idx/len(train_loader):.0f}%)]',
+                    f'Loss: {loss.item():.6f}'
+                ]))
 
         return loss
-
 
     def train_epoch1(
             self,
@@ -298,7 +300,9 @@ class Trainer:
             test_loss += F.nll_loss(output, target, size_average=False).item()
             # get the index of the max log-probability
             pred = output.data.max(1, keepdim=True)[1]
-            test_accuracy += pred.eq(target.data.view_as(pred)).cpu().float().sum()
+            test_accuracy += (
+                pred.eq(target.data.view_as(pred)).cpu().float().sum()
+            )
 
         # Horovod: use test_sampler to determine the number of examples in
         # this worker's partition.
@@ -311,11 +315,13 @@ class Trainer:
 
         # Horovod: print output only on first rank.
         if hvd.rank() == 0:
-            log.info('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
-                test_loss, 100. * test_accuracy))
+            log.info(
+                '\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
+                    test_loss, 100. * test_accuracy
+                )
+            )
 
         return test_accuracy
-
 
     def test1(self) -> float:
         total = 0
@@ -334,7 +340,7 @@ class Trainer:
         return correct / total
 
 
-@hydra.main(config_path='./conf', config_name='config')
+@hydra.main(version_base=None, config_path='./conf', config_name='config')
 def main(cfg: DictConfig) -> None:
     if RANK == 0:
         log.info(f'RANK: {RANK} of {SIZE}')
