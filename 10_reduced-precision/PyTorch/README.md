@@ -1,10 +1,9 @@
 # Auotmatic Mixed Precision in PyTorch
 
 -----------
-Training in FP16 that is in half precision results in slightly faster training in nVidia cards that supports half precision ops. Also the memory requirements of the models weights are almost halved since we use 16-bit format to store the weights instead of 32-bits.
+Training in FP16 that is in half precision results in slightly faster training in NVIDIA cards that supports half precision ops. Also the memory requirements of the models weights are almost halved since we use 16-bit format to store the weights instead of 32-bits.
 
-Native support in `torch.cuda.amp` as of [PyTorch
-1.6](https://pytorch.org/blog/pytorch-1.6-released/) (July 2020) and NGC container 20.6.
+Native support in `torch.cuda.amp` as of [PyTorch 1.6](https://pytorch.org/blog/pytorch-1.6-released/) (July 2020) and NGC container 20.6.
 
 The procedure is very similar to that described in [TensorFlow](../TensorFlow/README.md):
 
