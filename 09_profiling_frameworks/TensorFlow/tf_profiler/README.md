@@ -15,6 +15,13 @@ Next, open your browser and navigate to `localhost:6006` (or, whatever port you 
 
 ![Tensorboard Profiler Overview](profiler_overview.png)
 
+#### *(Port forwarding for tensorboard)*
+*(If you want to run tensorboard directly on compute node at ALCF you will need to do port forwarding*
+```
+ssh -L PORT:localhost:PORT USER@theta.alcf.anl.gov ssh -L PORT:localhost:PORT thetagpusn1 ssh -L PORT:localhost:PORT thetagpuXXX
+```
+*where `thetagpuXXX` is the name of compute node where tensorboard is running.)*
+
 And, if you scroll down, you'll see the list of the top 10 most time consuming operations:
 
 ![top 10](top10_ops.png)
