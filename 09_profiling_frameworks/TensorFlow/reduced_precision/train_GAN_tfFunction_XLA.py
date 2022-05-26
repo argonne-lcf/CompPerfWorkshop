@@ -336,8 +336,8 @@ def forward_pass(_generator, _discriminator, _real_batch, _input_size):
         swap_real = tf.constant(-soften, shape = indices.shape, dtype=tf.float16)
         swap_fake = tf.constant( soften, shape = indices.shape, dtype=tf.float16)
 
-        real_labels = real_labels + tf.scatter_nd(indices=indices, updates=swap_real, shape=real_labels.shape, dtype=tf.float16)
-        fake_labels = fake_labels + tf.scatter_nd(indices=indices, updates=swap_fake, shape=fake_labels.shape, dtype=tf.float16)
+        real_labels = real_labels + tf.scatter_nd(indices=indices, updates=swap_real, shape=real_labels.shape)
+        fake_labels = fake_labels + tf.scatter_nd(indices=indices, updates=swap_fake, shape=fake_labels.shape)
 
 
         # Compute the loss for the discriminator on the real images:
