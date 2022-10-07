@@ -347,3 +347,11 @@ Now you can open tensorboard in your browser `http://localhost:PORT`.
 ![tensorboard_overview](figs/profile.png)
 
 More information on the example and usage of the new PyTorch profile can be found on its [github page](https://github.com/pytorch/kineto/tree/master/tb_plugin).
+
+
+## References and additional information
+The following materials were used in this tutorial and recommended for further study.
+- [PyTorch autograd profiler example](https://pytorch.org/tutorials/beginner/profiler.html)
+- [PyTorch profiler](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html)
+- [PyTorch profiler with TensorBoard](https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html?highlight=tensorboard)
+- [PyTorch TensorBoard Plugin usage instructions](https://github.com/pytorch/kineto/tree/main/tb_plugin)
